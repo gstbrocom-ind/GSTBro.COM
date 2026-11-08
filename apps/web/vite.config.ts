@@ -6,6 +6,7 @@ import { indexableRoutes } from './src/seo/routes';
 const siteUrl = 'https://gstbro.com';
 
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     Sitemap({
