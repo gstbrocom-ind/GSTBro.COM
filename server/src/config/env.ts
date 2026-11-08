@@ -31,4 +31,12 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
-export const corsOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim());
+export const corsOrigins = Array.from(
+  new Set([
+    ...env.CORS_ORIGINS.split(',').map((o) => o.trim()),
+    env.SITE_URL,
+    'https://gstbro.com',
+    'https://www.gstbro.com',
+    'https://gst-bro-com.vercel.app',
+  ])
+).filter(Boolean);

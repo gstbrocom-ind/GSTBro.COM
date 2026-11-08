@@ -27,18 +27,42 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   try {
     res = await fetch(primaryUrl, { ...options, headers });
   } catch {
-    const fallbackHost = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
-    const fallbackUrl = `http://${fallbackHost}:3001${path}`;
-    try {
-      res = await fetch(fallbackUrl, { ...options, headers });
-    } catch {
-      throw new Error('Unable to connect to GST Bro server. Please verify the backend is running.');
+    const isLocal =
+      typeof window !== 'undefined' &&
+      (window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1');
+    const fallbackUrl = isLocal
+      ? `http://127.0.0.1:3001${path}`
+      : `https://gstbro-api.onrender.com${path}`;
+
+    if (primaryUrl !== fallbackUrl) {
+      try {
+        res = await fetch(fallbackUrl, { ...options, headers });
+      } catch {
+        throw new Error('Unable to connect to GST Bro server. Please verify your connection or try again later.');
+      }
+    } else {
+      throw new Error('Unable to connect to GST Bro server. Please verify your connection or try again later.');
     }
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error ?? 'Request failed');
+    let errorMessage = `Request failed (${res.status})`;
+    try {
+      const err = await res.json();
+      if (err.error || err.message) {
+        errorMessage = err.error || err.message;
+      }
+    } catch {
+      try {
+        const text = await res.text();
+        if (text && text.length < 200 && !text.includes('<!DOCTYPE')) {
+          errorMessage = text;
+        }
+      } catch {
+        // ignore non-json error
+      }
+    }
+    throw new Error(errorMessage);
   }
   return res.json();
 }

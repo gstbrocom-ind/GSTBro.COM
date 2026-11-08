@@ -11,6 +11,33 @@ const CLIENTS_FOLDER = '_Clients';
 
 const CLIENT_SUBFOLDERS = ['Registration', 'Returns', 'Cancellation', 'General', 'ITC', 'Sales', 'Purchases', 'GSTR-1', 'GSTR-3B', 'Client Docs'];
 
+function parseServiceAccountCredentials(raw: string): any {
+  let str = raw.trim();
+  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    str = str.slice(1, -1).trim();
+  }
+  if (str.startsWith('ey') && !str.includes('{')) {
+    try {
+      str = Buffer.from(str, 'base64').toString('utf-8');
+    } catch {
+      // ignore
+    }
+  }
+
+  let creds: any;
+  try {
+    creds = JSON.parse(str);
+  } catch {
+    const unescaped = str.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    creds = JSON.parse(unescaped);
+  }
+
+  if (creds && typeof creds.private_key === 'string') {
+    creds.private_key = creds.private_key.replace(/\\n/g, '\n');
+  }
+  return creds;
+}
+
 export class GoogleDriveService {
   private drive: drive_v3.Drive;
   private rootFolderId: string | null = null;
@@ -20,7 +47,7 @@ export class GoogleDriveService {
     if (!json) {
       throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not configured');
     }
-    const credentials = JSON.parse(json);
+    const credentials = parseServiceAccountCredentials(json);
     const auth = new google.auth.GoogleAuth({
       credentials,
       scopes: ['https://www.googleapis.com/auth/drive'],
@@ -348,6 +375,13 @@ let driveService: GoogleDriveService | null = null;
 
 export function getDriveService(): GoogleDriveService | null {
   if (!env.GOOGLE_SERVICE_ACCOUNT_JSON) return null;
-  if (!driveService) driveService = new GoogleDriveService();
+  if (!driveService) {
+    try {
+      driveService = new GoogleDriveService();
+    } catch (err: any) {
+      console.warn('Google Drive Service initialization failed (Google Drive features will be unavailable):', err?.message);
+      return null;
+    }
+  }
   return driveService;
 }
