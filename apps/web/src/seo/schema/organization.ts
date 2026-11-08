@@ -15,7 +15,7 @@ export function organizationSchema(settings?: PublicSettings | null) {
     contactPoint: {
       '@type': 'ContactPoint',
       telephone: settings?.contactPhone || '+91 800 123 4567',
-      email: settings?.contactEmail || 'hello@gstbro.in',
+      email: settings?.contactEmail || 'hello@gstbro.com',
       contactType: 'customer service',
       areaServed: 'IN',
       availableLanguage: ['en', 'hi'],
@@ -37,7 +37,7 @@ export function professionalServiceSchema(settings?: PublicSettings | null) {
     logo: settings?.logoUrl || `${SITE_URL}/logo.svg`,
     image: `${SITE_URL}/og-default.svg`,
     telephone: settings?.contactPhone || '+91 800 123 4567',
-    email: settings?.contactEmail || 'hello@gstbro.in',
+    email: settings?.contactEmail || 'hello@gstbro.com',
     priceRange: '₹₹',
     currenciesAccepted: 'INR',
     paymentAccepted: 'UPI, Net Banking, Credit Card',

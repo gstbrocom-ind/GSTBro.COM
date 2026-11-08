@@ -6,8 +6,8 @@ End-to-end GST services platform on free-tier infrastructure.
 
 | Layer | Service |
 |-------|---------|
-| Public site + client portal | Vercel (`gstbro.in`) |
-| Admin dashboard | Vercel (`admin.gstbro.in`) |
+| Public site + client portal | Vercel (`gstbro.com`) |
+| Admin dashboard | Vercel (`admin.gstbro.com`) |
 | API | Render (Node.js / Fastify) |
 | Database | Supabase (PostgreSQL) |
 | Client documents | Google Drive |
@@ -53,10 +53,10 @@ Create the first admin (set password via **Forgot password** on admin login):
 
 ```sql
 INSERT INTO users (email, name, role, email_verified)
-VALUES ('admin@gstbro.in', 'Admin', 'ADMIN', true);
+VALUES ('admin@gstbro.com', 'Admin', 'ADMIN', true);
 ```
 
-Then open `admin.gstbro.in/login` → **Forgot password** → Resend sends OTP → set your password.
+Then open `admin.gstbro.com/login` → **Forgot password** → Resend sends OTP → set your password.
 
 ### Auth flows
 
@@ -93,18 +93,18 @@ Connect repo → use `render.yaml` blueprint or set:
 ### Vercel (Web)
 
 - Root directory: `apps/web`
-- Env: `VITE_API_URL`, `VITE_SITE_URL=https://gstbro.in`
-- Domain: `gstbro.in`
+- Env: `VITE_API_URL`, `VITE_SITE_URL=https://gstbro.com`
+- Domain: `gstbro.com`
 
 ### Vercel (Admin)
 
 - Root directory: `apps/admin`
 - Env: `VITE_API_URL`
-- Domain: `admin.gstbro.in`
+- Domain: `admin.gstbro.com`
 
 ## SEO
 
-All public pages on `gstbro.in` are indexable with full meta tags, JSON-LD, and sitemap. `/dashboard/*` and `admin.gstbro.in` are noindex.
+All public pages on `gstbro.com` are indexable with full meta tags, JSON-LD, and sitemap. `/dashboard/*` and `admin.gstbro.com` are noindex.
 
 Admin can override per-page SEO and social links without redeploying.
 

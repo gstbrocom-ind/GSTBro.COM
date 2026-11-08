@@ -37,7 +37,7 @@ export async function privacyRoutes(app: FastifyInstance) {
     return {
       version: settings.privacy_notice_version ?? '1.0.0',
       effectiveDate: settings.privacy_notice_effective_date ?? '2027-01-01',
-      grievanceEmail: settings.privacy_grievance_email ?? 'privacy@gstbro.in',
+      grievanceEmail: settings.privacy_grievance_email ?? 'privacy@gstbro.com',
       privacyOfficerName: settings.privacy_officer_name ?? '',
       dpdpOperationalDate: settings.dpdp_operational_date ?? '2027-05-13',
     };

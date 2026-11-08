@@ -17,7 +17,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           faviconUrl: '',
           logoUrl: '',
           contactPhone: '+91 800 123 4567',
-          contactEmail: 'hello@gstbro.in',
+          contactEmail: 'hello@gstbro.com',
           officeAddress: 'Plot No. 42, Cyber Towers Area, Hitech City, Madhapur, Hyderabad, Telangana 500081',
           officeCity: 'Hyderabad, Telangana',
           googleMapsUrl: 'https://maps.google.com/?q=Cyber+Towers+Hitech+City+Hyderabad',

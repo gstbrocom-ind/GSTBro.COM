@@ -172,7 +172,7 @@ INSERT INTO site_settings (key, value) VALUES
   ('favicon_url', ''),
   ('logo_url', ''),
   ('contact_phone', ''),
-  ('contact_email', 'hello@gstbro.in'),
+  ('contact_email', 'hello@gstbro.com'),
   ('social_whatsapp_url', ''),
   ('social_whatsapp_enabled', 'false'),
   ('social_instagram_url', ''),

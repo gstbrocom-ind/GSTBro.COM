@@ -92,7 +92,7 @@ export async function logActivity(
 
   const actorUserId = user.id || null;
   const actorName = user.name || (user.role === 'ADMIN' ? 'Admin' : user.role === 'TEAM' ? 'Team Staff' : 'User');
-  const actorEmail = user.email || 'system@gstbro.in';
+  const actorEmail = user.email || 'system@gstbro.com';
   const actorRole = user.role || 'SYSTEM';
 
   let ipAddress: string | null = null;

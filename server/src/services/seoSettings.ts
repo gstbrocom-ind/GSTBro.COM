@@ -86,7 +86,7 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     faviconUrl: map.favicon_url || '',
     logoUrl: map.logo_url || '',
     contactPhone: map.contact_phone || '',
-    contactEmail: map.contact_email || 'hello@gstbro.in',
+    contactEmail: map.contact_email || 'hello@gstbro.com',
     officeAddress: map.office_address || 'Plot No. 42, Cyber Towers Area, Hitech City, Madhapur, Hyderabad, Telangana 500081',
     officeCity: map.office_city || 'Hyderabad, Telangana',
     googleMapsUrl: map.google_maps_url || 'https://maps.google.com/?q=Cyber+Towers+Hitech+City+Hyderabad',

@@ -145,7 +145,7 @@ function LegacyAdminLogin() {
               <input
                 type="text"
                 required
-                placeholder="name@gstbro.in or 9876543210"
+                placeholder="name@gstbro.com or 9876543210"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full px-4 py-2.5 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition"
@@ -544,7 +544,7 @@ export function ForgotPasswordPage() {
                   <input
                     type="email"
                     required
-                    placeholder="name@gstbro.in"
+                    placeholder="name@gstbro.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-2.5 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"

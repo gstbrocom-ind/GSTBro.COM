@@ -105,7 +105,7 @@ export function PrivacyPage() {
           <SectionHeading num={1} title="Who We Are (Data Fiduciary)" />
           <p className="text-sm text-slate-700 leading-relaxed">
             GSTBro is a GST compliance and services platform operated in India. For questions about this notice or our privacy practices, contact us at{' '}
-            <a href="mailto:privacy@gstbro.in" className="text-blue-600 underline hover:text-blue-800">privacy@gstbro.in</a>.
+            <a href="mailto:privacy@gstbro.com" className="text-blue-600 underline hover:text-blue-800">privacy@gstbro.com</a>.
           </p>
         </section>
 
@@ -234,7 +234,7 @@ export function PrivacyPage() {
           <div className="text-sm text-slate-700 leading-relaxed space-y-3">
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
               <p className="font-bold text-slate-900 mb-1">Privacy Officer / Grievance Contact:</p>
-              <p>Email: <a href="mailto:privacy@gstbro.in" className="text-blue-600 underline hover:text-blue-800">privacy@gstbro.in</a></p>
+              <p>Email: <a href="mailto:privacy@gstbro.com" className="text-blue-600 underline hover:text-blue-800">privacy@gstbro.com</a></p>
               <p className="text-xs text-slate-500 mt-1">We acknowledge all privacy grievances within 48 hours.</p>
             </div>
           </div>

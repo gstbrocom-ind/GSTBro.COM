@@ -424,10 +424,10 @@ export function PrivacyRequestsPage() {
             <p>
               <strong className="text-slate-200">Privacy &amp; Grievance Officer:</strong>{' '}
               <a
-                href="mailto:privacy@gstbro.in"
+                href="mailto:privacy@gstbro.com"
                 className="text-blue-400 hover:text-blue-300 underline font-medium focus:outline-none focus:ring-1 focus:ring-blue-400 rounded"
               >
-                privacy@gstbro.in
+                privacy@gstbro.com
               </a>
             </p>
             <p className="text-[11px] text-slate-400">

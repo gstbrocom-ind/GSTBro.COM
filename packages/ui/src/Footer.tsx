@@ -8,7 +8,7 @@ interface FooterProps {
 export function Footer({ settings }: FooterProps) {
   const siteName = settings?.siteName ?? 'GSTBro';
   const year = new Date().getFullYear();
-  const contactEmail = settings?.contactEmail || 'hello@gstbro.in';
+  const contactEmail = settings?.contactEmail || 'hello@gstbro.com';
   const contactPhone = settings?.contactPhone || '+91 800 123 4567';
   const officeAddress = settings?.officeAddress || 'Plot No. 42, Cyber Towers Area, Hitech City, Madhapur, Hyderabad, Telangana 500081';
   const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.google.com/?q=Cyber+Towers+Hitech+City+Hyderabad';

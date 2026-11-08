@@ -116,12 +116,12 @@ export function RefundPolicyPage() {
           </p>
           <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900">
             For refund or billing inquiries, please contact our billing desk directly at{' '}
-            <a href="mailto:billing@gstbro.in" className="font-bold underline text-blue-700 hover:text-blue-900">
-              billing@gstbro.in
+            <a href="mailto:billing@gstbro.com" className="font-bold underline text-blue-700 hover:text-blue-900">
+              billing@gstbro.com
             </a>{' '}
             or write to{' '}
-            <a href="mailto:hello@gstbro.in" className="font-bold underline text-blue-700 hover:text-blue-900">
-              hello@gstbro.in
+            <a href="mailto:hello@gstbro.com" className="font-bold underline text-blue-700 hover:text-blue-900">
+              hello@gstbro.com
             </a>.
           </div>
         </section>

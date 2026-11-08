@@ -60,9 +60,9 @@ ALTER TABLE leads
 INSERT INTO site_settings (key, value) VALUES
   ('privacy_notice_version', '1.0.0'),
   ('privacy_notice_effective_date', '2027-01-01'),
-  ('privacy_grievance_email', 'privacy@gstbro.in'),
+  ('privacy_grievance_email', 'privacy@gstbro.com'),
   ('privacy_officer_name', ''),
-  ('privacy_officer_email', 'privacy@gstbro.in'),
+  ('privacy_officer_email', 'privacy@gstbro.com'),
   ('children_age_policy', 'adults_only_18_plus'),
   ('analytics_enabled', 'false'),
   ('dpdp_operational_date', '2027-05-13')

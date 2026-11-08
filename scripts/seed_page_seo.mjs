@@ -217,11 +217,11 @@ async function seed() {
           meta_title: page.meta_title,
           meta_description: page.meta_description,
           meta_keywords: page.meta_keywords,
-          canonical_url: `https://gstbro.in${page.route_path === '/' ? '' : page.route_path}`,
+          canonical_url: `https://gstbro.com${page.route_path === '/' ? '' : page.route_path}`,
           robots: page.robots || 'index, follow',
           og_title: page.meta_title,
           og_description: page.meta_description,
-          og_image_url: 'https://gstbro.in/og-default.jpg',
+          og_image_url: 'https://gstbro.com/og-default.jpg',
         },
         { onConflict: 'route_path' }
       );

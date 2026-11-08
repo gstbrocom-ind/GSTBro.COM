@@ -216,7 +216,7 @@ Your data is used strictly for:
 - We never sell, rent, or trade your data to third-party advertisers.
 
 ### 4. Contact Us
-For privacy questions, reach us at support@gstbro.in.`,
+For privacy questions, reach us at support@gstbro.com.`,
 
   content_terms_body: `# Terms of Service for GSTBro
 
