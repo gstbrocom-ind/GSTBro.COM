@@ -32,6 +32,6 @@ services:
       - key: GOOGLE_DRIVE_ROOT_FOLDER_ID
         sync: false
       - key: SITE_URL
-        value: https://gstbro.in
+        value: https://gstbro.com
       - key: CORS_ORIGINS
-        value: https://gstbro.in,https://www.gstbro.in,https://admin.gstbro.in
+        value: https://gstbro.com,https://www.gstbro.com,https://gstbro.in,https://www.gstbro.in,https://admin.gstbro.in,https://admin.gstbro.com

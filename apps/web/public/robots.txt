@@ -11,4 +11,4 @@ Disallow: /client/*
 Disallow: /privacy/requests
 Disallow: /privacy/requests/*
 
-Sitemap: https://gstbro.in/sitemap.xml
+Sitemap: https://gstbro.com/sitemap.xml

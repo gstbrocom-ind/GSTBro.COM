@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import Sitemap from 'vite-plugin-sitemap';
 import { indexableRoutes } from './src/seo/routes';
 
-const siteUrl = 'https://gstbro.in';
+const siteUrl = 'https://gstbro.com';
 
 export default defineConfig({
   plugins: [
