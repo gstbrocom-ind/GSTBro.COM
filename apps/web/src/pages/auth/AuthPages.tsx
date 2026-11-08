@@ -8,12 +8,13 @@ import { INDIAN_STATES } from '../../constants/indianStates';
 import { useAuth } from '../../context/AuthContext';
 import { TurnstileWidget } from '../../components/TurnstileWidget';
 import { trackLoginSuccess, trackSignUp } from '../../lib/analytics';
+import { ArrowRight, Check, X, Smartphone, Mail, Info, ArrowLeft } from 'lucide-react';
 
 const inputClass =
   'w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder-gray-400';
 
 // -------------------------------------------------------------
-// 1. NORMAL LOGIN FORM (Zero OTP â€” Email OR Mobile + Password)
+// 1. NORMAL LOGIN FORM (Zero OTP — Email OR Mobile + Password)
 // -------------------------------------------------------------
 function LoginForm() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ function LoginForm() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -56,6 +58,8 @@ function LoginForm() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid login credentials. Please try again.');
+      setTurnstileToken('');
+      setTurnstileResetKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -86,7 +90,7 @@ function LoginForm() {
         </div>
         <input
           type="password"
-          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+          placeholder="Enter your password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -97,6 +101,7 @@ function LoginForm() {
       {/* Cloudflare Turnstile CAPTCHA Verification */}
       <div className="py-1">
         <TurnstileWidget
+          resetKey={turnstileResetKey}
           onVerify={(token) => {
             setTurnstileToken(token);
             setError('');
@@ -135,7 +140,10 @@ function LoginForm() {
             <span>Signing in...</span>
           </span>
         ) : (
-          'Sign In âž”'
+          <span className="flex items-center justify-center gap-2">
+            <span>Sign In</span>
+            <ArrowRight className="w-4 h-4" />
+          </span>
         )}
       </button>
     </form>
@@ -210,7 +218,7 @@ function SignupForm() {
       });
       if (res.valid) {
         setCodeValidationState('valid');
-        setCodeValidationMsg('âœ“ Welcome Code confirmed! You are authorized to register.');
+        setCodeValidationMsg('✓ Welcome Code confirmed! You are authorized to register.');
         return true;
       } else {
         setCodeValidationState('invalid');
@@ -429,7 +437,7 @@ function SignupForm() {
       <form onSubmit={handleVerifyOtp} className="max-w-md mx-auto space-y-5">
         <div className="text-center space-y-1">
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
-            {otpChannel === 'mobile' ? 'ðŸ“±' : 'âœ‰ï¸'}
+            {otpChannel === 'mobile' ? <Smartphone className="w-6 h-6" /> : <Mail className="w-6 h-6" />}
           </div>
           <h2 className="text-xl font-bold text-gray-900">
             {otpChannel === 'mobile' ? 'Verify Mobile Number' : 'Verify Email Address'}
@@ -502,7 +510,7 @@ function SignupForm() {
             }}
             className="text-gray-500 hover:text-gray-800 cursor-pointer"
           >
-            â† Change Channel / Details
+            ← Change Channel / Details
           </button>
         </div>
       </form>
@@ -534,7 +542,7 @@ function SignupForm() {
                 otpChannel === 'mobile' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
               }`}
             >
-              ðŸ“±
+              <Smartphone className="w-4 h-4" />
             </div>
             <div>
               <span
@@ -567,7 +575,7 @@ function SignupForm() {
                 otpChannel === 'email' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
               }`}
             >
-              âœ‰ï¸
+              <Mail className="w-4 h-4" />
             </div>
             <div>
               <span
@@ -634,18 +642,18 @@ function SignupForm() {
 
         {codeValidationState === 'valid' && (
           <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
-            <span>âœ“</span> {codeValidationMsg}
+            <span>✓</span> {codeValidationMsg}
           </div>
         )}
 
         {codeValidationState === 'invalid' && (
           <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg">
-            <span>âœ•</span> {codeValidationMsg}
+            <span>✕</span> {codeValidationMsg}
           </div>
         )}
 
         <p className="text-[11px] text-slate-500 leading-relaxed">
-          Registration requires a 5â€“8 character Welcome Code provided by the Admin. Once used, your code will be permanently registered and linked to your account.
+          Registration requires a 5–8 character Welcome Code provided by the Admin. Once used, your code will be permanently registered and linked to your account.
         </p>
       </div>
 
@@ -675,9 +683,9 @@ function SignupForm() {
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">Mobile Number (10 digits) *</label>
-          {/* JIT privacy notice â€” mobile */}
+          {/* JIT privacy notice — mobile */}
           <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-2 leading-relaxed">
-            â„¹ï¸ Your mobile number is used for one-time verification and login. It is not shared with third parties for marketing.
+            ℹ️ Your mobile number is used for one-time verification and login. It is not shared with third parties for marketing.
           </p>
           <div className="relative">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
@@ -865,7 +873,7 @@ export function ForgotPasswordPage() {
     return () => clearInterval(interval);
   }, [cooldown]);
 
-  // Mobile: Step 1 â€” Request OTP
+  // Mobile: Step 1 — Request OTP
   const handleSendMobileOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -894,7 +902,7 @@ export function ForgotPasswordPage() {
     }
   };
 
-  // Mobile: Step 2 â€” Verify OTP and get single-use Reset Token
+  // Mobile: Step 2 — Verify OTP and get single-use Reset Token
   const handleVerifyMobileOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -924,7 +932,7 @@ export function ForgotPasswordPage() {
     }
   };
 
-  // Mobile: Step 3 â€” Set New Password with Reset Token
+  // Mobile: Step 3 — Set New Password with Reset Token
   const handleResetWithToken = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmNewPassword) {
@@ -951,7 +959,7 @@ export function ForgotPasswordPage() {
     }
   };
 
-  // Email: Step 1 â€” Request Email Code
+  // Email: Step 1 — Request Email Code
   const handleSendEmailCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -973,7 +981,7 @@ export function ForgotPasswordPage() {
     }
   };
 
-  // Email: Step 2 â€” Reset Password with Email Code
+  // Email: Step 2 — Reset Password with Email Code
   const handleResetWithEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmNewPassword) {

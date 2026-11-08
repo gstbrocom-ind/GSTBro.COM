@@ -8,6 +8,14 @@ export interface TurnstileVerificationResult {
   errorCodes?: string[];
 }
 
+const ALLOWED_HOSTNAMES = [
+  'gstbro.com',
+  'www.gstbro.com',
+  'gst-bro-com.vercel.app',
+  'localhost',
+  '127.0.0.1',
+];
+
 /**
  * Validates a Cloudflare Turnstile token server-side via the official Siteverify API.
  * Never trusts frontend-only assertions.
@@ -24,7 +32,7 @@ export async function verifyTurnstileToken(
     };
   }
 
-  // Allow seamless local dev verification when running on localhost / dev environment
+  // Allow seamless local dev verification when running strictly on localhost / dev environment
   if (token === 'turnstile_local_verified_token') {
     if (env.NODE_ENV !== 'production' || clientIp === '127.0.0.1' || clientIp === '::1') {
       return {
@@ -62,6 +70,8 @@ export async function verifyTurnstileToken(
 
     if (!data.success) {
       const errorCodes = data['error-codes'] || [];
+      console.warn('[Turnstile] Server-side siteverify rejected token. Error codes:', errorCodes);
+
       let friendlyMsg = 'Bot verification failed. Please complete the security check again.';
       if (errorCodes.includes('timeout-or-duplicate')) {
         friendlyMsg = 'Verification token has expired or has already been used. Please try again.';
@@ -69,12 +79,24 @@ export async function verifyTurnstileToken(
         friendlyMsg = 'Invalid verification response token.';
       } else if (errorCodes.includes('missing-input-response')) {
         friendlyMsg = 'Missing verification response token.';
+      } else if (errorCodes.includes('bad-request')) {
+        friendlyMsg = 'Security verification request malformed. Please retry.';
       }
 
       return {
         success: false,
         error: friendlyMsg,
         errorCodes,
+      };
+    }
+
+    // Hostname validation: Ensure the token was solved for our verified domains
+    if (data.hostname && !ALLOWED_HOSTNAMES.includes(data.hostname.toLowerCase())) {
+      console.warn(`[Turnstile] Token hostname mismatch: "${data.hostname}" is not in allowed hostnames.`);
+      return {
+        success: false,
+        error: 'Security challenge verification origin mismatch.',
+        hostname: data.hostname,
       };
     }
 
