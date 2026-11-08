@@ -1,0 +1,112 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/cloudflare-docs/production/content/waf/reference/schemas/ruleset.json",
+  "description": "GSTBro Cloudflare Edge-Level Rate Limiting and Bot Defense Ruleset",
+  "rules": [
+    {
+      "description": "Rule 1: Anti-Brute-Force & Credential Stuffing on Login",
+      "action": "block",
+      "action_parameters": {
+        "response": {
+          "status_code": 429,
+          "content_type": "application/json",
+          "content": "{\"error\": \"Too many login attempts from this network. Temporarily blocked by Cloudflare Edge Protection.\"}"
+        }
+      },
+      "expression": "http.request.uri.path eq \"/api/auth/login\" and http.request.method eq \"POST\"",
+      "ratelimit": {
+        "characteristics": ["cf.colo.id", "ip.src"],
+        "period": 60,
+        "requests_per_period": 5,
+        "mitigation_timeout": 300
+      }
+    },
+    {
+      "description": "Rule 2: Anti-OTP Bombing & SMS Credit Exhaustion",
+      "action": "block",
+      "action_parameters": {
+        "response": {
+          "status_code": 429,
+          "content_type": "application/json",
+          "content": "{\"error\": \"OTP generation rate limit exceeded. Please wait 5 minutes before requesting a new code.\"}"
+        }
+      },
+      "expression": "(http.request.uri.path in {\"/api/auth/signup/request-mobile-otp\" \"/api/auth/signup/request-email-otp\" \"/api/auth/forgot-password/mobile-otp\" \"/api/auth/forgot-password\" \"/api/auth/resend-mobile-otp\" \"/api/auth/resend-signup-otp\" \"/api/auth/resend-reset-otp\"}) and http.request.method eq \"POST\"",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "period": 300,
+        "requests_per_period": 3,
+        "mitigation_timeout": 300
+      }
+    },
+    {
+      "description": "Rule 3: Anti-OTP Enumeration & Brute Force",
+      "action": "block",
+      "action_parameters": {
+        "response": {
+          "status_code": 429,
+          "content_type": "application/json",
+          "content": "{\"error\": \"Too many invalid OTP attempts. Verification temporarily blocked by edge security.\"}"
+        }
+      },
+      "expression": "(http.request.uri.path in {\"/api/auth/signup/verify-mobile-otp\" \"/api/auth/signup/verify\" \"/api/auth/forgot-password/verify-mobile-otp\" \"/api/auth/forgot-password/verify-email-otp\" \"/api/auth/verify-mobile/verify\"}) and http.request.method eq \"POST\"",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "period": 300,
+        "requests_per_period": 5,
+        "mitigation_timeout": 900
+      }
+    },
+    {
+      "description": "Rule 4: Anti-Spam Lead & Contact Form Bombing",
+      "action": "managed_challenge",
+      "expression": "http.request.uri.path eq \"/api/leads\" and http.request.method eq \"POST\"",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "period": 600,
+        "requests_per_period": 5,
+        "mitigation_timeout": 600
+      }
+    },
+    {
+      "description": "Rule 5: Anti-Abuse File Upload Limiting (Google Drive / Cloudinary)",
+      "action": "block",
+      "action_parameters": {
+        "response": {
+          "status_code": 429,
+          "content_type": "application/json",
+          "content": "{\"error\": \"Document upload rate limit exceeded. Please wait a few minutes before uploading additional files.\"}"
+        }
+      },
+      "expression": "(http.request.uri.path matches \"^/api/(cases|clients)/.*/documents$\" or http.request.uri.path in {\"/api/admin/settings/logo\" \"/api/admin/settings/favicon\"}) and http.request.method eq \"POST\"",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "period": 300,
+        "requests_per_period": 10,
+        "mitigation_timeout": 300
+      }
+    },
+    {
+      "description": "Rule 6: Global API Volumetric Flooding Defense",
+      "action": "block",
+      "action_parameters": {
+        "response": {
+          "status_code": 429,
+          "content_type": "application/json",
+          "content": "{\"error\": \"Global API request threshold reached. Please throttle your client requests.\"}"
+        }
+      },
+      "expression": "starts_with(http.request.uri.path, \"/api/\")",
+      "ratelimit": {
+        "characteristics": ["ip.src"],
+        "period": 60,
+        "requests_per_period": 120,
+        "mitigation_timeout": 60
+      }
+    },
+    {
+      "description": "Rule 7: Automated Bot & Scraper Challenge on Auth Endpoints",
+      "action": "managed_challenge",
+      "expression": "cf.bot_management.score lt 30 and starts_with(http.request.uri.path, \"/api/auth/\")"
+    }
+  ]
+}

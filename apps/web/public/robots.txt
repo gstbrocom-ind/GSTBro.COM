@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /team
+Disallow: /team/*
+Disallow: /client
+Disallow: /client/*
+Disallow: /privacy/requests
+Disallow: /privacy/requests/*
+
+Sitemap: https://gstbro.in/sitemap.xml

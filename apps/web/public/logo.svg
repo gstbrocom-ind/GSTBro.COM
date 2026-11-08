@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <defs>
+    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+  </defs>
+  <!-- Shield Icon -->
+  <rect x="2" y="6" width="52" height="52" rx="12" fill="#0B132B"/>
+  <rect x="4" y="8" width="48" height="48" rx="10" stroke="#1E293B" stroke-width="1.5"/>
+  <path d="M28 14 L42 21 V35 C42 43 36 49 28 52 C20 49 14 43 14 35 V21 Z" fill="url(#logoGrad)"/>
+  <text x="28" y="38" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="900" fill="#FFFFFF" text-anchor="middle">₹</text>
+  <!-- Brand Text -->
+  <text x="68" y="42" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF" letter-spacing="-1">GST<tspan fill="url(#logoGrad)">Bro</tspan></text>
+</svg>

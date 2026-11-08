@@ -1,0 +1,26 @@
+{
+  "name": "gst-services",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,green \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev -w @gst/web",
+    "dev:admin": "npm run dev -w @gst/admin",
+    "dev:api": "npm run dev -w @gst/server",
+    "build": "npm run build --workspaces --if-present",
+    "build:web": "npm run build -w @gst/web",
+    "build:admin": "npm run build -w @gst/admin",
+    "build:api": "npm run build -w @gst/server",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

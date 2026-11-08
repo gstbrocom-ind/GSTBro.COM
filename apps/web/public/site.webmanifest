@@ -1,0 +1,17 @@
+{
+  "name": "GSTBro — GST Services & Compliance",
+  "short_name": "GSTBro",
+  "description": "End-to-end GST registration, return filing, and CA notice defense across India.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050B18",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

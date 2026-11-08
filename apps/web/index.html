@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en-IN" class="light" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('gstbro_theme');
+          var theme = (saved === 'dark') ? 'dark' : 'light';
+          var root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(theme);
+          root.setAttribute('data-theme', theme);
+
+          var ua = navigator.userAgent.toLowerCase();
+          var isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|lighthouse|headlesschrome|bytespider/i.test(ua);
+          if (!isBot && !sessionStorage.getItem('gstbro_intro_seen')) {
+            root.classList.add('intro-pending');
+          }
+        } catch(e) {}
+      })();
+    </script>
+    <style>
+      html.intro-pending {
+        background: #020B1E !important;
+      }
+      html.intro-pending #main-app-container,
+      html.intro-pending #main-content,
+      html.intro-pending header,
+      html.intro-pending footer {
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    </style>
+    <title>GSTBro — Chartered Accountant GST Services, Registration &amp; Returns India</title>
+    <meta
+      name="description"
+      content="End-to-end GST services platform across India. ICAI Chartered Accountant-supervised monthly GSTR-1 &amp; 3B return filing, fast online GST registration, 2B ITC reconciliation &amp; notice defense."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://gstbro.in/" />
+
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#2563EB" />
+
+    <!-- Open Graph / Social Sharing Defaults -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="GSTBro" />
+    <meta property="og:title" content="GSTBro — Chartered Accountant GST Services &amp; Compliance India" />
+    <meta
+      property="og:description"
+      content="ICAI Chartered Accountant-supervised monthly GSTR-1 &amp; 3B filing, turnkey GST registration, 2B ITC recovery, and scrutiny defense for businesses across India."
+    />
+    <meta property="og:url" content="https://gstbro.in/" />
+    <meta property="og:image" content="https://gstbro.in/og-default.svg" />
+    <meta property="og:locale" content="en_IN" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="GSTBro — Chartered Accountant GST Services &amp; Compliance India" />
+    <meta
+      name="twitter:description"
+      content="ICAI Chartered Accountant-supervised monthly GSTR-1 &amp; 3B filing, turnkey GST registration, 2B ITC recovery, and scrutiny defense for businesses across India."
+    />
+    <meta name="twitter:image" content="https://gstbro.in/og-default.svg" />
+
+    <!-- Google Search Console Verification Meta Tag (Fallback option when DNS TXT is pending) -->
+    <!-- Replace content with production verification token when provided in Google Search Console -->
+    <meta name="google-site-verification" content="gstbro-gsc-verification-pending" />
+
+    <!-- Font Preconnect & Optimized Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
