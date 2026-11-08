@@ -3,10 +3,12 @@ services:
     name: gstbro-api
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build -w @gst/server
+    buildCommand: npm install --include=dev && npm run build -w @gst/server
     startCommand: npm run start -w @gst/server
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
       - key: NODE_ENV
         value: production
       - key: SUPABASE_URL

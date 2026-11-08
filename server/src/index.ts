@@ -176,7 +176,7 @@ const start = async () => {
         .catch((err) => app.log.warn({ err }, 'Retention purge initial execution error'));
     }, 10000);
 
-    const purgeInterval = setInterval(() => {
+    const purgeInterval: NodeJS.Timeout = setInterval(() => {
       import('./services/retentionCleanupService.js')
         .then(({ runRetentionPurge }) => runRetentionPurge())
         .then((summary) => app.log.info({ totalPurged: summary.totalPurged }, 'Periodic retention purge completed'))

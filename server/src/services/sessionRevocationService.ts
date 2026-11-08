@@ -13,14 +13,15 @@ let dbTableExists = true;
 /**
  * Periodically purge expired tokens from in-memory cache to prevent memory leaks.
  */
-setInterval(() => {
+const purgeTimer: NodeJS.Timeout = setInterval(() => {
   const now = Date.now();
   for (const [hash, expiresAt] of revokedTokenMemoryCache.entries()) {
     if (expiresAt <= now) {
       revokedTokenMemoryCache.delete(hash);
     }
   }
-}, 10 * 60 * 1000).unref();
+}, 10 * 60 * 1000);
+purgeTimer.unref();
 
 /**
  * Computes a standard SHA-256 hash of a JWT string.
