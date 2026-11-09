@@ -8,7 +8,7 @@ import { INDIAN_STATES } from '../../constants/indianStates';
 import { useAuth } from '../../context/AuthContext';
 import { TurnstileWidget } from '../../components/TurnstileWidget';
 import { trackLoginSuccess, trackSignUp } from '../../lib/analytics';
-import { ArrowRight, Check, X, Smartphone, Mail, Info, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Check, X, Smartphone, Mail, Info, ArrowLeft } from '../../components/common/AuthIcons';
 
 const inputClass =
   'w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder-gray-400';
