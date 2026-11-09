@@ -6,16 +6,16 @@ import { TITLE_TEMPLATE, SITE_URL, DEFAULT_OG_IMAGE } from '../../seo/meta.confi
 import type { SeoMeta } from '@gst/ui';
 
 export const aboutMeta: SeoMeta = {
-  title: TITLE_TEMPLATE('About Us — India’s Institutional GST Compliance Platform'),
+  title: TITLE_TEMPLATE('About Us — Institutional GST Compliance Platform'),
   description:
-    'Learn about GSTBro — our mission, ICAI Chartered Accountant supervision, technology-driven reconciliation, and commitment to zero-penalty compliance for Indian businesses.',
+    'Learn about GSTBro — our mission, ICAI Chartered Accountant supervision, automated 2B reconciliation, and zero-penalty indirect tax compliance across India.',
   keywords:
     'about gstbro, gst consultants india, chartered accountant gst team, indirect tax advisory, gst compliance company',
   canonical: `${SITE_URL}/about`,
   robots: 'index, follow',
-  ogTitle: TITLE_TEMPLATE('About Us — India’s Institutional GST Compliance Platform'),
+  ogTitle: TITLE_TEMPLATE('About Us — Institutional GST Compliance Platform'),
   ogDescription:
-    'Learn about GSTBro — our mission, ICAI Chartered Accountant supervision, technology-driven reconciliation, and commitment to zero-penalty compliance for Indian businesses.',
+    'Learn about GSTBro — our mission, ICAI Chartered Accountant supervision, automated 2B reconciliation, and zero-penalty indirect tax compliance across India.',
   ogImage: DEFAULT_OG_IMAGE,
   ogUrl: `${SITE_URL}/about`,
 };

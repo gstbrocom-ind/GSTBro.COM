@@ -6,6 +6,7 @@ import {
   ServiceDetailPage,
   RegistrationServicePage,
   ReturnsServicePage,
+  CancellationServicePage,
   ComplianceServicePage,
   RefundServicePage,
   AuditServicePage,
@@ -90,7 +91,7 @@ function AppShell() {
             <Route path="/services/gst-audit" element={<AuditServicePage />} />
             <Route path="/services/gst-advisory" element={<AdvisoryServicePage />} />
             <Route path="/services/gst-tds-tcs" element={<TdsTcsServicePage />} />
-            <Route path="/services/gst-cancellation" element={<ServiceDetailPage type="cancellation" />} />
+            <Route path="/services/gst-cancellation" element={<CancellationServicePage />} />
 
             {/* Business Licenses Hub & Sub-services */}
             <Route path="/services/business-licenses" element={<BusinessLicensesPage />} />

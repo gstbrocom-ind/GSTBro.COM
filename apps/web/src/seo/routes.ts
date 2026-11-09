@@ -27,6 +27,7 @@ import {
   refundPolicyMeta,
   loginMeta,
   signupMeta,
+  forgotPasswordMeta,
   privacyMeta,
   termsMeta,
 } from './pages/services.meta';
@@ -75,6 +76,7 @@ export const indexableRoutes: RouteConfig[] = [
 export const nonIndexableRoutes: RouteConfig[] = [
   { path: '/login', meta: loginMeta },
   { path: '/signup', meta: signupMeta },
+  { path: '/forgot-password', meta: forgotPasswordMeta },
 ];
 
 export const allRoutes: RouteConfig[] = [...indexableRoutes, ...nonIndexableRoutes];

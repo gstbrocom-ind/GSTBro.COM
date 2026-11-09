@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicLayout } from '../../components/PublicLayout';
+import { Breadcrumbs } from '../../components/seo/Breadcrumbs';
 import { privacyMeta, termsMeta } from '../../seo/pages/services.meta';
 import { useContent } from '../../context/ContentContext';
 import { apiFetch } from '../../lib/api';
@@ -69,20 +70,23 @@ export function PrivacyPage() {
     <PublicLayout meta={privacyMeta}>
       {/* Hero */}
       <section className="bg-slate-950 text-white pt-12 pb-14 sm:pt-16 sm:pb-16 border-b border-slate-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-[11px] font-bold text-blue-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            DPDP Act, 2023 Compliant
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">Privacy Notice</h1>
-          <p className="text-sm text-slate-400 max-w-xl mx-auto">
-            How GSTBro collects, uses, shares, and protects your personal data under the Digital Personal Data Protection Act, 2023.
-          </p>
-          {noticeVersion && (
-            <p className="text-xs text-slate-500 pt-1">
-              Version {noticeVersion.version} &bull; Effective: {noticeVersion.effectiveDate}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-4">
+          <Breadcrumbs items={[{ name: 'Privacy Notice', path: '/privacy' }]} />
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-[11px] font-bold text-blue-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              DPDP Act, 2023 Compliant
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">Privacy Notice</h1>
+            <p className="text-sm text-slate-400 max-w-xl mx-auto">
+              How GSTBro collects, uses, shares, and protects your personal data under the Digital Personal Data Protection Act, 2023.
             </p>
-          )}
+            {noticeVersion && (
+              <p className="text-xs text-slate-500 pt-1">
+                Version {noticeVersion.version} &bull; Effective: {noticeVersion.effectiveDate}
+              </p>
+            )}
+          </div>
         </div>
       </section>
 
@@ -269,6 +273,7 @@ export function TermsPage() {
   return (
     <PublicLayout meta={termsMeta}>
       <div className="max-w-4xl mx-auto px-4 py-12">
+        <Breadcrumbs items={[{ name: 'Terms of Service', path: '/terms' }]} />
         <h1 className="text-3xl sm:text-4xl font-black mb-6 text-slate-900 tracking-tight">Terms of Service</h1>
         <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-xs whitespace-pre-line text-sm sm:text-base leading-relaxed text-slate-700">
           {content}

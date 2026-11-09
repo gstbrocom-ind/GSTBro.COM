@@ -127,8 +127,23 @@ export function Footer({ settings }: FooterProps) {
                 </a>
               </li>
               <li>
+                <a href="/services/gst-cancellation" className="text-slate-400 hover:text-white transition-colors">
+                  GST Cancellation &amp; Surrender
+                </a>
+              </li>
+              <li>
+                <a href="/services/gst-tds-tcs" className="text-slate-400 hover:text-white transition-colors">
+                  GST TDS &amp; TCS Compliance
+                </a>
+              </li>
+              <li>
+                <a href="/services/business-licenses" className="text-slate-400 hover:text-white transition-colors">
+                  Business Licenses &amp; MSME
+                </a>
+              </li>
+              <li>
                 <a href="/services" className="text-blue-400 font-semibold hover:text-blue-300 transition-colors block pt-1">
-                  All 9 Services &rarr;
+                  All Practice Areas &rarr;
                 </a>
               </li>
             </ul>

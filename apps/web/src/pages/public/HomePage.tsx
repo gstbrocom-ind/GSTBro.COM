@@ -839,14 +839,26 @@ export default function HomePage() {
             </motion.div>
           </motion.div>
 
-          <div className="mt-12 text-center">
+          <div className="mt-12 text-center space-y-4">
             <a
               href="/services"
               className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 bg-white border border-slate-300 shadow-xs px-6 py-3.5 rounded-2xl hover:border-blue-500 hover:shadow-md transition-all"
             >
-              <span>Need Export Refunds, TDS/TCS or Business Licensing? Explore All 9 Practice Areas on Services Hub</span>
+              <span>Need Export Refunds, TDS/TCS or Business Licensing? Explore All Practice Areas on Services Hub</span>
               <span>➔</span>
             </a>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs text-slate-600">
+              <span className="font-semibold text-slate-400">Popular:</span>
+              <a href="/services/gst-registration" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">GST Registration</a>
+              <a href="/services/gst-returns" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Return Filing</a>
+              <a href="/services/gst-refund" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Export Refunds</a>
+              <a href="/services/gst-tds-tcs" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">TDS &amp; TCS</a>
+              <a href="/services/gst-cancellation" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">GST Cancellation</a>
+              <a href="/services/business-licenses" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Business Licenses</a>
+              <a href="/services/business-licenses/udyam" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Udyam MSME</a>
+              <a href="/services/business-licenses/fssai" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">FSSAI License</a>
+              <a href="/services/business-licenses/iec" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">IEC Code</a>
+            </div>
           </div>
         </div>
       </section>

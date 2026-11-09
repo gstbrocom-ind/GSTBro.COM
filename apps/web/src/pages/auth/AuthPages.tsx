@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { PublicLayout } from '../../components/PublicLayout';
-import { loginMeta, signupMeta } from '../../seo/pages/services.meta';
+import { loginMeta, signupMeta, forgotPasswordMeta } from '../../seo/pages/services.meta';
 import { apiFetch, setToken } from '../../lib/api';
 import { INDIAN_STATES } from '../../constants/indianStates';
 import { useAuth } from '../../context/AuthContext';
@@ -1010,7 +1010,7 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <PublicLayout meta={loginMeta}>
+    <PublicLayout meta={forgotPasswordMeta}>
       <div className="relative py-12 sm:py-20 overflow-hidden bg-slate-50/60">
         <div className="absolute inset-0 bg-financial-grid-light pointer-events-none opacity-60" />
         <div className="relative max-w-md mx-auto px-4 sm:px-6">

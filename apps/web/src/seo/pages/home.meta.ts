@@ -15,7 +15,7 @@ const base = (title: string, description: string, path: string, keywords?: strin
 
 export const homeMeta = base(
   'GST Consultant & Return Filing Services India',
-  'Leading GST consultant in India. Guaranteed on-time monthly GSTR-1 & 3B return filing, fast online GST registration, 2B ITC reconciliation, and senior Chartered Accountant notice defense.',
+  'Leading GST consultant in India. Guaranteed on-time monthly GSTR-1 & 3B return filing, fast online GST registration, 2B ITC recovery, and senior CA notice defense.',
   '/',
   'gst consultant, gst registration online, gst return filing, gst filing services, gst practitioner, gst compliance services, gstr-1 filing, gstr-3b filing, gst registration consultant, gst advisory services, india gst'
 );
