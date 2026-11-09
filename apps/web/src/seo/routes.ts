@@ -64,14 +64,23 @@ export const indexableRoutes: RouteConfig[] = [
   { path: '/contact', meta: contactMeta, changefreq: 'monthly', priority: 0.8 },
   { path: '/about', meta: aboutMeta, changefreq: 'monthly', priority: 0.7 },
   { path: '/refund-policy', meta: refundPolicyMeta, changefreq: 'yearly', priority: 0.4 },
-  { path: '/login', meta: loginMeta, changefreq: 'monthly', priority: 0.6 },
-  { path: '/signup', meta: signupMeta, changefreq: 'monthly', priority: 0.6 },
   { path: '/privacy', meta: privacyMeta, changefreq: 'yearly', priority: 0.3 },
   { path: '/terms', meta: termsMeta, changefreq: 'yearly', priority: 0.3 },
 ];
 
+/**
+ * Non-indexable authentication and restricted routes.
+ * Excluded completely from sitemap.xml and flagged with noindex, nofollow.
+ */
+export const nonIndexableRoutes: RouteConfig[] = [
+  { path: '/login', meta: loginMeta },
+  { path: '/signup', meta: signupMeta },
+];
+
+export const allRoutes: RouteConfig[] = [...indexableRoutes, ...nonIndexableRoutes];
+
 export function getMetaForPath(path: string): SeoMeta | undefined {
-  return indexableRoutes.find((r) => r.path === path)?.meta;
+  return allRoutes.find((r) => r.path === path)?.meta;
 }
 
 export const sitemapPaths = indexableRoutes.map((r) => r.path);

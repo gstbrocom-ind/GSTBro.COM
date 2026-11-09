@@ -181,19 +181,25 @@ export const refundPolicyMeta = base(
   'gstbro refund policy, cancellation policy, service fee refund, zero penalty sla'
 );
 
-export const loginMeta = base(
-  'Client Portal Login',
-  'Login to your secure GSTBro client portal to view return filings, track ITC reconciliations, and collaborate with your assigned Chartered Accountant.',
-  '/login',
-  'gstbro login, gst client portal, gstbro sign in'
-);
+export const loginMeta: SeoMeta = {
+  ...base(
+    'Client Portal Login',
+    'Login to your secure GSTBro client portal to view return filings, track ITC reconciliations, and collaborate with your assigned Chartered Accountant.',
+    '/login',
+    'gstbro login, gst client portal, gstbro sign in'
+  ),
+  robots: 'noindex, nofollow',
+};
 
-export const signupMeta = base(
-  'Sign Up — Onboard with GSTBro',
-  'Create your GSTBro account to access automated GST return filing, 2B ITC reconciliation, and turnkey statutory licensing with senior CA oversight.',
-  '/signup',
-  'gstbro signup, gstbro register, create gstbro account'
-);
+export const signupMeta: SeoMeta = {
+  ...base(
+    'Sign Up — Onboard with GSTBro',
+    'Create your GSTBro account to access automated GST return filing, 2B ITC reconciliation, and turnkey statutory licensing with senior CA oversight.',
+    '/signup',
+    'gstbro signup, gstbro register, create gstbro account'
+  ),
+  robots: 'noindex, nofollow',
+};
 
 export const privacyMeta = base(
   'Privacy Notice — DPDP Act, 2023 Compliant',
