@@ -84,9 +84,8 @@ export function TurnstileWidget({
 
   useEffect(() => {
     let isMounted = true;
-    let timer: NodeJS.Timeout | null = null;
-    let pollInterval: NodeJS.Timeout | null = null;
-
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
     setHasError(false);
     setIsVerified(false);
     setTakingTooLong(false);
