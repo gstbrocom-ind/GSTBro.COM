@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { sendOtp, verifyOtp } from '../services/otpService.js';
@@ -15,7 +16,7 @@ import { logAuthAudit } from '../services/auditLogger.js';
 import { hashPassword, verifyPassword, validatePassword } from '../services/passwordService.js';
 import { supabase, type UserRole } from '../lib/supabase.js';
 import { authenticate, requireRole, getRawAuthToken } from '../middleware/auth.js';
-import { revokeToken } from '../services/sessionRevocationService.js';
+import { revokeToken, setActiveUserSession, clearActiveUserSession } from '../services/sessionRevocationService.js';
 import { INDIAN_STATES, isValidIndianState } from '../constants/indianStates.js';
 import { verifyWelcomeCode, consumeWelcomeCode } from '../services/welcomeCodeService.js';
 import { recordSignupConsents } from '../services/consentService.js';
@@ -246,7 +247,9 @@ export async function authRoutes(app: FastifyInstance) {
       metadata: { role: user.role },
     });
 
-    const token = app.jwt.sign({ id: user.id, email: user.email, role: user.role });
+    const sid = crypto.randomUUID();
+    await setActiveUserSession(user.id, sid);
+    const token = app.jwt.sign({ id: user.id, email: user.email, role: user.role, sid });
     return { token, user: publicUser(user) };
   });
 
@@ -461,10 +464,13 @@ export async function authRoutes(app: FastifyInstance) {
       request.log.warn({ consentErr }, 'DPDP consent recording warning');
     }
 
+    const sid = crypto.randomUUID();
+    await setActiveUserSession(String(createdUser.id), sid);
     const token = app.jwt.sign({
       id: String(createdUser.id),
       email: String(createdUser.email),
       role: (createdUser.role as UserRole) || 'CLIENT',
+      sid,
     });
 
     return {
@@ -601,7 +607,9 @@ export async function authRoutes(app: FastifyInstance) {
       request.log.warn({ consentErr }, 'DPDP consent recording warning');
     }
 
-    const token = app.jwt.sign({ id: user.id, email: user.email, role: user.role });
+    const sid = crypto.randomUUID();
+    await setActiveUserSession(user.id, sid);
+    const token = app.jwt.sign({ id: user.id, email: user.email, role: user.role, sid });
     return { token, user: publicUser(user) };
   });
 
@@ -1023,6 +1031,7 @@ export async function authRoutes(app: FastifyInstance) {
       const payload = (request.user as any);
       await revokeToken(rawToken, request.user.id, payload?.exp);
     }
+    await clearActiveUserSession(request.user.id);
     await logAuthAudit({
       eventType: 'LOGOUT',
       userId: request.user.id,

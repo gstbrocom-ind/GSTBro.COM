@@ -25,6 +25,17 @@ function LoginForm() {
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [logoutNotice] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    try {
+      const reason = sessionStorage.getItem('gstbro_logout_reason');
+      if (reason) {
+        sessionStorage.removeItem('gstbro_logout_reason');
+        return reason;
+      }
+    } catch {}
+    return '';
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +78,15 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
+      {logoutNotice && (
+        <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-2xl text-amber-900 text-xs flex items-start gap-2.5 shadow-sm">
+          <span className="text-base leading-none">⚠️</span>
+          <div>
+            <p className="font-bold">Security Notice</p>
+            <p className="mt-0.5 text-amber-800 leading-relaxed">{logoutNotice}</p>
+          </div>
+        </div>
+      )}
       <div>
         <label className="block text-xs font-semibold text-gray-700 mb-1.5">
           Email Address or 10-Digit Mobile Number

@@ -60,6 +60,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchCurrentUser();
   }, [fetchCurrentUser]);
 
+  // Listen for automatic single-device logout when another device logs in
+  useEffect(() => {
+    const handleSessionInvalidated = (e: Event) => {
+      clearToken();
+      setUser(null);
+      const detail = (e as CustomEvent)?.detail;
+      const msg =
+        detail?.message ||
+        'Your account was logged into on another device. You have been logged out on this device for your security.';
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        try {
+          sessionStorage.setItem('gstbro_logout_reason', msg);
+        } catch {}
+        window.location.href = '/login';
+      }
+    };
+
+    window.addEventListener('gstbro:session-invalidated', handleSessionInvalidated);
+    return () => window.removeEventListener('gstbro:session-invalidated', handleSessionInvalidated);
+  }, []);
+
   const login = (token: string, userData: AuthUser) => {
     setToken(token);
     setUser(userData);

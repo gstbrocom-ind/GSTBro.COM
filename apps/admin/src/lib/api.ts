@@ -59,10 +59,14 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
   if (!res.ok) {
     let errorMessage = `Request failed (${res.status})`;
+    let errorCode = '';
     try {
       const err = await res.json();
       if (err.error || err.message) {
         errorMessage = err.error || err.message;
+      }
+      if (err.code) {
+        errorCode = err.code;
       }
     } catch {
       try {
@@ -74,6 +78,21 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
         // ignore non-json error
       }
     }
+
+    if (res.status === 401 && !path.includes('/api/auth/login')) {
+      clearToken();
+      if (typeof window !== 'undefined') {
+        const reason = errorCode === 'SESSION_REVOKED'
+          ? 'Your account was logged into on another device. You have been logged out on this device for your security.'
+          : errorMessage;
+        window.dispatchEvent(
+          new CustomEvent('gstbro:session-invalidated', {
+            detail: { message: reason },
+          })
+        );
+      }
+    }
+
     throw new Error(errorMessage);
   }
 

@@ -3,8 +3,8 @@ import { supabase, type UserRole } from '../lib/supabase.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { id: string; email: string; role: UserRole };
-    user: { id: string; email: string; role: UserRole };
+    payload: { id: string; email: string; role: UserRole; sid?: string };
+    user: { id: string; email: string; role: UserRole; sid?: string };
   }
 }
 
@@ -29,13 +29,16 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     return reply.status(401).send({ error: 'Unauthorized' });
   }
 
-  // 1. Server-side session revocation & token blacklist validation
+  // 1. Server-side session revocation & Single Active Device Policy validation
   const rawToken = getRawAuthToken(request);
   if (rawToken) {
     const payload = (request.user as any);
-    const isRevoked = await isTokenRevoked(rawToken, request.user.id, payload?.iat);
+    const isRevoked = await isTokenRevoked(rawToken, request.user.id, payload?.iat, payload?.sid);
     if (isRevoked) {
-      return reply.status(401).send({ error: 'Session has been revoked or signed out. Please log in again.' });
+      return reply.status(401).send({
+        error: 'Your account was logged into from another device or your session has expired. You have been logged out on this device.',
+        code: 'SESSION_REVOKED',
+      });
     }
   }
 

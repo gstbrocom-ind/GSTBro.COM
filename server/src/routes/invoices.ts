@@ -1,3 +1,4 @@
+import { authenticate } from '../middleware/auth.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { supabase } from '../lib/supabase.js';
@@ -81,13 +82,7 @@ const creditNoteSchema = z.object({
 
 export async function invoiceRoutes(app: FastifyInstance) {
   // Authentication pre-handler
-  app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await (request as any).jwtVerify();
-    } catch {
-      return reply.status(401).send({ error: 'Unauthorized: Authentication required' });
-    }
-  });
+  app.addHook('preHandler', authenticate);
 
   // ==========================================================================
   // 1. GENERATE BULK INVOICES (THE ENGINE)

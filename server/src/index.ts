@@ -115,7 +115,7 @@ await app.register(cors, {
 });
 await app.register(jwt, {
   secret: env.JWT_SECRET,
-  sign: { expiresIn: '7d' }, // Tokens expire after 7 days; never-expiring tokens are a critical vulnerability
+  sign: { expiresIn: '30d' }, // Tokens expire after 7 days; never-expiring tokens are a critical vulnerability
 });
 await app.register(rateLimit, {
   global: true,

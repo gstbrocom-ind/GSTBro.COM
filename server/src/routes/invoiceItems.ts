@@ -1,3 +1,4 @@
+import { authenticate } from '../middleware/auth.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { supabase } from '../lib/supabase.js';
@@ -102,13 +103,7 @@ const invoiceProfileSchema = z.object({
 
 export async function invoiceItemRoutes(app: FastifyInstance) {
   // Pre-handler: enforce authentication
-  app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      await (request as any).jwtVerify();
-    } catch {
-      return reply.status(401).send({ error: 'Unauthorized: Authentication required' });
-    }
-  });
+  app.addHook('preHandler', authenticate);
 
   // ==========================================================================
   // 1. INVOICE ITEMS (CATALOG)
