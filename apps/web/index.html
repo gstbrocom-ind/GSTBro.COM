@@ -12,27 +12,9 @@
           root.classList.remove('light', 'dark');
           root.classList.add(theme);
           root.setAttribute('data-theme', theme);
-
-          var ua = navigator.userAgent.toLowerCase();
-          var isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|lighthouse|headlesschrome|bytespider/i.test(ua);
-          if (!isBot && !sessionStorage.getItem('gstbro_intro_seen')) {
-            root.classList.add('intro-pending');
-          }
         } catch(e) {}
       })();
     </script>
-    <style>
-      html.intro-pending {
-        background: #020B1E !important;
-      }
-      html.intro-pending #main-app-container,
-      html.intro-pending #main-content,
-      html.intro-pending header,
-      html.intro-pending footer {
-        opacity: 0 !important;
-        pointer-events: none !important;
-      }
-    </style>
     <title>GSTBro — Chartered Accountant GST Services, Registration &amp; Returns India</title>
     <meta
       name="description"

@@ -161,8 +161,11 @@ export function BrandIntroOverlay({
     };
   }, [settings, isEnabled, durationSec, preview, forcedThemeId]);
 
-  // Clean up barrier class on component unmount
+  // Clean up barrier class on component mount and unmount
   useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('intro-pending');
+    }
     return () => {
       if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('intro-pending');
