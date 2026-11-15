@@ -67,9 +67,9 @@ export const FESTIVAL_THEMES: Record<string, FestivalThemeConfig> = {
     icon: '🪔',
     activePeriod: {
       startMonth: 10,
-      startDay: 15,
+      startDay: 20,
       endMonth: 11,
-      endDay: 15,
+      endDay: 5,
     },
   },
 

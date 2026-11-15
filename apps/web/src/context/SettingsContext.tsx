@@ -20,7 +20,7 @@ const DEFAULT_FALLBACK_SETTINGS: PublicSettings = {
   businessHours: 'Mon - Sat: 9:00 AM - 7:00 PM IST',
   brandIntro: {
     enabled: true,
-    theme: 'auto',
+    theme: 'corporate',
     duration: 3.5,
     title: '',
     subtitle: '',
@@ -48,8 +48,21 @@ const DEFAULT_FALLBACK_SETTINGS: PublicSettings = {
 const SettingsContext = createContext<PublicSettings | null>(null);
 const SettingsRefreshContext = createContext<() => Promise<void>>(async () => {});
 
+const SETTINGS_STORAGE_KEY = 'gstbro_public_settings_cache';
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<PublicSettings | null>(null);
+  const [settings, setSettings] = useState<PublicSettings | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') return parsed;
+        }
+      } catch {}
+    }
+    return null;
+  });
   const lastFetchRef = useRef<number>(0);
 
   const fetchSettings = useCallback(async () => {
@@ -65,6 +78,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const data = await res.json();
         setSettings(data);
         lastFetchRef.current = Date.now();
+        try {
+          localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+        } catch {}
       }
     } catch {
       setSettings((prev) => prev ?? DEFAULT_FALLBACK_SETTINGS);

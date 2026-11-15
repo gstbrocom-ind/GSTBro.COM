@@ -37,16 +37,22 @@ export function BrandIntroOverlay({
   const [fadingOut, setFadingOut] = useState(false);
   const [animStep, setAnimStep] = useState<number>(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const startedRef = useRef(false);
 
   // Check if brand intro is enabled globally in settings
   const introConfig = settings?.brandIntro;
   const isEnabled = introConfig?.enabled ?? true;
-  const rawTheme = forcedThemeId || introConfig?.theme || 'auto';
+  const rawTheme = forcedThemeId || introConfig?.theme || 'corporate';
   const durationSec = Math.max(2.5, Math.min(6.0, introConfig?.duration || 3.5));
 
-  const activeTheme: FestivalThemeConfig = forcedThemeId && FESTIVAL_THEMES[forcedThemeId]
-    ? FESTIVAL_THEMES[forcedThemeId]
-    : resolveActiveTheme(rawTheme);
+  // Lock the active theme once started so it never switches themes mid-flight
+  const activeThemeRef = useRef<FestivalThemeConfig | null>(null);
+  if (!activeThemeRef.current || preview) {
+    activeThemeRef.current = forcedThemeId && FESTIVAL_THEMES[forcedThemeId]
+      ? FESTIVAL_THEMES[forcedThemeId]
+      : resolveActiveTheme(rawTheme);
+  }
+  const activeTheme: FestivalThemeConfig = activeThemeRef.current;
 
   const displayGreeting = introConfig?.title || activeTheme.greeting;
   const displayTagline = introConfig?.subtitle || activeTheme.tagline;
@@ -117,6 +123,17 @@ export function BrandIntroOverlay({
       }
     }
 
+    // Wait until real settings are loaded before deciding or animating
+    if (!preview) {
+      if (!settings) {
+        return;
+      }
+      if (startedRef.current) {
+        return;
+      }
+      startedRef.current = true;
+    }
+
     if (!isEnabled && !preview) {
       setVisible(false);
       if (typeof document !== 'undefined') {
@@ -142,7 +159,7 @@ export function BrandIntroOverlay({
       clearTimeout(t3);
       clearTimeout(tAuto);
     };
-  }, [isEnabled, durationSec, preview, forcedThemeId]);
+  }, [settings, isEnabled, durationSec, preview, forcedThemeId]);
 
   // Clean up barrier class on component unmount
   useEffect(() => {
@@ -267,7 +284,7 @@ export function BrandIntroOverlay({
     };
   }, [visible, activeTheme]);
 
-  if (!visible) return null;
+  if (!visible || (!settings && !preview)) return null;
 
   return (
     <div
