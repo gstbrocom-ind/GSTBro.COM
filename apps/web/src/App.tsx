@@ -1,5 +1,6 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { notifySettingsUpdated } from '@gst/ui';
 import HomePage from './pages/public/HomePage';
 import {
   ServicesHubPage,
@@ -49,6 +50,17 @@ const ForgotPasswordPage = lazy(() => import('./pages/auth/AuthPages').then((m) 
 
 function AppShell() {
   const settings = useSettings();
+  const location = useLocation();
+  const prevPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    if (prevPathRef.current.startsWith('/admin') && !location.pathname.startsWith('/admin')) {
+      // Transitioned from admin to public website - ensure latest settings and content are loaded immediately
+      notifySettingsUpdated('SETTINGS_UPDATED');
+    }
+    prevPathRef.current = location.pathname;
+  }, [location.pathname]);
+
   const [introActive, setIntroActive] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {

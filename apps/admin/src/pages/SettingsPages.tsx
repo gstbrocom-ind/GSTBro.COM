@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { SocialLinks } from '@gst/ui';
+import { SocialLinks, notifySettingsUpdated } from '@gst/ui';
 import { api } from '../lib/api';
 
 const getLiveWebUrl = (path: string = '') => {
@@ -700,7 +700,10 @@ export function SiteSettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || ''}/api/settings/public`)
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/settings/public?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    })
       .then((r) => r.json())
       .then((d) =>
         setSettings({
@@ -768,6 +771,7 @@ export function SiteSettingsPage() {
       const data = await res.json();
       if (data.faviconUrl) {
         setSettings((curr) => ({ ...curr, favicon_url: data.faviconUrl }));
+        notifySettingsUpdated('SETTINGS_UPDATED');
       }
     } catch {
       alert('Failed to upload favicon.');
@@ -788,6 +792,7 @@ export function SiteSettingsPage() {
       const data = await res.json();
       if (data.logoUrl) {
         setSettings((curr) => ({ ...curr, logo_url: data.logoUrl }));
+        notifySettingsUpdated('SETTINGS_UPDATED');
       }
     } catch {
       alert('Failed to upload logo.');

@@ -1,3 +1,5 @@
+import { notifySettingsUpdated } from '@gst/ui';
+
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 export function getToken() {
@@ -24,8 +26,18 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
   const primaryUrl = API_URL ? `${API_URL}${path}` : path;
   let res: Response;
+  const requestInit: RequestInit = {
+    cache: 'no-store',
+    ...options,
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+      ...headers,
+    },
+  };
+
   try {
-    res = await fetch(primaryUrl, { ...options, headers });
+    res = await fetch(primaryUrl, requestInit);
   } catch {
     const isLocal =
       typeof window !== 'undefined' &&
@@ -36,7 +48,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
     if (primaryUrl !== fallbackUrl) {
       try {
-        res = await fetch(fallbackUrl, { ...options, headers });
+        res = await fetch(fallbackUrl, requestInit);
       } catch {
         throw new Error('Unable to connect to GST Bro server. Please verify your connection or try again later.');
       }
@@ -64,5 +76,20 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     }
     throw new Error(errorMessage);
   }
-  return res.json();
+
+  const data = await res.json();
+
+  // If this was a successful write operation to site settings, content, or SEO, immediately notify public website listeners
+  const method = (options.method || 'GET').toUpperCase();
+  if (['PUT', 'POST', 'PATCH', 'DELETE'].includes(method)) {
+    if (path.includes('/api/admin/settings/content')) {
+      notifySettingsUpdated('CONTENT_UPDATED');
+    } else if (path.includes('/api/admin/seo')) {
+      notifySettingsUpdated('SEO_UPDATED');
+    } else if (path.includes('/api/admin/settings')) {
+      notifySettingsUpdated('SETTINGS_UPDATED');
+    }
+  }
+
+  return data;
 }

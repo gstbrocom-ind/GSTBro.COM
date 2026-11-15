@@ -24,7 +24,10 @@ export function BrandIntroSettingsPage() {
 
   // Load existing settings
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || ''}/api/settings/public`)
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/settings/public?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    })
       .then((r) => r.json())
       .then((d) => {
         if (d.brandIntro) {

@@ -56,12 +56,21 @@ const ALLOWED_SITE_KEYS = new Set([
   'brand_intro_defer_loading',
 ]);
 
+function applyNoCacheHeaders(reply: any) {
+  reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+  reply.header('Pragma', 'no-cache');
+  reply.header('Expires', '0');
+  reply.header('Surrogate-Control', 'no-store');
+}
+
 export async function settingsRoutes(app: FastifyInstance) {
-  app.get('/api/settings/public', async () => {
+  app.get('/api/settings/public', async (_request, reply) => {
+    applyNoCacheHeaders(reply);
     return getPublicSettings();
   });
 
-  app.get('/api/settings/seo', async (request) => {
+  app.get('/api/settings/seo', async (request, reply) => {
+    applyNoCacheHeaders(reply);
     const { path } = z
       .object({ path: safePathSchema })
       .strict()
@@ -71,7 +80,8 @@ export async function settingsRoutes(app: FastifyInstance) {
   });
 
   // Public endpoint: Fetch all active website content overrides
-  app.get('/api/settings/content', async () => {
+  app.get('/api/settings/content', async (_request, reply) => {
+    applyNoCacheHeaders(reply);
     const { data } = await supabase
       .from('site_settings')
       .select('key, value')
@@ -87,7 +97,8 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.get(
     '/api/admin/settings/content',
     { preHandler: [authenticate, requireRole('ADMIN')] },
-    async () => {
+    async (_request, reply) => {
+      applyNoCacheHeaders(reply);
       const { data } = await supabase
         .from('site_settings')
         .select('key, value, updated_at')
@@ -137,7 +148,8 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.get(
     '/api/admin/settings/social',
     { preHandler: [authenticate, requireRole('ADMIN')] },
-    async () => {
+    async (_request, reply) => {
+      applyNoCacheHeaders(reply);
       return getSocialSettingsAdmin();
     }
   );
@@ -256,7 +268,8 @@ export async function settingsRoutes(app: FastifyInstance) {
   app.get(
     '/api/admin/seo',
     { preHandler: [authenticate, requireRole('ADMIN')] },
-    async () => {
+    async (_request, reply) => {
+      applyNoCacheHeaders(reply);
       const { data } = await supabase.from('page_seo').select('*').order('route_path');
       return { pages: data ?? [] };
     }
