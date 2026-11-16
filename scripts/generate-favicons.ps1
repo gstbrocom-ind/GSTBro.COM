@@ -138,6 +138,9 @@ $bmp32.Save("$destDir/favicon-32x32.png", [System.Drawing.Imaging.ImageFormat]::
 $bmp48 = Draw-GSTBroIcon 48
 $bmp48.Save("$destDir/favicon-48x48.png", [System.Drawing.Imaging.ImageFormat]::Png)
 
+$bmp96 = Draw-GSTBroIcon 96
+$bmp96.Save("$destDir/favicon-96x96.png", [System.Drawing.Imaging.ImageFormat]::Png)
+
 $bmp180 = Draw-GSTBroIcon 180
 $bmp180.Save("$destDir/apple-touch-icon.png", [System.Drawing.Imaging.ImageFormat]::Png)
 
@@ -147,6 +150,6 @@ $bmp192.Save("$destDir/favicon-192x192.png", [System.Drawing.Imaging.ImageFormat
 $bmp512 = Draw-GSTBroIcon 512
 $bmp512.Save("$destDir/favicon-512x512.png", [System.Drawing.Imaging.ImageFormat]::Png)
 
-Write-IcoFile @($bmp16, $bmp32, $bmp48) "$destDir/favicon.ico"
+Write-IcoFile @($bmp16, $bmp32, $bmp48, $bmp96) "$destDir/favicon.ico"
 
 Write-Host "All icons generated successfully!"
