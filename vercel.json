@@ -43,6 +43,10 @@
   ],
   "rewrites": [
     {
+      "source": "/favicon.ico",
+      "destination": "https://gstbro-api.onrender.com/api/favicon"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://gstbro-api.onrender.com/api/:path*"
     },

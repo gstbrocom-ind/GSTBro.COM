@@ -58,6 +58,37 @@ export function SeoHead({ meta, faviconUrl }: SeoHeadProps) {
     };
   }, [fetchSeo]);
 
+  useEffect(() => {
+    if (!faviconUrl) return;
+
+    const dynamicFavicon = document.getElementById('dynamic-favicon') as HTMLLinkElement | null;
+    if (dynamicFavicon) {
+      dynamicFavicon.href = faviconUrl;
+      if (faviconUrl.endsWith('.svg')) {
+        dynamicFavicon.type = 'image/svg+xml';
+      } else {
+        dynamicFavicon.removeAttribute('type');
+      }
+    } else {
+      const links = document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']");
+      if (links.length > 0) {
+        links.forEach((l) => {
+          l.href = faviconUrl;
+          if (faviconUrl.endsWith('.svg')) {
+            l.type = 'image/svg+xml';
+          } else {
+            l.removeAttribute('type');
+          }
+        });
+      }
+    }
+
+    const appleFavicon = document.getElementById('dynamic-apple-touch-icon') as HTMLLinkElement | null;
+    if (appleFavicon) {
+      appleFavicon.href = faviconUrl;
+    }
+  }, [faviconUrl]);
+
   const title = override?.meta_title || meta.title;
   const description = override?.meta_description || meta.description;
   const keywords = override?.meta_keywords || meta.keywords;
@@ -88,7 +119,10 @@ export function SeoHead({ meta, faviconUrl }: SeoHeadProps) {
       <meta name="twitter:description" content={ogDescription} />
       {ogImage && <meta name="twitter:image" content={ogImage} />}
 
+      <meta name="apple-mobile-web-app-title" content="GSTBro" />
       {faviconUrl && <link rel="icon" href={faviconUrl} />}
+      {faviconUrl && <link rel="shortcut icon" href={faviconUrl} />}
+      {faviconUrl && <link rel="apple-touch-icon" href={faviconUrl} />}
     </Helmet>
   );
 }

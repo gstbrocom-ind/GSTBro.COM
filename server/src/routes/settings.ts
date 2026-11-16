@@ -56,6 +56,19 @@ const ALLOWED_SITE_KEYS = new Set([
   'brand_intro_defer_loading',
 ]);
 
+interface FaviconCache {
+  buffer: Buffer;
+  contentType: string;
+  sourceUrl: string;
+  timestamp: number;
+}
+
+let cachedFavicon: FaviconCache | null = null;
+
+export function invalidateFaviconCache() {
+  cachedFavicon = null;
+}
+
 function applyNoCacheHeaders(reply: any) {
   reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
   reply.header('Pragma', 'no-cache');
@@ -64,6 +77,77 @@ function applyNoCacheHeaders(reply: any) {
 }
 
 export async function settingsRoutes(app: FastifyInstance) {
+  // Public endpoint: Serves the active favicon dynamically for Googlebot, favicon checkers, and browsers
+  app.get('/api/favicon', async (_request, reply) => {
+    try {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'favicon_url')
+        .maybeSingle();
+
+      const faviconUrl = data?.value?.trim();
+
+      if (!faviconUrl) {
+        reply.header('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+        return reply.redirect('/favicon.svg', 302);
+      }
+
+      const now = Date.now();
+      if (
+        cachedFavicon &&
+        cachedFavicon.sourceUrl === faviconUrl &&
+        now - cachedFavicon.timestamp < 3600000
+      ) {
+        reply.header('Cache-Control', 'public, max-age=86400, s-maxage=604800');
+        reply.type(cachedFavicon.contentType);
+        return reply.send(cachedFavicon.buffer);
+      }
+
+      if (faviconUrl.startsWith('http://') || faviconUrl.startsWith('https://')) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+          const res = await fetch(faviconUrl, { signal: controller.signal });
+          clearTimeout(timeout);
+
+          if (res.ok) {
+            const arrayBuffer = await res.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const contentType = res.headers.get('content-type') || 'image/png';
+
+            cachedFavicon = {
+              buffer,
+              contentType,
+              sourceUrl: faviconUrl,
+              timestamp: now,
+            };
+
+            reply.header('Cache-Control', 'public, max-age=86400, s-maxage=604800');
+            reply.type(contentType);
+            return reply.send(buffer);
+          }
+        } catch {
+          // If fetching buffer fails/times out, redirect directly to the URL
+          reply.header('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+          return reply.redirect(faviconUrl, 302);
+        }
+      }
+
+      // If relative URL or fallback
+      reply.header('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+      return reply.redirect(faviconUrl, 302);
+    } catch {
+      reply.header('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+      return reply.redirect('/favicon.svg', 302);
+    }
+  });
+
+  // Direct root favicon fallback
+  app.get('/favicon.ico', async (_request, reply) => {
+    return reply.redirect('/api/favicon', 302);
+  });
+
   app.get('/api/settings/public', async (_request, reply) => {
     applyNoCacheHeaders(reply);
     return getPublicSettings();
@@ -199,6 +283,11 @@ export async function settingsRoutes(app: FastifyInstance) {
           .from('site_settings')
           .upsert({ key, value, updated_by: request.user.id });
       }
+
+      if ('favicon_url' in body) {
+        invalidateFaviconCache();
+      }
+
       return getPublicSettings();
     }
   );
@@ -232,6 +321,8 @@ export async function settingsRoutes(app: FastifyInstance) {
         value: url,
         updated_by: request.user.id,
       });
+
+      invalidateFaviconCache();
 
       return { faviconUrl: url };
     }

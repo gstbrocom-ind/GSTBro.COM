@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { SocialLinks, notifySettingsUpdated } from '@gst/ui';
 import { api } from '../lib/api';
+import { ImageCropperModal } from '../components/ImageCropperModal';
 
 const getLiveWebUrl = (path: string = '') => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -743,6 +744,7 @@ export function SiteSettingsPage() {
     setSaving(true);
     try {
       await api('/api/admin/settings/site', { method: 'PUT', body: JSON.stringify(settings) });
+      notifySettingsUpdated('SETTINGS_UPDATED');
       if (isApply) {
         setApplied(true);
         setTimeout(() => setApplied(false), 4000);
@@ -757,45 +759,85 @@ export function SiteSettingsPage() {
     }
   };
 
-  const uploadFavicon = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Cropper Modal State
+  const [cropperOpen, setCropperOpen] = useState<boolean>(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null);
+  const [cropperTarget, setCropperTarget] = useState<'favicon' | 'logo'>('favicon');
+
+  const handleFaviconFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const form = new FormData();
-    form.append('file', file);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/settings/favicon`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('gst_admin_token') || localStorage.getItem('gst_token')}` },
-        body: form,
-      });
-      const data = await res.json();
-      if (data.faviconUrl) {
-        setSettings((curr) => ({ ...curr, favicon_url: data.faviconUrl }));
-        notifySettingsUpdated('SETTINGS_UPDATED');
-      }
-    } catch {
-      alert('Failed to upload favicon.');
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(reader.result as string);
+      setCropperTarget('favicon');
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(reader.result as string);
+      setCropperTarget('logo');
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropCurrentFavicon = () => {
+    if (!settings.favicon_url) return;
+    setCropperImageSrc(settings.favicon_url);
+    setCropperTarget('favicon');
+    setCropperOpen(true);
+  };
+
+  const handleCropCurrentLogo = () => {
+    if (!settings.logo_url) return;
+    setCropperImageSrc(settings.logo_url);
+    setCropperTarget('logo');
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = async (blob: Blob) => {
     const form = new FormData();
-    form.append('file', file);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/settings/logo`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('gst_admin_token') || localStorage.getItem('gst_token')}` },
-        body: form,
-      });
-      const data = await res.json();
-      if (data.logoUrl) {
-        setSettings((curr) => ({ ...curr, logo_url: data.logoUrl }));
-        notifySettingsUpdated('SETTINGS_UPDATED');
-      }
-    } catch {
-      alert('Failed to upload logo.');
+    const filename = cropperTarget === 'favicon' ? 'favicon.png' : 'logo.png';
+    form.append('file', blob, filename);
+
+    const endpoint =
+      cropperTarget === 'favicon'
+        ? `${import.meta.env.VITE_API_URL || ''}/api/admin/settings/favicon`
+        : `${import.meta.env.VITE_API_URL || ''}/api/admin/settings/logo`;
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${
+          localStorage.getItem('gst_admin_token') || localStorage.getItem('gst_token')
+        }`,
+      },
+      body: form,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to upload cropped image');
+    }
+
+    const data = await res.json();
+    if (cropperTarget === 'favicon' && data.faviconUrl) {
+      setSettings((curr) => ({ ...curr, favicon_url: data.faviconUrl }));
+      notifySettingsUpdated('SETTINGS_UPDATED');
+      const fav = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null;
+      if (fav) fav.href = data.faviconUrl;
+    } else if (cropperTarget === 'logo' && data.logoUrl) {
+      setSettings((curr) => ({ ...curr, logo_url: data.logoUrl }));
+      notifySettingsUpdated('SETTINGS_UPDATED');
     }
   };
 
@@ -1017,14 +1059,31 @@ export function SiteSettingsPage() {
           {/* Logo & Favicon upload */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Website Brand Logo</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">Website Brand Logo</label>
+                {settings.logo_url && (
+                  <button
+                    type="button"
+                    onClick={handleCropCurrentLogo}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-lg transition"
+                  >
+                    <span>✂️</span> Crop Current Logo
+                  </button>
+                )}
+              </div>
               {settings.logo_url && (
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl mb-2 flex items-center justify-between">
                   <img src={settings.logo_url} alt="Logo" className="h-8 max-w-48 object-contain" />
                   <span className="text-[10px] text-emerald-600 font-bold uppercase">Active Logo</span>
                 </div>
               )}
-              <input type="file" accept="image/*" onChange={uploadLogo} className="text-xs text-slate-600 block mb-2" />
+              <div className="flex items-center gap-2 mb-2">
+                <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition flex items-center gap-1.5 border border-blue-200 shadow-sm">
+                  <span>📁</span> Select Image to Crop...
+                  <input type="file" accept="image/*" onChange={handleLogoFileSelected} className="hidden" />
+                </label>
+                <span className="text-[10px] text-slate-500">Pick image to crop and adjust before saving</span>
+              </div>
               <input
                 placeholder="Or paste direct logo URL"
                 value={settings.logo_url}
@@ -1034,14 +1093,68 @@ export function SiteSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Favicon Icon (32x32)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Favicon Icon (Square, min 48x48px — e.g. 48x48, 96x96, 192x192, or SVG)
+                </label>
+                {settings.favicon_url && (
+                  <button
+                    type="button"
+                    onClick={handleCropCurrentFavicon}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-lg transition"
+                  >
+                    <span>✂️</span> Re-Crop Favicon
+                  </button>
+                )}
+              </div>
+              <div className="text-[11px] text-amber-800 bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 mb-2 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                  <span>💡</span> Google Search &amp; Checker Requirements:
+                </div>
+                <p>
+                  • <strong>Google Search strict size:</strong> Must be square and at least <strong>48x48px</strong> (Google discards 16x16 or 32x32 icons). Recommended: 96x96px or 192x192px PNG/SVG.
+                </p>
+                <p>
+                  • <strong>Google indexing time:</strong> Google Search updates favicons when it recrawls your home page. After updating, submit <code className="bg-amber-100 px-1 py-0.5 rounded text-[10px]">https://gstbro.com/</code> for indexing in <em>Google Search Console</em> (typically takes 3–14 days to refresh in Google snippets).
+                </p>
+              </div>
               {settings.favicon_url && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl mb-2 flex items-center gap-2">
-                  <img src={settings.favicon_url} alt="Favicon" className="w-6 h-6 object-contain" />
-                  <span className="text-xs text-slate-500 font-mono">Current favicon active</span>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <img src={settings.favicon_url} alt="Favicon" className="w-8 h-8 rounded-lg border border-slate-200 object-contain bg-white p-1" />
+                    <div>
+                      <span className="text-xs font-semibold text-slate-700 block">Current favicon active</span>
+                      <a href={settings.favicon_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline font-mono truncate max-w-xs block">
+                        {settings.favicon_url}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCropCurrentFavicon}
+                      className="text-[11px] font-bold text-slate-700 hover:text-blue-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm flex items-center gap-1"
+                    >
+                      <span>✂️</span> Crop
+                    </button>
+                    <a
+                      href="/favicon.ico"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] font-bold text-slate-600 hover:text-blue-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm"
+                    >
+                      Test /favicon.ico ↗
+                    </a>
+                  </div>
                 </div>
               )}
-              <input type="file" accept="image/*" onChange={uploadFavicon} className="text-xs text-slate-600 block mb-2" />
+              <div className="flex items-center gap-2 mb-2">
+                <label className="cursor-pointer px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                  <span>📁</span> Select Image &amp; Open Cropper...
+                  <input type="file" accept="image/*" onChange={handleFaviconFileSelected} className="hidden" />
+                </label>
+                <span className="text-[11px] text-slate-500">Pick any image to crop into a 1:1 square before saving</span>
+              </div>
               <input
                 placeholder="Or paste direct favicon URL"
                 value={settings.favicon_url}
@@ -1231,6 +1344,17 @@ export function SiteSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Image Cropper Modal for Favicon and Logo */}
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageSrc={cropperImageSrc}
+        title={cropperTarget === 'favicon' ? 'Crop & Center Favicon (1:1)' : 'Crop & Position Logo'}
+        targetType={cropperTarget}
+        aspectRatio={cropperTarget === 'favicon' ? '1:1' : 'free'}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }
