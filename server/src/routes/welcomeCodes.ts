@@ -34,17 +34,20 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
 
       return {
         valid: true,
-        message: 'Welcome Code verified! You can proceed with registration.',
+        isCaFirm: res.isCaFirm || false,
+        message: res.isCaFirm
+          ? 'CA Firm Welcome Code verified! You can proceed to register your practice.'
+          : 'Welcome Code verified! You can proceed with registration.',
       };
     }
   );
 
   // --------------------------------------------------------------------------
-  // 2. ADMIN: List all Welcome Codes & statistics
+  // 2. ADMIN / SUPER ADMIN: List all Welcome Codes & statistics
   // --------------------------------------------------------------------------
   app.get(
     '/api/admin/welcome-codes',
-    { preHandler: [authenticate, requireRole('ADMIN')] },
+    { preHandler: [authenticate, requireRole('ADMIN', 'SUPER_ADMIN')] },
     async () => {
       const summary = await getWelcomeCodesSummary();
       return summary;
@@ -52,22 +55,24 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
   );
 
   // --------------------------------------------------------------------------
-  // 3. ADMIN: Generate one or more unique Welcome Codes (5-8 characters)
+  // 3. ADMIN / SUPER ADMIN: Generate one or more unique Welcome Codes
   // --------------------------------------------------------------------------
   app.post(
     '/api/admin/welcome-codes/generate',
-    { preHandler: [authenticate, requireRole('ADMIN')] },
+    { preHandler: [authenticate, requireRole('ADMIN', 'SUPER_ADMIN')] },
     async (request, reply) => {
       const user = (request as any).user;
       const body = z
         .object({
           count: z.number().int().min(1).max(50).optional().default(1),
-          length: z.number().int().min(5).max(8).optional().default(6),
+          length: z.number().int().min(5).max(10).optional().default(6),
           charset: z
             .enum(['UPPERCASE_ONLY', 'ALPHANUMERIC', 'NUMBERS_ONLY', 'SPECIAL_CHARS', 'CUSTOM'])
             .optional()
             .default('UPPERCASE_ONLY'),
-          customCode: z.string().trim().min(5).max(8).optional(),
+          customCode: z.string().trim().min(4).max(16).optional(),
+          targetRole: z.enum(['CLIENT', 'CA_FIRM']).optional().default('CLIENT'),
+          firmName: z.string().trim().max(120).optional(),
           note: z.string().trim().max(250).optional(),
           expiresInDays: z.number().int().min(1).max(365).nullable().optional(),
         })
@@ -80,15 +85,18 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
           length: body.length,
           charset: body.charset,
           customCode: body.customCode,
+          targetRole: body.targetRole,
+          firmName: body.firmName,
           note: body.note,
           expiresInDays: body.expiresInDays,
         });
 
-        return {
+        return reply.status(201).send({
           success: true,
+          count: result.count,
+          codes: result.created,
           message: `Successfully generated ${result.count} unique welcome code(s)`,
-          created: result.created,
-        };
+        });
       } catch (err: any) {
         return reply.status(400).send({
           error: err.message || 'Failed to generate welcome codes',
@@ -98,15 +106,13 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
   );
 
   // --------------------------------------------------------------------------
-  // 4. ADMIN: Revoke / Delete an unused Welcome Code
+  // 4. ADMIN / SUPER ADMIN: Revoke / Delete an unused Welcome Code
   // --------------------------------------------------------------------------
   app.delete(
     '/api/admin/welcome-codes/:id',
-    { preHandler: [authenticate, requireRole('ADMIN')] },
+    { preHandler: [authenticate, requireRole('ADMIN', 'SUPER_ADMIN')] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      if (!id) return reply.status(400).send({ error: 'Code ID is required' });
-
       await revokeWelcomeCode(id);
       return { success: true, message: 'Welcome code revoked successfully' };
     }

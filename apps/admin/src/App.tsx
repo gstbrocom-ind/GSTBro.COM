@@ -6,6 +6,8 @@ import { SocialSettingsPage, SeoSettingsPage, SiteSettingsPage } from './pages/S
 import { BrandIntroSettingsPage } from './pages/BrandIntroSettingsPage';
 import { ContentEditorPage } from './pages/ContentEditorPage';
 import { WelcomeCodesPage } from './pages/WelcomeCodesPage';
+import { SuperAdminPlatformPage } from './pages/SuperAdminPlatformPage';
+import { FirmDriveRoutingPage } from './pages/FirmDriveRoutingPage';
 import {
   PrivacyRequestsAdminPage,
   PrivacyGovernanceAdminPage,
@@ -20,6 +22,8 @@ export function App() {
       <Route path="force-reset" element={<ForceResetPasswordPage />} />
       <Route element={<AdminLayout />}>
         <Route index element={<DashboardPage />} />
+        <Route path="super-admin" element={<SuperAdminPlatformPage />} />
+        <Route path="firm/drive-routing" element={<FirmDriveRoutingPage />} />
         <Route path="dashboard/team" element={<TeamDashboardPage />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="clients" element={<ClientsPage />} />

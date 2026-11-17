@@ -6,6 +6,8 @@ export interface WelcomeCode {
   code: string;
   note: string | null;
   created_by?: string | null;
+  target_role?: 'CLIENT' | 'CA_FIRM' | null;
+  firm_name?: string | null;
   used: boolean;
   used_by_user_id?: string | null;
   used_by_email?: string | null;
@@ -23,6 +25,8 @@ export interface GenerateCodesOptions {
   customCode?: string;
   note?: string;
   expiresInDays?: number | null;
+  targetRole?: 'CLIENT' | 'CA_FIRM';
+  firmName?: string;
 }
 
 const SETTINGS_KEY = 'welcome_codes_store';
@@ -34,7 +38,7 @@ let memoryCodesCache: WelcomeCode[] = [];
  * Helper to generate random code with specific length & charset
  */
 export function generateRandomCode(length: number = 6, charsetType: string = 'UPPERCASE_ONLY'): string {
-  const safeLength = Math.max(5, Math.min(8, length));
+  const safeLength = Math.max(5, Math.min(10, length));
 
   let chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Clean unambiguous uppercase alphanumeric
   if (charsetType === 'NUMBERS_ONLY') {
@@ -123,8 +127,15 @@ export async function createWelcomeCodes(
   options: GenerateCodesOptions = {}
 ): Promise<{ created: WelcomeCode[]; count: number }> {
   const count = Math.max(1, Math.min(50, options.count || 1));
-  const length = Math.max(5, Math.min(8, options.length || 6));
-  const note = options.note?.trim() || null;
+  const length = Math.max(5, Math.min(10, options.length || 6));
+  const isCa = options.targetRole === 'CA_FIRM';
+  const firmName = options.firmName?.trim() || null;
+  let formattedNote = options.note?.trim() || null;
+
+  if (isCa) {
+    const caPrefix = firmName ? `[CA_FIRM] Practice: ${firmName}` : '[CA_FIRM] For CA / Tax Consultant Registration';
+    formattedNote = formattedNote ? `${caPrefix} | ${formattedNote}` : caPrefix;
+  }
 
   let expiresAt: string | null = null;
   if (options.expiresInDays && options.expiresInDays > 0) {
@@ -140,9 +151,12 @@ export async function createWelcomeCodes(
   const now = new Date().toISOString();
 
   if (options.charset === 'CUSTOM' && options.customCode) {
-    const cleanCustom = options.customCode.trim().toUpperCase();
-    if (cleanCustom.length < 5 || cleanCustom.length > 8) {
-      throw new Error('Custom welcome code must be between 5 and 8 characters');
+    let cleanCustom = options.customCode.trim().toUpperCase();
+    if (isCa && !cleanCustom.startsWith('CA-')) {
+      cleanCustom = `CA-${cleanCustom}`;
+    }
+    if (cleanCustom.length < 5 || cleanCustom.length > 16) {
+      throw new Error('Custom welcome code must be between 5 and 16 characters');
     }
     if (existingSet.has(cleanCustom)) {
       throw new Error(`Welcome code "${cleanCustom}" already exists`);
@@ -151,7 +165,9 @@ export async function createWelcomeCodes(
     const item: WelcomeCode = {
       id: crypto.randomUUID(),
       code: cleanCustom,
-      note,
+      note: formattedNote,
+      target_role: isCa ? 'CA_FIRM' : 'CLIENT',
+      firm_name: firmName,
       created_by: adminId,
       used: false,
       used_by_user_id: null,
@@ -168,14 +184,17 @@ export async function createWelcomeCodes(
       let code = '';
       let attempts = 0;
       do {
-        code = generateRandomCode(length, options.charset || 'UPPERCASE_ONLY');
+        const rand = generateRandomCode(length, options.charset || 'UPPERCASE_ONLY');
+        code = isCa ? `CA-${rand}` : rand;
         attempts++;
       } while ((existingSet.has(code) || newCodes.some((c) => c.code === code)) && attempts < 100);
 
       newCodes.push({
         id: crypto.randomUUID(),
         code,
-        note,
+        note: formattedNote,
+        target_role: isCa ? 'CA_FIRM' : 'CLIENT',
+        firm_name: firmName,
         created_by: adminId,
         used: false,
         used_by_user_id: null,
@@ -192,7 +211,18 @@ export async function createWelcomeCodes(
   // Try inserting into Supabase table
   let insertedViaTable = false;
   try {
-    const { error } = await supabase.from('welcome_codes').insert(newCodes);
+    const { error } = await supabase.from('welcome_codes').insert(
+      newCodes.map((c) => ({
+        id: c.id,
+        code: c.code,
+        note: c.note,
+        created_by: c.created_by,
+        used: c.used,
+        expires_at: c.expires_at,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+      }))
+    );
     if (!error) {
       insertedViaTable = true;
     }
@@ -215,18 +245,41 @@ export async function verifyWelcomeCode(codeRaw: string): Promise<{
   valid: boolean;
   error?: string;
   codeRecord?: WelcomeCode;
+  isCaFirm?: boolean;
 }> {
   if (!codeRaw || typeof codeRaw !== 'string') {
     return { valid: false, error: 'A Welcome Code is required to create an account' };
   }
 
   const clean = codeRaw.trim().toUpperCase();
-  if (clean.length < 5 || clean.length > 16) {
-    return { valid: false, error: 'Welcome Code must be 5 to 8 characters' };
+  if (clean.length < 4 || clean.length > 16) {
+    return { valid: false, error: 'Welcome Code must be between 4 and 16 characters' };
   }
 
-  const all = await getAllWelcomeCodes();
-  const record = all.find((c) => c.code.toUpperCase() === clean);
+  // 1. Check Supabase table
+  let record: WelcomeCode | null = null;
+  try {
+    const { data } = await supabase
+      .from('welcome_codes')
+      .select('*')
+      .ilike('code', clean)
+      .maybeSingle();
+
+    if (data) {
+      record = data as WelcomeCode;
+    }
+  } catch (err) {
+    // Fallback
+  }
+
+  // 2. Check fallback store
+  if (!record) {
+    const all = await getAllWelcomeCodes();
+    const found = all.find((c) => c.code.toUpperCase() === clean);
+    if (found) {
+      record = found;
+    }
+  }
 
   if (!record) {
     return { valid: false, error: 'Invalid Welcome Code. Registration is by invite only' };
@@ -246,7 +299,12 @@ export async function verifyWelcomeCode(codeRaw: string): Promise<{
     }
   }
 
-  return { valid: true, codeRecord: record };
+  const isCaFirm =
+    record.target_role === 'CA_FIRM' ||
+    record.code.startsWith('CA-') ||
+    Boolean(record.note && record.note.includes('[CA_FIRM]'));
+
+  return { valid: true, codeRecord: record, isCaFirm };
 }
 
 /**
@@ -300,6 +358,76 @@ export async function consumeWelcomeCode(
   }
 
   return false;
+}
+
+/**
+ * Automatically provision a new CA Firm workspace when a user registers with a CA Welcome Code
+ */
+export async function provisionCaFirmOnRegistration(
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string | null;
+    business_name?: string | null;
+    gstin?: string | null;
+  },
+  codeRecord?: WelcomeCode
+): Promise<{ firmId: string; firmName: string } | null> {
+  try {
+    // 1. Determine practice name
+    const firmName =
+      codeRecord?.firm_name ||
+      user.business_name ||
+      `${user.name}'s CA Practice`;
+
+    // 2. Generate slug
+    const baseSlug = firmName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'firm';
+    const uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+
+    // 3. Create firm record
+    const { data: newFirm, error: firmError } = await supabase
+      .from('firms')
+      .insert({
+        name: firmName,
+        slug: uniqueSlug,
+        owner_user_id: user.id,
+        email: user.email,
+        phone: user.phone || null,
+        gstin: user.gstin || null,
+        status: 'ACTIVE',
+        branding: {
+          brand_name: firmName,
+          primary_color: '#4F46E5',
+        },
+      })
+      .select('id, name')
+      .single();
+
+    if (firmError || !newFirm) {
+      console.error('Failed to auto-provision CA firm', firmError);
+      return null;
+    }
+
+    // 4. Update user role and associate with newly created firm
+    await supabase
+      .from('users')
+      .update({
+        role: 'FIRM_OWNER',
+        firm_id: newFirm.id,
+        firm_role: 'FIRM_OWNER',
+      })
+      .eq('id', user.id);
+
+    return { firmId: newFirm.id, firmName: newFirm.name };
+  } catch (err) {
+    console.error('Error in provisionCaFirmOnRegistration', err);
+    return null;
+  }
 }
 
 /**

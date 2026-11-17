@@ -44,6 +44,8 @@ export function WelcomeCodesPage() {
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Generator form state
+  const [genTargetRole, setGenTargetRole] = useState<'CLIENT' | 'CA_FIRM'>('CLIENT');
+  const [genFirmName, setGenFirmName] = useState('');
   const [genCount, setGenCount] = useState(1);
   const [genLength, setGenLength] = useState(6);
   const [genCharset, setGenCharset] = useState<'UPPERCASE_ONLY' | 'ALPHANUMERIC' | 'NUMBERS_ONLY' | 'SPECIAL_CHARS' | 'CUSTOM'>('UPPERCASE_ONLY');
@@ -76,7 +78,10 @@ export function WelcomeCodesPage() {
   }
 
   function handleShareInvite(code: string, note?: string | null) {
-    const inviteText = `Welcome to GST Bro!\n\nYou have been invited to register your account. Your unique registration Welcome Code is:\n\n👉  ${code}\n\nPlease visit the portal to complete your registration.\n${note ? `(Reference: ${note})` : ''}`;
+    const isCa = code.startsWith('CA-') || (note && note.includes('[CA_FIRM]'));
+    const inviteText = isCa
+      ? `Welcome to GST Bro!\n\nYou have been invited as a Chartered Accountant / Tax Consultant to launch your practice workspace on GST Bro.\n\nYour exclusive CA Firm Registration Code is:\n\n👉  ${code}\n\nPlease visit the portal to complete your practice registration:\n${window.location.origin}/login\n${note ? `\n(Reference: ${note})` : ''}`
+      : `Welcome to GST Bro!\n\nYou have been invited to register your account. Your unique registration Welcome Code is:\n\n👉  ${code}\n\nPlease visit the portal to complete your registration:\n${window.location.origin}/login\n${note ? `\n(Reference: ${note})` : ''}`;
     handleCopy(inviteText, `share-${code}`);
     setToastMessage({ type: 'success', text: `Invite message for code "${code}" copied to clipboard!` });
   }
@@ -103,6 +108,8 @@ export function WelcomeCodesPage() {
           length: genLength,
           charset: genCharset,
           customCode: genCharset === 'CUSTOM' ? customCodeInput : undefined,
+          targetRole: genTargetRole,
+          firmName: genTargetRole === 'CA_FIRM' ? genFirmName : undefined,
           note: genNote,
           expiresInDays: genExpiryDays,
         }),
@@ -112,6 +119,7 @@ export function WelcomeCodesPage() {
       setShowGenerateModal(false);
       setCustomCodeInput('');
       setGenNote('');
+      setGenFirmName('');
       await loadCodes();
     } catch (err: any) {
       setToastMessage({ type: 'error', text: err.message || 'Failed to generate codes' });
@@ -347,9 +355,18 @@ export function WelcomeCodesPage() {
                       {/* Code Cell */}
                       <td className="py-3 px-4 font-mono font-bold">
                         <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-900 tracking-wider text-xs">
+                          <span className={`px-2.5 py-1 rounded-lg border tracking-wider text-xs ${
+                            item.code.startsWith('CA-') || (item.note && item.note.includes('[CA_FIRM]'))
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-900 font-extrabold'
+                              : 'bg-slate-100 border-slate-200 text-slate-900'
+                          }`}>
                             {item.code}
                           </span>
+                          {(item.code.startsWith('CA-') || (item.note && item.note.includes('[CA_FIRM]'))) && (
+                            <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 px-1.5 py-0.5 rounded">
+                              CA Firm
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleCopy(item.code, item.id)}
@@ -481,6 +498,53 @@ export function WelcomeCodesPage() {
             </div>
 
             <form onSubmit={handleGenerate} className="mt-4 space-y-4 text-xs">
+              {/* Account Type Selector */}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Target Account Type</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGenTargetRole('CLIENT')}
+                    className={`p-2.5 rounded-xl border text-left transition ${
+                      genTargetRole === 'CLIENT'
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs ring-1 ring-indigo-500'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="font-bold text-xs">👤 Client Account</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">Standard client onboarding</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGenTargetRole('CA_FIRM')}
+                    className={`p-2.5 rounded-xl border text-left transition ${
+                      genTargetRole === 'CA_FIRM'
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs ring-1 ring-indigo-500'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="font-bold text-xs text-indigo-900">🏛️ CA Firm / Consultant</div>
+                    <div className="text-[10px] text-indigo-600 mt-0.5">Generates CA- code & creates firm workspace</div>
+                  </button>
+                </div>
+              </div>
+
+              {genTargetRole === 'CA_FIRM' && (
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">CA Firm / Practice Name (Optional)</label>
+                  <input
+                    type="text"
+                    value={genFirmName}
+                    onChange={(e) => setGenFirmName(e.target.value)}
+                    placeholder="e.g. Sharma & Associates, Apex Tax Consultancy"
+                    className="w-full border rounded-xl p-2.5 text-xs bg-slate-50 focus:bg-white border-slate-300"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Pre-configures their practice workspace name upon registration.
+                  </span>
+                </div>
+              )}
+
               {/* Format / Type */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Code Format Type</label>

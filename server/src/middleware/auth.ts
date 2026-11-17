@@ -1,10 +1,24 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { supabase, type UserRole } from '../lib/supabase.js';
+import { supabase, type UserRole, type FirmRole } from '../lib/supabase.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { id: string; email: string; role: UserRole; sid?: string };
-    user: { id: string; email: string; role: UserRole; sid?: string };
+    payload: { 
+      id: string; 
+      email: string; 
+      role: UserRole; 
+      firm_id?: string | null; 
+      firm_role?: FirmRole | null; 
+      sid?: string;
+    };
+    user: { 
+      id: string; 
+      email: string; 
+      role: UserRole; 
+      firm_id?: string | null; 
+      firm_role?: FirmRole | null; 
+      sid?: string;
+    };
   }
 }
 
@@ -42,10 +56,10 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     }
   }
 
-  // 2. Authoritative Database Role & Account Verification
+  // 2. Authoritative Database Role, Firm & Account Verification
   const { data: userRecord } = await supabase
     .from('users')
-    .select('id, role, must_reset_password')
+    .select('id, role, firm_id, firm_role, must_reset_password')
     .eq('id', request.user.id)
     .single();
 
@@ -53,8 +67,10 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     return reply.status(401).send({ error: 'User account not found or deactivated.' });
   }
 
-  // Authoritatively bind user role from trusted database
+  // Authoritatively bind user role and tenant firm from trusted database
   request.user.role = userRecord.role;
+  request.user.firm_id = userRecord.firm_id;
+  request.user.firm_role = userRecord.firm_role;
 
   // 3. Server-side enforcement of forced password reset (HIGH-AUTH-02)
   if (!MUST_RESET_EXEMPT_PATHS.has(request.routeOptions?.url ?? request.url)) {
@@ -71,6 +87,35 @@ export function requireRole(...roles: UserRole[]) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user || !roles.includes(request.user.role)) {
       return reply.status(403).send({ error: 'Forbidden: Insufficient privileges.' });
+    }
+  };
+}
+
+export function requireSuperAdmin() {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.user || request.user.role !== 'SUPER_ADMIN') {
+      return reply.status(403).send({ error: 'Forbidden: Super Admin access required.' });
+    }
+  };
+}
+
+export function requireFirm() {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.user || !request.user.firm_id) {
+      return reply.status(403).send({ error: 'Forbidden: User is not associated with an active firm/tenant.' });
+    }
+  };
+}
+
+export function requireFirmAdmin() {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    const isFirmAdmin = 
+      request.user?.role === 'FIRM_OWNER' || 
+      request.user?.firm_role === 'FIRM_OWNER' || 
+      request.user?.role === 'ADMIN';
+
+    if (!request.user || !isFirmAdmin) {
+      return reply.status(403).send({ error: 'Forbidden: Firm Owner / Admin privileges required.' });
     }
   };
 }

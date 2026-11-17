@@ -18,7 +18,7 @@ import { supabase, type UserRole } from '../lib/supabase.js';
 import { authenticate, requireRole, getRawAuthToken } from '../middleware/auth.js';
 import { revokeToken, setActiveUserSession, clearActiveUserSession } from '../services/sessionRevocationService.js';
 import { INDIAN_STATES, isValidIndianState } from '../constants/indianStates.js';
-import { verifyWelcomeCode, consumeWelcomeCode } from '../services/welcomeCodeService.js';
+import { verifyWelcomeCode, consumeWelcomeCode, provisionCaFirmOnRegistration } from '../services/welcomeCodeService.js';
 import { recordSignupConsents } from '../services/consentService.js';
 
 import { uuidParamSchema, sanitizeText } from '../lib/security.js';
@@ -432,6 +432,20 @@ export async function authRoutes(app: FastifyInstance) {
         email: String(createdUser.email),
         name: String(createdUser.name),
       });
+
+      if (codeCheck.isCaFirm) {
+        await provisionCaFirmOnRegistration(
+          {
+            id: String(createdUser.id),
+            email: String(createdUser.email),
+            name: String(createdUser.name),
+            phone: phone || null,
+            business_name: body.signupData.businessName || null,
+            gstin: body.signupData.gstin || null,
+          },
+          codeCheck.codeRecord
+        );
+      }
     } catch (codeErr) {
       request.log.warn({ codeErr }, 'Welcome code consumption warning');
     }
@@ -582,6 +596,21 @@ export async function authRoutes(app: FastifyInstance) {
           email: user.email,
           name: user.name,
         });
+
+        const codeCheck = await verifyWelcomeCode(body.welcomeCode);
+        if (codeCheck.isCaFirm) {
+          await provisionCaFirmOnRegistration(
+            {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              phone: user.phone || null,
+              business_name: user.business_name || null,
+              gstin: user.gstin || null,
+            },
+            codeCheck.codeRecord
+          );
+        }
       } catch (codeErr) {
         request.log.warn({ codeErr }, 'Welcome code consumption warning');
       }

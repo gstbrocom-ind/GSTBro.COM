@@ -221,6 +221,13 @@ function SparklesIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 const navGroups: NavGroup[] = [
   {
+    title: 'Platform Super Admin',
+    items: [
+      { to: '/super-admin', label: 'Platform Telemetry & CAs', icon: DashboardIcon },
+      { to: '/settings/content', label: 'Website CMS Editor', icon: ContentIcon },
+    ],
+  },
+  {
     title: 'Operations',
     items: [
       { to: '/', label: 'Overview', icon: DashboardIcon },
@@ -234,6 +241,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'Compliance & Practice',
     items: [
+      { to: '/firm/drive-routing', label: 'Drive & Folder Directions', icon: DriveIcon },
       { to: '/client/invoices', label: 'GST Invoices Hub', icon: FeesIcon, external: true },
       { to: '/due-dates', label: 'Statutory Deadlines', icon: CalendarIcon },
       { to: '/fees', label: 'Billing & Invoices', icon: FeesIcon },

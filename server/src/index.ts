@@ -16,6 +16,8 @@ import { welcomeCodeRoutes } from './routes/welcomeCodes.js';
 import { privacyRoutes } from './routes/privacy.js';
 import { privacyAdminRoutes } from './routes/admin/privacyAdmin.js';
 import { erasureRoutes } from './routes/erasure.js';
+import { superAdminRoutes } from './routes/superAdmin.js';
+import { firmRoutes } from './routes/firm.js';
 
 import { ZodError } from 'zod';
 
@@ -153,6 +155,8 @@ await app.register(welcomeCodeRoutes);
 await app.register(privacyRoutes);
 await app.register(privacyAdminRoutes);
 await app.register(erasureRoutes);
+await app.register(superAdminRoutes);
+await app.register(firmRoutes);
 
 const drive = getDriveService();
 if (drive) {
