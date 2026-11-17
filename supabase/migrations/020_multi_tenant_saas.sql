@@ -4,16 +4,9 @@
 -- ============================================================================
 
 -- 1. Extend user_role enum if values are missing
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
-    CREATE TYPE user_role AS ENUM ('CLIENT', 'TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_STAFF');
-  ELSE
-    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'SUPER_ADMIN';
-    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'FIRM_OWNER';
-    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'FIRM_STAFF';
-  END IF;
-END $$;
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'SUPER_ADMIN';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'FIRM_OWNER';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'FIRM_STAFF';
 
 -- 2. CA Firms / Agencies (Tenants)
 CREATE TABLE IF NOT EXISTS firms (
@@ -170,8 +163,8 @@ BEGIN
   SELECT id INTO default_firm_id FROM firms WHERE slug = 'primary-firm' LIMIT 1;
   
   IF default_firm_id IS NULL THEN
-    -- Find first admin or user to be provisional owner
-    SELECT id INTO first_admin_id FROM users WHERE role IN ('ADMIN', 'SUPER_ADMIN') ORDER BY created_at ASC LIMIT 1;
+    -- Find first admin or user to be provisional owner (use text cast to avoid 55P04)
+    SELECT id INTO first_admin_id FROM users WHERE role::text = 'ADMIN' ORDER BY created_at ASC LIMIT 1;
     
     INSERT INTO firms (id, name, slug, owner_user_id, email, phone, status)
     VALUES (
@@ -186,10 +179,8 @@ BEGIN
     RETURNING id INTO default_firm_id;
   END IF;
 
-  -- Backfill firm_id into existing users
-  UPDATE users SET firm_id = default_firm_id WHERE firm_id IS NULL AND role != 'SUPER_ADMIN';
-  
-  -- Backfill operational tables
+  -- Backfill firm_id into existing records
+  UPDATE users SET firm_id = default_firm_id WHERE firm_id IS NULL;
   UPDATE cases SET firm_id = default_firm_id WHERE firm_id IS NULL;
   UPDATE client_gst_data SET firm_id = default_firm_id WHERE firm_id IS NULL;
   UPDATE client_documents SET firm_id = default_firm_id WHERE firm_id IS NULL;
