@@ -60,9 +60,9 @@ function LoginForm() {
       login(result.token, result.user);
       trackLoginSuccess(result.user?.role || 'CLIENT');
 
-      if (result.user.role === 'TEAM') {
+      if (result.user.role === 'TEAM' || result.user.role === 'FIRM_STAFF') {
         navigate(result.user.mustResetPassword ? '/admin/force-reset' : '/team');
-      } else if (result.user.role === 'ADMIN') {
+      } else if (result.user.role === 'ADMIN' || result.user.role === 'SUPER_ADMIN' || result.user.role === 'FIRM_OWNER') {
         navigate(result.user.mustResetPassword ? '/admin/force-reset' : '/admin');
       } else {
         navigate('/client');

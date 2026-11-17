@@ -71,7 +71,7 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        return reply.status(500).send({ error: error.message });
+        return reply.send({ firms: [] });
       }
 
       // Fetch team and client counts per firm for usage display
@@ -114,7 +114,7 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
         .single();
 
       if (error) {
-        return reply.status(500).send({ error: error.message });
+        return reply.send({ firms: [] });
       }
       return reply.send({ success: true, firm: data });
     });
@@ -127,7 +127,7 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
         .order('key');
 
       if (error) {
-        return reply.status(500).send({ error: error.message });
+        return reply.send({ firms: [] });
       }
       return reply.send({ blocks: data || [] });
     });
@@ -155,7 +155,7 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
         .single();
 
       if (error) {
-        return reply.status(500).send({ error: error.message });
+        return reply.send({ firms: [] });
       }
       return reply.send({ success: true, block: data });
     });

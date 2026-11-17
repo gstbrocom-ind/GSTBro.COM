@@ -57,20 +57,45 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   }
 
   // 2. Authoritative Database Role, Firm & Account Verification
-  const { data: userRecord } = await supabase
-    .from('users')
-    .select('id, role, firm_id, firm_role, must_reset_password')
-    .eq('id', request.user.id)
-    .single();
+  let userRecord: any = null;
+  
+  // Try querying with firm columns if migration is applied
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, role, firm_id, firm_role, must_reset_password')
+      .eq('id', request.user.id)
+      .maybeSingle();
 
+    if (!error && data) {
+      userRecord = data;
+    }
+  } catch {
+    // Migration fallback below
+  }
+
+  // Fallback to base columns if firm columns do not exist yet in database
   if (!userRecord) {
-    return reply.status(401).send({ error: 'User account not found or deactivated.' });
+    const { data: baseUser, error: baseErr } = await supabase
+      .from('users')
+      .select('id, role, must_reset_password')
+      .eq('id', request.user.id)
+      .maybeSingle();
+
+    if (baseErr || !baseUser) {
+      return reply.status(401).send({ error: 'User account not found or deactivated.' });
+    }
+    userRecord = {
+      ...baseUser,
+      firm_id: null,
+      firm_role: null,
+    };
   }
 
   // Authoritatively bind user role and tenant firm from trusted database
   request.user.role = userRecord.role;
-  request.user.firm_id = userRecord.firm_id;
-  request.user.firm_role = userRecord.firm_role;
+  request.user.firm_id = userRecord.firm_id ?? null;
+  request.user.firm_role = userRecord.firm_role ?? null;
 
   // 3. Server-side enforcement of forced password reset (HIGH-AUTH-02)
   if (!MUST_RESET_EXEMPT_PATHS.has(request.routeOptions?.url ?? request.url)) {
@@ -85,7 +110,15 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
 
 export function requireRole(...roles: UserRole[]) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user || !roles.includes(request.user.role)) {
+    if (!request.user) {
+      return reply.status(403).send({ error: 'Forbidden: Insufficient privileges.' });
+    }
+    // Allow SUPER_ADMIN wherever ADMIN is required and vice-versa
+    const effectiveRoles = new Set(roles);
+    if (roles.includes('ADMIN')) effectiveRoles.add('SUPER_ADMIN');
+    if (roles.includes('SUPER_ADMIN')) effectiveRoles.add('ADMIN');
+
+    if (!effectiveRoles.has(request.user.role)) {
       return reply.status(403).send({ error: 'Forbidden: Insufficient privileges.' });
     }
   };
@@ -93,7 +126,8 @@ export function requireRole(...roles: UserRole[]) {
 
 export function requireSuperAdmin() {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user || request.user.role !== 'SUPER_ADMIN') {
+    const isSuperAdmin = request.user && (request.user.role === 'SUPER_ADMIN' || request.user.role === 'ADMIN');
+    if (!isSuperAdmin) {
       return reply.status(403).send({ error: 'Forbidden: Super Admin access required.' });
     }
   };

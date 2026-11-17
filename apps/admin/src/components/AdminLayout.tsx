@@ -287,7 +287,7 @@ export function AdminLayout() {
           navigate(adminPath('/force-reset'));
           return;
         }
-        if (data.user.role === 'TEAM') {
+        if (data.user.role === 'TEAM' || data.user.role === 'FIRM_STAFF') {
           window.location.href = '/team';
           return;
         }

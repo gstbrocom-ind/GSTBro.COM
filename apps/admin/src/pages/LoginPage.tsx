@@ -35,12 +35,12 @@ function LegacyAdminLogin() {
         method: 'POST',
         body: JSON.stringify({ identifier: identifier.trim(), password }),
       });
-      if (!['ADMIN', 'TEAM'].includes(result.user.role)) {
+      if (!['ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'TEAM', 'FIRM_STAFF'].includes(result.user.role)) {
         setError('Unauthorized: Administrator or CA specialist credentials required.');
         return;
       }
       setToken(result.token);
-      if (result.user.role === 'TEAM') {
+      if (result.user.role === 'TEAM' || result.user.role === 'FIRM_STAFF') {
         window.location.href = '/team';
         return;
       }
