@@ -61,26 +61,17 @@ export function SeoHead({ meta, faviconUrl }: SeoHeadProps) {
   useEffect(() => {
     if (!faviconUrl) return;
 
-    const dynamicFavicon = document.getElementById('dynamic-favicon') as HTMLLinkElement | null;
-    if (dynamicFavicon) {
-      dynamicFavicon.href = faviconUrl;
-      if (faviconUrl.endsWith('.svg')) {
-        dynamicFavicon.type = 'image/svg+xml';
-      } else {
-        dynamicFavicon.removeAttribute('type');
-      }
-    } else {
-      const links = document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']");
-      if (links.length > 0) {
-        links.forEach((l) => {
-          l.href = faviconUrl;
-          if (faviconUrl.endsWith('.svg')) {
-            l.type = 'image/svg+xml';
-          } else {
-            l.removeAttribute('type');
-          }
-        });
-      }
+    // Update ALL favicon and icon link elements across the document head
+    const links = document.querySelectorAll<HTMLLinkElement>("link[rel~='icon'], link[rel='shortcut icon']");
+    if (links.length > 0) {
+      links.forEach((l) => {
+        l.href = faviconUrl;
+        if (faviconUrl.endsWith('.svg')) {
+          l.type = 'image/svg+xml';
+        } else {
+          l.removeAttribute('type');
+        }
+      });
     }
 
     const appleFavicon = document.getElementById('dynamic-apple-touch-icon') as HTMLLinkElement | null;
