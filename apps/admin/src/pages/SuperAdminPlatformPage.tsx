@@ -26,9 +26,33 @@ type FirmSummary = {
   invoiceStatus: string;
 };
 
+type OtpSession = {
+  id: string;
+  identifier: string;
+  channel: string;
+  purpose: string;
+  provider: string;
+  verified: boolean;
+  attempts: number;
+  maxAttempts: number;
+  isExpired: boolean;
+  createdAt: string;
+};
+
+type OtpConfigData = {
+  phoneOtpEnabled: boolean;
+  activeSmsProvider: string;
+  activeEmailProvider: string;
+  recentMobileSessions: OtpSession[];
+  recentEmailSessions: OtpSession[];
+};
+
 export function SuperAdminPlatformPage() {
   const [kpis, setKpis] = useState<PlatformKpis | null>(null);
   const [firms, setFirms] = useState<FirmSummary[]>([]);
+  const [otpConfig, setOtpConfig] = useState<OtpConfigData | null>(null);
+  const [togglingOtp, setTogglingOtp] = useState(false);
+  const [otpNotice, setOtpNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingFirmId, setUpdatingFirmId] = useState<string | null>(null);
@@ -37,16 +61,41 @@ export function SuperAdminPlatformPage() {
     setLoading(true);
     setError(null);
     try {
-      const [kpiRes, firmsRes] = await Promise.all([
+      const [kpiRes, firmsRes, otpRes] = await Promise.all([
         api<PlatformKpis>('/api/super-admin/kpis'),
         api<{ firms: FirmSummary[] }>('/api/super-admin/firms'),
+        api<OtpConfigData>('/api/super-admin/otp-config').catch(() => null),
       ]);
       setKpis(kpiRes);
       setFirms(firmsRes.firms || []);
+      if (otpRes) setOtpConfig(otpRes);
     } catch (err: any) {
       setError(err?.message || 'Failed to load Super Admin dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleOtpChannel = async () => {
+    if (!otpConfig) return;
+    setTogglingOtp(true);
+    setOtpNotice(null);
+    try {
+      const nextState = !otpConfig.phoneOtpEnabled;
+      const res = await api<{ success: boolean; phoneOtpEnabled: boolean; message: string }>(
+        '/api/super-admin/otp-config',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ phoneOtpEnabled: nextState }),
+        }
+      );
+      setOtpConfig((prev) => (prev ? { ...prev, phoneOtpEnabled: res.phoneOtpEnabled } : null));
+      setOtpNotice(res.message);
+      setTimeout(() => setOtpNotice(null), 6000);
+    } catch (err: any) {
+      alert(`Failed to update OTP configuration: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setTogglingOtp(false);
     }
   };
 
@@ -278,6 +327,159 @@ export function SuperAdminPlatformPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* OTP GATEWAYS & VERIFICATION TELEMETRY (SUPER ADMIN CONTROL) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="p-6 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-50 to-indigo-50/30">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📱</span>
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Registration OTP Gateway & Verification Telemetry</h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Control public registration verification channels and inspect live phone / email verification logs.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToggleOtpChannel}
+              disabled={togglingOtp || !otpConfig}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer ${
+                otpConfig?.phoneOtpEnabled
+                  ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
+            >
+              <span>{togglingOtp ? 'Updating...' : otpConfig?.phoneOtpEnabled ? '🔒 Hide Phone SMS OTP (Use Email Only)' : '🟢 Enable Phone SMS OTP'}</span>
+            </button>
+          </div>
+        </div>
+
+        {otpNotice && (
+          <div className="m-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+            <span>✓</span> {otpNotice}
+          </div>
+        )}
+
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-slate-200/80 bg-slate-50/50">
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Registration Channel Mode</span>
+            <div className="mt-2 flex items-center gap-2">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                otpConfig?.phoneOtpEnabled
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+              }`}>
+                {otpConfig?.phoneOtpEnabled ? '⚡ Email + Phone SMS Active' : '✉️ Email OTP Only (SMS Hidden)'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+              {otpConfig?.phoneOtpEnabled
+                ? 'Taxpayers & CA firms see both SMS and Email verification options.'
+                : 'Phone SMS OTP is hidden from public signup. Users verify cleanly via Email with zero SMS delivery failures.'}
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Configured SMS Gateway</span>
+            <div className="mt-2 flex items-center gap-2">
+              <strong className="text-sm text-slate-900 font-mono">{otpConfig?.activeSmsProvider || 'APITxT'}</strong>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                DLT Standard
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+              Primary Indian SMS gateway for mobile OTP delivery when enabled.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Configured Email Gateway</span>
+            <div className="mt-2 flex items-center gap-2">
+              <strong className="text-sm text-slate-900 font-mono">Resend Cloud API</strong>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Active & High Deliverability
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+              Dispatches 6-digit branded verification codes directly to taxpayer/practitioner inboxes.
+            </p>
+          </div>
+        </div>
+
+        {/* RECENT SESSIONS TABLE */}
+        <div className="p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900">Recent OTP Verification Sessions (Audit Log)</h3>
+            <span className="text-xs text-slate-500">Showing recent 25 mobile & email attempts</span>
+          </div>
+
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200">
+                <tr>
+                  <th className="p-3">Channel</th>
+                  <th className="p-3">Masked Target</th>
+                  <th className="p-3">Purpose</th>
+                  <th className="p-3">Provider</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Requested At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(!otpConfig?.recentMobileSessions?.length && !otpConfig?.recentEmailSessions?.length) ? (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-slate-400">
+                      No recent OTP verification sessions recorded.
+                    </td>
+                  </tr>
+                ) : (
+                  [...(otpConfig?.recentMobileSessions || []), ...(otpConfig?.recentEmailSessions || [])]
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .slice(0, 25)
+                    .map((s, idx) => (
+                      <tr key={s.id || idx} className="hover:bg-slate-50/80 transition">
+                        <td className="p-3 font-semibold">
+                          {s.channel === 'MOBILE_SMS' ? (
+                            <span className="inline-flex items-center gap-1 text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60">
+                              📱 SMS
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200/60">
+                              ✉️ Email
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 font-mono font-medium text-slate-800">{s.identifier}</td>
+                        <td className="p-3 text-slate-600">{s.purpose}</td>
+                        <td className="p-3 font-mono text-slate-500">{s.provider}</td>
+                        <td className="p-3">
+                          {s.verified ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              VERIFIED ✓
+                            </span>
+                          ) : s.isExpired ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              EXPIRED ⌛
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                              PENDING ⏳
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-right text-slate-400 font-mono">
+                          {new Date(s.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

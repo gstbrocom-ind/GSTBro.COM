@@ -53,18 +53,22 @@ const mobileSchema = z
 export const signupSchema = z
   .object({
     name: z.string().trim().min(2, 'Full name is required').max(100, 'Full name cannot exceed 100 characters'),
-    businessName: z.string().trim().min(2, 'Business name is required').max(150, 'Business name cannot exceed 150 characters'),
+    businessName: z.string().trim().min(2, 'Business or Practice name is required').max(150, 'Name cannot exceed 150 characters'),
     phone: mobileSchema,
     email: z.string().trim().email('Enter a valid email address').max(255, 'Email cannot exceed 255 characters'),
     gstin: gstinSchema,
     state: z.string().trim().refine(isValidIndianState, 'Select a valid Indian state'),
-    address: z.string().trim().min(5, 'Business address is required').max(500, 'Address cannot exceed 500 characters'),
+    address: z.string().trim().min(3, 'Address is required').max(500, 'Address cannot exceed 500 characters'),
     password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password cannot exceed 128 characters'),
     welcomeCode: z
       .string()
       .trim()
-      .min(5, 'A valid Welcome Code (5 to 8 characters) is required to register an account')
+      .min(5, 'A valid Welcome Code (5 to 16 characters) is required to register an account')
       .max(16, 'Welcome Code cannot exceed 16 characters'),
+    accountType: z.enum(['CLIENT', 'CA_FIRM']).optional().default('CLIENT'),
+    constitutionType: z.string().trim().max(60).optional(),
+    practiceType: z.string().trim().max(60).optional(),
+    membershipNumber: z.string().trim().max(60).optional(),
     marketingConsent: z.boolean().optional().default(false),
   })
   .strict();
@@ -78,6 +82,9 @@ function publicUser(user: {
   phone?: string | null;
   gstin?: string | null;
   state?: string | null;
+  constitution_type?: string | null;
+  practice_type?: string | null;
+  membership_number?: string | null;
   must_reset_password?: boolean | null;
   mobile_verified?: boolean | null;
   mobile_verified_at?: string | null;
@@ -91,6 +98,9 @@ function publicUser(user: {
     phone: user.phone,
     gstin: user.gstin,
     state: user.state,
+    constitutionType: user.constitution_type || null,
+    practiceType: user.practice_type || null,
+    membershipNumber: user.membership_number || null,
     mustResetPassword: user.must_reset_password ?? false,
     mobileVerified: Boolean(user.mobile_verified),
     mobileVerifiedAt: user.mobile_verified_at,
@@ -254,11 +264,38 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // -------------------------------------------------------------
+  // 1B. PUBLIC REGISTRATION CONFIG (Checks whether Phone SMS OTP is active or hidden)
+  // -------------------------------------------------------------
+  app.get('/api/auth/registration-config', async (_request, reply) => {
+    const { data: settingData } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'signup_phone_otp_enabled')
+      .maybeSingle();
+
+    const phoneOtpEnabled = settingData?.value === 'true';
+    return reply.send({ phoneOtpEnabled });
+  });
+
+  // -------------------------------------------------------------
   // 2. FIRST-TIME SIGNUP — MOBILE OTP (2Factor.in)
   // -------------------------------------------------------------
 
   // Step 2A: Request Mobile OTP for Signup
   app.post('/api/auth/signup/request-mobile-otp', { config: { rateLimit: OTP_GENERATE_RATE_LIMIT } }, async (request, reply) => {
+    // Check if Phone SMS OTP is disabled by Super Admin
+    const { data: settingData } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'signup_phone_otp_enabled')
+      .maybeSingle();
+
+    if (settingData?.value === 'false') {
+      return reply.status(400).send({
+        error: 'Mobile SMS OTP verification is currently disabled. Please verify using Email OTP.',
+      });
+    }
+
     const parsed = signupSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.errors[0]?.message ?? 'Invalid signup details' });
@@ -372,6 +409,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     const passwordHash = await hashPassword(body.signupData.password);
     const now = new Date().toISOString();
+    const isCaFirmRequested = body.signupData.accountType === 'CA_FIRM' || codeCheck.isCaFirm;
 
     const insertPayload: Record<string, unknown> = {
       email,
@@ -381,9 +419,13 @@ export async function authRoutes(app: FastifyInstance) {
       gstin: body.signupData.gstin || null,
       state: body.signupData.state,
       address: body.signupData.address,
+      constitution_type: body.signupData.constitutionType || null,
+      practice_type: body.signupData.practiceType || null,
+      membership_number: body.signupData.membershipNumber || null,
       password_hash: passwordHash,
       email_verified: false,
-      role: 'CLIENT',
+      role: isCaFirmRequested ? 'FIRM_OWNER' : 'CLIENT',
+      firm_role: isCaFirmRequested ? 'FIRM_OWNER' : null,
     };
 
     // Try inserting with mobile_verified fields; fallback if migration not yet applied
@@ -435,7 +477,7 @@ export async function authRoutes(app: FastifyInstance) {
         name: String(createdUser.name),
       });
 
-      if (codeCheck.isCaFirm) {
+      if (isCaFirmRequested) {
         const provisioned = await provisionCaFirmOnRegistration(
           {
             id: String(createdUser.id),
@@ -444,6 +486,9 @@ export async function authRoutes(app: FastifyInstance) {
             phone: phone || null,
             business_name: body.signupData.businessName || null,
             gstin: body.signupData.gstin || null,
+            practice_type: body.signupData.practiceType || null,
+            constitution_type: body.signupData.constitutionType || null,
+            membership_number: body.signupData.membershipNumber || null,
           },
           codeCheck.codeRecord
         );
@@ -549,6 +594,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const passwordHash = await hashPassword(body.password);
+    const isCaFirmRequested = body.accountType === 'CA_FIRM' || codeCheck.isCaFirm;
 
     const { error } = await supabase.from('users').insert({
       email,
@@ -558,10 +604,14 @@ export async function authRoutes(app: FastifyInstance) {
       gstin: body.gstin || null,
       state: body.state,
       address: body.address,
+      constitution_type: body.constitutionType || null,
+      practice_type: body.practiceType || null,
+      membership_number: body.membershipNumber || null,
       password_hash: passwordHash,
       email_verified: false,
       mobile_verified: false,
-      role: 'CLIENT',
+      role: isCaFirmRequested ? 'FIRM_OWNER' : 'CLIENT',
+      firm_role: isCaFirmRequested ? 'FIRM_OWNER' : null,
     });
 
     if (error) {
@@ -613,7 +663,8 @@ export async function authRoutes(app: FastifyInstance) {
           name: resolvedUser.name,
         });
 
-        if (codeCheck.isCaFirm) {
+        const isCaFirm = codeCheck.isCaFirm || resolvedUser.role === 'FIRM_OWNER' || (resolvedUser as any).firm_role === 'FIRM_OWNER';
+        if (isCaFirm) {
           const provisioned = await provisionCaFirmOnRegistration(
             {
               id: resolvedUser.id,
@@ -622,12 +673,15 @@ export async function authRoutes(app: FastifyInstance) {
               phone: resolvedUser.phone || null,
               business_name: resolvedUser.business_name || null,
               gstin: resolvedUser.gstin || null,
+              practice_type: (resolvedUser as any).practice_type || null,
+              constitution_type: (resolvedUser as any).constitution_type || null,
+              membership_number: (resolvedUser as any).membership_number || null,
             },
             codeCheck.codeRecord
           );
           if (provisioned) {
             // Sync in-memory role so JWT and response carry FIRM_OWNER
-            resolvedUser = { ...resolvedUser, role: 'FIRM_OWNER', firm_role: 'FIRM_OWNER' };
+            resolvedUser = { ...resolvedUser, role: 'FIRM_OWNER', firm_role: 'FIRM_OWNER' } as any;
           }
         }
       } catch (codeErr) {

@@ -371,6 +371,9 @@ export async function provisionCaFirmOnRegistration(
     phone?: string | null;
     business_name?: string | null;
     gstin?: string | null;
+    practice_type?: string | null;
+    constitution_type?: string | null;
+    membership_number?: string | null;
   },
   codeRecord?: WelcomeCode
 ): Promise<{ firmId: string; firmName: string } | null> {
@@ -379,7 +382,7 @@ export async function provisionCaFirmOnRegistration(
     const firmName =
       codeRecord?.firm_name ||
       user.business_name ||
-      `${user.name}'s CA Practice`;
+      `${user.name}'s Practice`;
 
     // 2. Generate slug
     const baseSlug = firmName
@@ -399,6 +402,9 @@ export async function provisionCaFirmOnRegistration(
         email: user.email,
         phone: user.phone || null,
         gstin: user.gstin || null,
+        practice_type: user.practice_type || null,
+        constitution_type: user.constitution_type || null,
+        membership_number: user.membership_number || null,
         status: 'ACTIVE',
         branding: {
           brand_name: firmName,
@@ -420,6 +426,9 @@ export async function provisionCaFirmOnRegistration(
         role: 'FIRM_OWNER',
         firm_id: newFirm.id,
         firm_role: 'FIRM_OWNER',
+        practice_type: user.practice_type || null,
+        constitution_type: user.constitution_type || null,
+        membership_number: user.membership_number || null,
       })
       .eq('id', user.id);
 

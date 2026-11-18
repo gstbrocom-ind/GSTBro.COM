@@ -54,6 +54,7 @@ const ALLOWED_SITE_KEYS = new Set([
   'brand_intro_subtitle',
   'brand_intro_tagline',
   'brand_intro_defer_loading',
+  'signup_phone_otp_enabled',
 ]);
 
 interface FaviconCache {

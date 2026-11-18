@@ -1,7 +1,25 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+import { env } from '../config/env.js';
 import { supabase } from '../lib/supabase.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+
+function maskPhone(phone?: string | null): string {
+  if (!phone) return '-';
+  const clean = phone.replace(/\D/g, '');
+  if (clean.length >= 10) {
+    const last10 = clean.slice(-10);
+    return `+91 ${last10.slice(0, 2)}****${last10.slice(6)}`;
+  }
+  return phone.slice(0, 3) + '****' + phone.slice(-2);
+}
+
+function maskEmail(email?: string | null): string {
+  if (!email || !email.includes('@')) return '-';
+  const [user, domain] = email.split('@');
+  const visible = user.length > 2 ? user.slice(0, 2) : user.slice(0, 1);
+  return `${visible}****@${domain}`;
+}
 
 export const superAdminRoutes: FastifyPluginAsync = async (app) => {
   // Public endpoint for web app to fetch published CMS blocks
@@ -158,6 +176,100 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
         return reply.send({ firms: [] });
       }
       return reply.send({ success: true, block: data });
+    });
+
+    // 6. OTP Gateway & Verification Telemetry - Get status & recent sessions
+    adminScope.get('/api/super-admin/otp-config', async (_request, reply) => {
+      // 1. Fetch phone OTP visibility setting
+      const { data: settingData } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'signup_phone_otp_enabled')
+        .maybeSingle();
+
+      const phoneOtpEnabled = settingData?.value === 'true';
+
+      // 2. Fetch recent mobile OTP sessions (limit 25)
+      const { data: mobileData } = await supabase
+        .from('mobile_otp_sessions')
+        .select('id, phone, purpose, attempts, max_attempts, verified, provider, expires_at, created_at')
+        .order('created_at', { ascending: false })
+        .limit(25);
+
+      const recentMobileSessions = (mobileData || []).map((s) => ({
+        id: s.id,
+        identifier: maskPhone(s.phone),
+        channel: 'MOBILE_SMS',
+        purpose: s.purpose,
+        provider: s.provider || env.OTP_PROVIDER || 'apitxt',
+        verified: Boolean(s.verified),
+        attempts: s.attempts || 0,
+        maxAttempts: s.max_attempts || 5,
+        isExpired: new Date(s.expires_at).getTime() < Date.now(),
+        createdAt: s.created_at,
+      }));
+
+      // 3. Fetch recent email OTP sessions (limit 25)
+      const { data: emailData } = await supabase
+        .from('otp_codes')
+        .select('id, email, purpose, expires_at, created_at')
+        .order('created_at', { ascending: false })
+        .limit(25);
+
+      const recentEmailSessions = (emailData || []).map((s) => ({
+        id: s.id,
+        identifier: maskEmail(s.email),
+        channel: 'EMAIL',
+        purpose: s.purpose,
+        provider: 'Resend',
+        verified: false,
+        attempts: 1,
+        maxAttempts: 5,
+        isExpired: new Date(s.expires_at).getTime() < Date.now(),
+        createdAt: s.created_at,
+      }));
+
+      return reply.send({
+        phoneOtpEnabled,
+        activeSmsProvider: env.OTP_PROVIDER || 'apitxt',
+        activeEmailProvider: 'Resend',
+        recentMobileSessions,
+        recentEmailSessions,
+      });
+    });
+
+    // 7. OTP Gateway - Toggle phone OTP visibility on public signup
+    adminScope.patch('/api/super-admin/otp-config', async (request, reply) => {
+      const bodySchema = z.object({
+        phoneOtpEnabled: z.boolean(),
+      });
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid input. phoneOtpEnabled must be a boolean.' });
+      }
+
+      const stringValue = parsed.data.phoneOtpEnabled ? 'true' : 'false';
+
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({
+          key: 'signup_phone_otp_enabled',
+          value: stringValue,
+          updated_at: new Date().toISOString(),
+          updated_by: request.user.id,
+        });
+
+      if (error) {
+        return reply.status(500).send({ error: 'Failed to update OTP configuration' });
+      }
+
+      return reply.send({
+        success: true,
+        phoneOtpEnabled: parsed.data.phoneOtpEnabled,
+        message: parsed.data.phoneOtpEnabled
+          ? 'Mobile SMS OTP verification is now enabled on the public registration page.'
+          : 'Mobile SMS OTP verification is now hidden. All registrations will verify cleanly via Email OTP.',
+      });
     });
   });
 };

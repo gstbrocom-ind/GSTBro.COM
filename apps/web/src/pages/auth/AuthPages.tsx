@@ -173,16 +173,45 @@ function LoginForm() {
 }
 
 // -------------------------------------------------------------
-// 2. SIGNUP FORM (Option: OTP to Mobile OR Send OTP to Mail)
+// 2. PROGRESSIVE MULTI-SLIDE SIGNUP FORM
+// (Role Switcher: Business Client vs CA Firm / Practice,
+//  Entity Constitution Selection, Adaptive Email/SMS OTP Verification)
 // -------------------------------------------------------------
+
+export const CONSTITUTION_OPTIONS = [
+  { value: 'PROPRIETORSHIP', label: 'Sole Proprietorship', desc: 'Single-owner individual enterprise' },
+  { value: 'PARTNERSHIP', label: 'Partnership Firm', desc: 'Registered / unregistered partnership firm' },
+  { value: 'LLP', label: 'Limited Liability Partnership (LLP)', desc: 'MCA registered LLP' },
+  { value: 'PVT_LTD', label: 'Private Limited Company (Pvt Ltd)', desc: 'MCA incorporated private company' },
+  { value: 'OPC', label: 'One Person Company (OPC)', desc: 'Single-member corporate company' },
+  { value: 'PUBLIC_LTD', label: 'Public Limited Company (Ltd)', desc: 'Public listed or unlisted company' },
+  { value: 'TRUST_SOCIETY', label: 'Trust / Society / Section 8 NGO', desc: 'Non-profit or religious/charitable trust' },
+  { value: 'HUF', label: 'Hindu Undivided Family (HUF)', desc: 'Family joint venture taxpayer' },
+  { value: 'OTHER', label: 'Other Legal Entity', desc: 'Statutory corporation / foreign company' },
+];
+
+export const PRACTICE_TYPE_OPTIONS = [
+  { value: 'CA_FIRM', label: 'Chartered Accountants (CA Firm)', desc: 'ICAI registered audit & compliance practice' },
+  { value: 'TAX_CONSULTANT', label: 'Tax Consultant / GST Practitioner', desc: 'Tax advisory, return filing & bookkeeping' },
+  { value: 'CMA_FIRM', label: 'Cost & Management Accountants (CMA)', desc: 'ICMAI cost audit & financial management' },
+  { value: 'CS_FIRM', label: 'Company Secretary (CS Practice)', desc: 'ICSI corporate secretarial & legal filings' },
+  { value: 'ACCOUNTING_AGENCY', label: 'Corporate Accounting & Bookkeeping Agency', desc: 'Full-suite corporate accounting consultancy' },
+];
+
 function SignupForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialCode = (searchParams.get('code') || searchParams.get('welcomeCode') || '').toUpperCase().trim();
 
   const { login } = useAuth();
-  const [step, setStep] = useState<'form' | 'otp'>('form');
-  const [otpChannel, setOtpChannel] = useState<'mobile' | 'email'>('mobile');
+  const [slide, setSlide] = useState<1 | 2 | 3 | 4>(1);
+  const [accountType, setAccountType] = useState<'CLIENT' | 'CA_FIRM'>('CLIENT');
+  const [constitutionType, setConstitutionType] = useState('PROPRIETORSHIP');
+  const [practiceType, setPracticeType] = useState('CA_FIRM');
+  const [membershipNumber, setMembershipNumber] = useState('');
+  const [phoneOtpEnabled, setPhoneOtpEnabled] = useState(false);
+  const [otpChannel, setOtpChannel] = useState<'mobile' | 'email'>('email');
+
   const [form, setForm] = useState({
     name: '',
     businessName: '',
@@ -208,6 +237,23 @@ function SignupForm() {
   const [cooldown, setCooldown] = useState(0);
   const [updatesConsent, setUpdatesConsent] = useState(false);
 
+  // Check whether Phone SMS OTP is enabled by Super Admin
+  useEffect(() => {
+    apiFetch<{ phoneOtpEnabled: boolean }>('/api/auth/registration-config')
+      .then((res) => {
+        setPhoneOtpEnabled(res.phoneOtpEnabled);
+        if (res.phoneOtpEnabled) {
+          setOtpChannel('mobile');
+        } else {
+          setOtpChannel('email');
+        }
+      })
+      .catch(() => {
+        setPhoneOtpEnabled(false);
+        setOtpChannel('email');
+      });
+  }, []);
+
   // 60-second cooldown timer
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -217,7 +263,10 @@ function SignupForm() {
     return () => clearInterval(interval);
   }, [cooldown]);
 
-  const update = (field: keyof typeof form, value: string) => setForm((f) => ({ ...f, [field]: value }));
+  const update = (field: keyof typeof form, value: string) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    setError('');
+  };
 
   const checkWelcomeCode = async (customCode?: string) => {
     const raw = (customCode !== undefined ? customCode : form.welcomeCode).trim();
@@ -234,13 +283,16 @@ function SignupForm() {
 
     setCodeValidating(true);
     try {
-      const res = await apiFetch<{ valid: boolean; message?: string }>('/api/auth/welcome-codes/verify', {
+      const res = await apiFetch<{ valid: boolean; isCaFirm?: boolean; message?: string }>('/api/auth/welcome-codes/verify', {
         method: 'POST',
         body: JSON.stringify({ code: raw.toUpperCase() }),
       });
       if (res.valid) {
         setCodeValidationState('valid');
         setCodeValidationMsg('✓ Welcome Code confirmed! You are authorized to register.');
+        if (res.isCaFirm) {
+          setAccountType('CA_FIRM');
+        }
         return true;
       } else {
         setCodeValidationState('invalid');
@@ -263,18 +315,51 @@ function SignupForm() {
     }
   }, [initialCode]);
 
+  const handleNextSlide1 = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!form.name.trim()) {
+      setError(accountType === 'CA_FIRM' ? 'Please enter the Principal Practitioner Name' : 'Please enter Authorized Signatory Name');
+      return;
+    }
+    if (!form.businessName.trim()) {
+      setError(accountType === 'CA_FIRM' ? 'Please enter your CA Firm or Practice Name' : 'Please enter your Business or Trade Name');
+      return;
+    }
+    setSlide(2);
+  };
+
+  const handleNextSlide2 = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!form.state) {
+      setError('Please select your registered State');
+      return;
+    }
+    if (!form.address.trim()) {
+      setError('Please enter your principal business or office address');
+      return;
+    }
+    setSlide(3);
+  };
+
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
 
-    if (!form.welcomeCode.trim()) {
-      setError('Registration is by invite only. Please enter the Welcome Code provided by your administrator.');
+    if (!form.phone.replace(/\D/g, '').length || form.phone.replace(/\D/g, '').length !== 10) {
+      setError('Please enter a valid 10-digit Indian mobile number');
       return;
     }
 
-    if (form.welcomeCode.trim().length < 5) {
-      setError('Welcome Code must be between 5 and 16 characters.');
+    if (!form.email.trim() || !form.email.includes('@')) {
+      setError('Please enter a valid official email address');
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
@@ -283,14 +368,14 @@ function SignupForm() {
       return;
     }
 
-    if (form.phone.replace(/\D/g, '').length !== 10) {
-      setError('Please enter a valid 10-digit Indian mobile number');
+    if (!form.welcomeCode.trim()) {
+      setError('Registration is by invite only. Please enter your Admin Welcome Code.');
       return;
     }
 
     setLoading(true);
     try {
-      if (otpChannel === 'mobile') {
+      if (otpChannel === 'mobile' && phoneOtpEnabled) {
         const res = await apiFetch<{
           success: boolean;
           sessionId: string;
@@ -299,15 +384,19 @@ function SignupForm() {
         }>('/api/auth/signup/request-mobile-otp', {
           method: 'POST',
           body: JSON.stringify({
-            name: form.name,
-            businessName: form.businessName,
+            name: form.name.trim(),
+            businessName: form.businessName.trim(),
             phone: form.phone,
-            email: form.email,
-            gstin: form.gstin || undefined,
+            email: form.email.trim().toLowerCase(),
+            gstin: form.gstin.trim() || undefined,
             state: form.state,
-            address: form.address,
+            address: form.address.trim(),
             password: form.password,
             welcomeCode: form.welcomeCode.trim().toUpperCase(),
+            accountType,
+            constitutionType: accountType === 'CLIENT' ? constitutionType : undefined,
+            practiceType: accountType === 'CA_FIRM' ? practiceType : undefined,
+            membershipNumber: accountType === 'CA_FIRM' ? membershipNumber.trim() : undefined,
             marketingConsent: updatesConsent,
           }),
         });
@@ -323,15 +412,19 @@ function SignupForm() {
         }>('/api/auth/signup', {
           method: 'POST',
           body: JSON.stringify({
-            name: form.name,
-            businessName: form.businessName,
+            name: form.name.trim(),
+            businessName: form.businessName.trim(),
             phone: form.phone,
-            email: form.email,
-            gstin: form.gstin || undefined,
+            email: form.email.trim().toLowerCase(),
+            gstin: form.gstin.trim() || undefined,
             state: form.state,
-            address: form.address,
+            address: form.address.trim(),
             password: form.password,
             welcomeCode: form.welcomeCode.trim().toUpperCase(),
+            accountType,
+            constitutionType: accountType === 'CLIENT' ? constitutionType : undefined,
+            practiceType: accountType === 'CA_FIRM' ? practiceType : undefined,
+            membershipNumber: accountType === 'CA_FIRM' ? membershipNumber.trim() : undefined,
             marketingConsent: updatesConsent,
           }),
         });
@@ -339,7 +432,7 @@ function SignupForm() {
         setCooldown(res.cooldownSeconds || 60);
         setMessage(res.message);
       }
-      setStep('otp');
+      setSlide(4);
     } catch (err) {
       setError(
         err instanceof Error
@@ -360,22 +453,26 @@ function SignupForm() {
 
     try {
       let authenticatedUser: any = null;
-      if (otpChannel === 'mobile') {
+      if (otpChannel === 'mobile' && phoneOtpEnabled) {
         const result = await apiFetch<{ token: string; user?: any; message: string }>('/api/auth/signup/verify-mobile-otp', {
           method: 'POST',
           body: JSON.stringify({
             sessionId,
-            otp,
+            otp: otp.trim(),
             signupData: {
-              name: form.name,
-              businessName: form.businessName,
+              name: form.name.trim(),
+              businessName: form.businessName.trim(),
               phone: form.phone,
-              email: form.email,
-              gstin: form.gstin || undefined,
+              email: form.email.trim().toLowerCase(),
+              gstin: form.gstin.trim() || undefined,
               state: form.state,
-              address: form.address,
+              address: form.address.trim(),
               password: form.password,
               welcomeCode: form.welcomeCode.trim().toUpperCase(),
+              accountType,
+              constitutionType: accountType === 'CLIENT' ? constitutionType : undefined,
+              practiceType: accountType === 'CA_FIRM' ? practiceType : undefined,
+              membershipNumber: accountType === 'CA_FIRM' ? membershipNumber.trim() : undefined,
               marketingConsent: updatesConsent,
             },
           }),
@@ -383,7 +480,7 @@ function SignupForm() {
         if (result.user) {
           authenticatedUser = result.user;
           login(result.token, result.user);
-          trackLoginSuccess(result.user?.role || 'CLIENT');
+          trackLoginSuccess(result.user?.role || (accountType === 'CA_FIRM' ? 'FIRM_OWNER' : 'CLIENT'));
         } else {
           setToken(result.token);
         }
@@ -398,12 +495,12 @@ function SignupForm() {
         });
         authenticatedUser = result.user;
         login(result.token, result.user);
-        trackLoginSuccess(result.user?.role || 'CLIENT');
+        trackLoginSuccess(result.user?.role || (accountType === 'CA_FIRM' ? 'FIRM_OWNER' : 'CLIENT'));
       }
 
       trackSignUp(form.state);
       const userRole = authenticatedUser?.role;
-      if (userRole === 'FIRM_OWNER' || userRole === 'FIRM_STAFF') {
+      if (userRole === 'FIRM_OWNER' || userRole === 'FIRM_STAFF' || accountType === 'CA_FIRM') {
         navigate('/firm');
       } else if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
         navigate('/admin');
@@ -426,7 +523,7 @@ function SignupForm() {
     setMessage('');
 
     try {
-      if (otpChannel === 'mobile') {
+      if (otpChannel === 'mobile' && phoneOtpEnabled) {
         const res = await apiFetch<{ success: boolean; sessionId: string; cooldownSeconds: number }>(
           '/api/auth/resend-mobile-otp',
           {
@@ -451,423 +548,609 @@ function SignupForm() {
           }
         );
         setCooldown(res.cooldownSeconds || 60);
-        setMessage(res.message || 'Verification code sent to your email.');
+        setMessage('New verification code sent to your email.');
       }
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : otpChannel === 'mobile'
-          ? 'Failed to resend mobile verification code'
-          : 'Failed to resend email verification code'
-      );
+      setError(err instanceof Error ? err.message : 'Failed to resend verification code');
     } finally {
       setLoading(false);
     }
   };
 
-  if (step === 'otp') {
-    return (
-      <form onSubmit={handleVerifyOtp} className="max-w-md mx-auto space-y-5">
-        <div className="text-center space-y-1">
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
-            {otpChannel === 'mobile' ? <Smartphone className="w-6 h-6" /> : <Mail className="w-6 h-6" />}
-          </div>
-          <h2 className="text-xl font-bold text-gray-900">
-            {otpChannel === 'mobile' ? 'Verify Mobile Number' : 'Verify Email Address'}
-          </h2>
-          <p className="text-gray-600 text-xs">
-            {otpChannel === 'mobile' ? (
-              <>
-                We sent a 6-digit SMS verification code to <strong>+91 {form.phone}</strong>.
-              </>
-            ) : (
-              <>
-                We sent a 6-digit verification code to <strong>{form.email}</strong>.
-              </>
-            )}
-          </p>
-        </div>
-
-        {message && (
-          <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium text-center">
-            {message}
-          </div>
-        )}
-
-        <input
-          type="text"
-          placeholder="000000"
-          required
-          maxLength={6}
-          value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-          className={`${inputClass} text-center text-2xl tracking-[0.5em] font-mono`}
-        />
-
-        {error && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium text-center">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading || otp.length < 4}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition shadow-sm cursor-pointer"
-        >
-          {loading
-            ? 'Verifying...'
-            : otpChannel === 'mobile'
-            ? 'Verify Mobile & Create Account'
-            : 'Verify Email & Create Account'}
-        </button>
-
-        <div className="flex items-center justify-between text-xs pt-2">
-          <button
-            type="button"
-            onClick={handleResendOtp}
-            disabled={loading || cooldown > 0}
-            className="text-blue-600 hover:underline font-semibold disabled:text-gray-400 disabled:no-underline cursor-pointer"
-          >
-            {cooldown > 0
-              ? `Resend ${otpChannel === 'mobile' ? 'SMS' : 'Email'} OTP in ${cooldown}s`
-              : `Resend ${otpChannel === 'mobile' ? 'SMS' : 'Email'} OTP`}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStep('form');
-              setError('');
-              setMessage('');
-              setOtp('');
-            }}
-            className="text-gray-500 hover:text-gray-800 cursor-pointer"
-          >
-            ← Change Channel / Details
-          </button>
-        </div>
-      </form>
-    );
-  }
-
   return (
-    <form onSubmit={handleRequestOtp} className="max-w-lg mx-auto space-y-4">
-      {/* 1. Verification Option Switcher */}
-      <div className="space-y-1.5 pb-1">
-        <label className="block text-xs font-bold text-gray-700">
-          Choose OTP Verification Method *
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setOtpChannel('mobile');
-              setError('');
-            }}
-            className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
-              otpChannel === 'mobile'
-                ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${
-                otpChannel === 'mobile' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              <Smartphone className="w-4 h-4" />
-            </div>
-            <div>
-              <span
-                className={`block text-xs font-bold leading-tight ${
-                  otpChannel === 'mobile' ? 'text-blue-900' : 'text-gray-800'
-                }`}
-              >
-                OTP to Mobile
-              </span>
-              <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">
-                Fast SMS code to phone
-              </span>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setOtpChannel('email');
-              setError('');
-            }}
-            className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
-              otpChannel === 'email'
-                ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${
-                otpChannel === 'email' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              <Mail className="w-4 h-4" />
-            </div>
-            <div>
-              <span
-                className={`block text-xs font-bold leading-tight ${
-                  otpChannel === 'email' ? 'text-blue-900' : 'text-gray-800'
-                }`}
-              >
-                Send OTP to Mail
-              </span>
-              <span className="block text-[10px] text-gray-500 leading-tight mt-0.5">
-                Code to registered email
-              </span>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Admin Welcome Code (Invite-Only Registration Gate) */}
-      <div className="p-4 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 via-blue-50/40 to-slate-50 space-y-2.5 shadow-xs">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
+    <div className="max-w-xl mx-auto space-y-5">
+      {/* STEP PROGRESS INDICATOR */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <span className="flex h-5 w-5 rounded-full bg-blue-600 text-white text-[11px] items-center justify-center font-bold">
+              {slide}
             </span>
-            Admin Welcome Code *
-          </label>
-          <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-            Invite-Only Registration
+            <span>
+              {slide === 1 && 'Step 1: Account Role & Identity'}
+              {slide === 2 && (accountType === 'CA_FIRM' ? 'Step 2: Practice Specialization & Location' : 'Step 2: Business Constitution & Location')}
+              {slide === 3 && 'Step 3: Security & Invite Access'}
+              {slide === 4 && 'Step 4: Final Verification'}
+            </span>
+          </span>
+          <span className="text-[11px] text-slate-400 font-medium">
+            {slide === 1 && '33% Completed'}
+            {slide === 2 && '66% Completed'}
+            {slide === 3 && '90% Completed'}
+            {slide === 4 && '100% Ready'}
           </span>
         </div>
 
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="e.g. GST-8849"
-            required
-            maxLength={16}
-            value={form.welcomeCode}
-            onChange={(e) => {
-              const val = e.target.value.toUpperCase().replace(/\s+/g, '');
-              update('welcomeCode', val);
-              if (codeValidationState !== 'idle') {
-                setCodeValidationState('idle');
-                setCodeValidationMsg('');
-              }
-            }}
-            onBlur={() => {
-              if (form.welcomeCode.trim().length >= 5) {
-                checkWelcomeCode();
-              }
-            }}
-            className={`${inputClass} font-mono uppercase font-bold tracking-widest text-slate-900 border-indigo-200 bg-white pr-24`}
-          />
-          <button
-            type="button"
-            disabled={codeValidating || form.welcomeCode.trim().length < 5}
-            onClick={() => checkWelcomeCode()}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:hover:bg-indigo-600 transition cursor-pointer"
-          >
-            {codeValidating ? 'Checking...' : 'Verify'}
-          </button>
-        </div>
-
-        {codeValidationState === 'valid' && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
-            <span>✓</span> {codeValidationMsg}
-          </div>
-        )}
-
-        {codeValidationState === 'invalid' && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg">
-            <span>✕</span> {codeValidationMsg}
-          </div>
-        )}
-
-        <p className="text-[11px] text-slate-500 leading-relaxed">
-          Registration requires a 5–8 character Welcome Code provided by the Admin. Once used, your code will be permanently registered and linked to your account.
-        </p>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name *</label>
-          <input
-            placeholder="Authorized Person Name"
-            required
-            value={form.name}
-            onChange={(e) => update('name', e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Business Name *</label>
-          <input
-            placeholder="Enterprise / Legal Entity Name"
-            required
-            value={form.businessName}
-            onChange={(e) => update('businessName', e.target.value)}
-            className={inputClass}
+        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-blue-600 transition-all duration-300 rounded-full"
+            style={{ width: `${slide === 1 ? 25 : slide === 2 ? 55 : slide === 3 ? 85 : 100}%` }}
           />
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Mobile Number (10 digits) *</label>
-          {/* JIT privacy notice — mobile */}
-          <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-2 leading-relaxed">
-            ℹ️ Your mobile number is used for one-time verification and login. It is not shared with third parties for marketing.
-          </p>
-          <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
-              +91
-            </span>
-            <input
-              type="tel"
-              placeholder="9876543210"
-              required
-              maxLength={10}
-              value={form.phone}
-              onChange={(e) => update('phone', e.target.value.replace(/\D/g, ''))}
-              className={`${inputClass} pl-12`}
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address *</label>
-          <input
-            type="email"
-            placeholder="taxpayer@company.com"
-            required
-            value={form.email}
-            onChange={(e) => update('email', e.target.value)}
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">GSTIN (Optional)</label>
-          <input
-            placeholder="e.g. 29ABCDE1234F1Z5"
-            maxLength={15}
-            value={form.gstin}
-            onChange={(e) => update('gstin', e.target.value.toUpperCase())}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">State *</label>
-          <select
-            required
-            value={form.state}
-            onChange={(e) => update('state', e.target.value)}
-            className={inputClass}
-          >
-            <option value="">Select State</option>
-            {INDIAN_STATES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-1">Business Address *</label>
-        {/* JIT privacy notice — address */}
-        <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-2 leading-relaxed">
-          ℹ️ Your business address is needed to determine applicable GST rules and appears on invoices.
-        </p>
-        <textarea
-          placeholder="Principal place of business..."
-          required
-          rows={2}
-          value={form.address}
-          onChange={(e) => update('address', e.target.value)}
-          className={inputClass}
-        />
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Password *</label>
-          <input
-            type="password"
-            placeholder="Min 8 characters"
-            required
-            minLength={8}
-            value={form.password}
-            onChange={(e) => update('password', e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Confirm Password *</label>
-          <input
-            type="password"
-            placeholder="Re-enter password"
-            required
-            value={form.confirmPassword}
-            onChange={(e) => update('confirmPassword', e.target.value)}
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      <p className="text-[11px] text-gray-500">
-        Password must be at least 8 characters.{' '}
-        {otpChannel === 'mobile'
-          ? 'Mobile verification code will be sent via SMS.'
-          : 'Email verification code will be sent to your inbox.'}
-      </p>
-
+      {/* ERROR NOTICE BANNER */}
       {error && (
-        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
-          {error}
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2 shadow-xs">
+          <span>✕</span>
+          <span>{error}</span>
         </div>
       )}
 
-      {/* DPDP Statutory Privacy Notice & Optional Updates Consent */}
-      <div className="pt-2 space-y-3">
-        <p className="text-[11px] text-slate-500 leading-relaxed text-center sm:text-left">
-          By creating an account, you acknowledge our{' '}
-          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800 font-semibold">
-            Privacy Notice
-          </Link>{' '}
-          and agree to the processing of your personal data for GST compliance and service delivery. GSTBro is intended strictly for adults (18+).
-        </p>
+      {/* PROGRESSIVE ANIMATED SLIDES */}
+      <AnimatePresence mode="wait">
+        {/* ======================================================== */}
+        {/* SLIDE 1: ACCOUNT TYPE & IDENTITY */}
+        {/* ======================================================== */}
+        {slide === 1 && (
+          <motion.form
+            key="slide-1"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handleNextSlide1}
+            className="space-y-5"
+          >
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Select Your Account Type *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountType('CLIENT');
+                    setError('');
+                  }}
+                  className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                    accountType === 'CLIENT'
+                      ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <span className="text-2xl">🏢</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      accountType === 'CLIENT' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      Taxpayer
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 leading-snug">Business Enterprise / Client</h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Company, proprietorship, trader or LLP managing compliance, invoices, returns & MIS.
+                    </p>
+                  </div>
+                </button>
 
-        <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-600 select-none">
-          <input
-            type="checkbox"
-            checked={updatesConsent}
-            onChange={(e) => setUpdatesConsent(e.target.checked)}
-            className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-          />
-          <span>I agree to receive optional service update emails from GSTBro (you can change this anytime in your privacy settings).</span>
-        </label>
-      </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountType('CA_FIRM');
+                    setError('');
+                  }}
+                  className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                    accountType === 'CA_FIRM'
+                      ? 'bg-purple-50/90 border-purple-500 ring-2 ring-purple-500/20 shadow-xs'
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <span className="text-2xl">⚖️</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      accountType === 'CA_FIRM' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      Practitioner
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 leading-snug">CA Firm / Tax Consultant</h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Chartered Accountants & consultants managing team allocations, client rosters & filings.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition shadow-sm cursor-pointer"
-      >
-        {loading
-          ? otpChannel === 'mobile'
-            ? 'Sending Mobile OTP...'
-            : 'Sending Email OTP...'
-          : otpChannel === 'mobile'
-          ? 'Send Mobile OTP & Continue'
-          : 'Send OTP to Mail & Continue'}
-      </button>
-    </form>
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {accountType === 'CA_FIRM' ? 'Principal CA / Managing Partner Full Name *' : 'Authorized Signatory Full Name *'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={accountType === 'CA_FIRM' ? 'e.g. CA Ramesh Sharma' : 'e.g. Rahul Varma'}
+                  required
+                  value={form.name}
+                  onChange={(e) => update('name', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {accountType === 'CA_FIRM' ? 'CA Firm / Consultancy Trade Name *' : 'Legal Business Entity / Enterprise Name *'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={accountType === 'CA_FIRM' ? 'e.g. Sharma & Associates Chartered Accountants' : 'e.g. Nexa Logistics Private Limited'}
+                  required
+                  value={form.businessName}
+                  onChange={(e) => update('businessName', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>Continue to Entity & Practice Details</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </motion.form>
+        )}
+
+        {/* ======================================================== */}
+        {/* SLIDE 2: CONSTITUTION & LOCATION */}
+        {/* ======================================================== */}
+        {slide === 2 && (
+          <motion.form
+            key="slide-2"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handleNextSlide2}
+            className="space-y-5"
+          >
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+              {accountType === 'CLIENT' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                    Constitution of Business / Legal Structure *
+                  </label>
+                  <select
+                    value={constitutionType}
+                    onChange={(e) => setConstitutionType(e.target.value)}
+                    className={`${inputClass} font-semibold`}
+                  >
+                    {CONSTITUTION_OPTIONS.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label} ({c.desc})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                      Practice Classification *
+                    </label>
+                    <select
+                      value={practiceType}
+                      onChange={(e) => setPracticeType(e.target.value)}
+                      className={`${inputClass} font-semibold`}
+                    >
+                      {PRACTICE_TYPE_OPTIONS.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                      ICAI FRN / Membership No. (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. FRN 012345N or M.No 504938"
+                      value={membershipNumber}
+                      onChange={(e) => setMembershipNumber(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">State / Jurisdiction *</label>
+                  <select
+                    required
+                    value={form.state}
+                    onChange={(e) => update('state', e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select State</option>
+                    {INDIAN_STATES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN (Optional)</label>
+                  <input
+                    placeholder="e.g. 29ABCDE1234F1Z5"
+                    maxLength={15}
+                    value={form.gstin}
+                    onChange={(e) => update('gstin', e.target.value.toUpperCase())}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {accountType === 'CA_FIRM' ? 'Practice Office Address *' : 'Principal Place of Business Address *'}
+                </label>
+                <textarea
+                  placeholder="Premises address, street, city and pin code..."
+                  required
+                  rows={2}
+                  value={form.address}
+                  onChange={(e) => update('address', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setError('');
+                  setSlide(1);
+                }}
+                className="w-1/3 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-sm transition cursor-pointer"
+              >
+                ← Back
+              </button>
+              <button
+                type="submit"
+                className="w-2/3 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Continue to Security & Invite</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ======================================================== */}
+        {/* SLIDE 3: SECURITY & INVITE GATE */}
+        {/* ======================================================== */}
+        {slide === 3 && (
+          <motion.form
+            key="slide-3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handleRequestOtp}
+            className="space-y-5"
+          >
+            {/* Verification Channel Switcher (Only shown if Super Admin has enabled SMS OTP) */}
+            {phoneOtpEnabled ? (
+              <div className="space-y-1.5 pb-1">
+                <label className="block text-xs font-bold text-slate-700">Choose Verification Channel *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setOtpChannel('mobile')}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
+                      otpChannel === 'mobile'
+                        ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/20'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${
+                      otpChannel === 'mobile' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-bold text-slate-800">OTP to Mobile</span>
+                      <span className="block text-[10px] text-slate-500">Fast SMS code</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOtpChannel('email')}
+                    className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition cursor-pointer ${
+                      otpChannel === 'email'
+                        ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/20'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${
+                      otpChannel === 'email' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-bold text-slate-800">Send OTP to Mail</span>
+                      <span className="block text-[10px] text-slate-500">Code to official email</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-blue-900 text-xs flex items-center gap-2.5 shadow-xs">
+                <span className="text-lg">✉️</span>
+                <div>
+                  <p className="font-bold">Instant Email Verification</p>
+                  <p className="text-[11px] text-blue-700">A 6-digit confirmation code will be dispatched to your registered email address.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Admin Welcome Code Gate */}
+            <div className="p-4 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 via-blue-50/40 to-slate-50 space-y-2.5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
+                  </span>
+                  Admin Welcome Code *
+                </label>
+                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100/90 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Invite-Only Registration
+                </span>
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g. GST-8849"
+                  required
+                  maxLength={16}
+                  value={form.welcomeCode}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase().replace(/\s+/g, '');
+                    update('welcomeCode', val);
+                    if (codeValidationState !== 'idle') {
+                      setCodeValidationState('idle');
+                      setCodeValidationMsg('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (form.welcomeCode.trim().length >= 5) {
+                      checkWelcomeCode();
+                    }
+                  }}
+                  className={`${inputClass} font-mono uppercase font-bold tracking-widest text-slate-900 border-indigo-200 bg-white pr-24`}
+                />
+                <button
+                  type="button"
+                  disabled={codeValidating || form.welcomeCode.trim().length < 5}
+                  onClick={() => checkWelcomeCode()}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 transition cursor-pointer"
+                >
+                  {codeValidating ? 'Checking...' : 'Verify'}
+                </button>
+              </div>
+
+              {codeValidationState === 'valid' && (
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
+                  <span>✓</span> {codeValidationMsg}
+                </div>
+              )}
+
+              {codeValidationState === 'invalid' && (
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg">
+                  <span>✕</span> {codeValidationMsg}
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Number (+91) *</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      placeholder="9876543210"
+                      required
+                      maxLength={10}
+                      value={form.phone}
+                      onChange={(e) => update('phone', e.target.value.replace(/\D/g, ''))}
+                      className={`${inputClass} pl-12 font-medium`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Official Email Address *</label>
+                  <input
+                    type="email"
+                    placeholder="official@entity.com"
+                    required
+                    value={form.email}
+                    onChange={(e) => update('email', e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Create Password *</label>
+                  <input
+                    type="password"
+                    placeholder="Min 8 characters"
+                    required
+                    minLength={8}
+                    value={form.password}
+                    onChange={(e) => update('password', e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Confirm Password *</label>
+                  <input
+                    type="password"
+                    placeholder="Re-enter password"
+                    required
+                    value={form.confirmPassword}
+                    onChange={(e) => update('confirmPassword', e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setError('');
+                  setSlide(2);
+                }}
+                className="w-1/3 py-3.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-sm transition cursor-pointer"
+              >
+                ← Back
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-2/3 bg-blue-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <span>Sending Verification Code...</span>
+                ) : (
+                  <>
+                    <span>{otpChannel === 'mobile' && phoneOtpEnabled ? 'Send Mobile SMS Code' : 'Send Email Verification Code'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.form>
+        )}
+
+        {/* ======================================================== */}
+        {/* SLIDE 4: 6-DIGIT OTP VERIFICATION */}
+        {/* ======================================================== */}
+        {slide === 4 && (
+          <motion.form
+            key="slide-4"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handleVerifyOtp}
+            className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-5 text-center"
+          >
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 mx-auto flex items-center justify-center text-xl font-bold">
+              🔐
+            </div>
+
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Enter 6-Digit Verification Code</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                {otpChannel === 'mobile' && phoneOtpEnabled ? (
+                  <>
+                    We sent an SMS verification code to <strong>+91 {form.phone}</strong>.
+                  </>
+                ) : (
+                  <>
+                    We sent a verification code to <strong>{form.email}</strong>.
+                  </>
+                )}
+              </p>
+            </div>
+
+            {message && (
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+                {message}
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder="000000"
+              required
+              maxLength={6}
+              autoFocus
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+              className={`${inputClass} text-center text-2xl tracking-[0.5em] font-mono`}
+            />
+
+            <button
+              type="submit"
+              disabled={loading || otp.length < 6}
+              className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition shadow-sm cursor-pointer"
+            >
+              {loading
+                ? 'Activating Account...'
+                : accountType === 'CA_FIRM'
+                ? 'Verify & Launch CA Firm Dashboard ➔'
+                : 'Verify & Launch Taxpayer Portal ➔'}
+            </button>
+
+            <div className="flex items-center justify-between text-xs pt-2">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={loading || cooldown > 0}
+                className="text-blue-600 hover:underline font-semibold disabled:text-gray-400 disabled:no-underline cursor-pointer"
+              >
+                {cooldown > 0
+                  ? `Resend in ${cooldown}s`
+                  : `Resend Verification Code`}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSlide(3);
+                  setError('');
+                  setMessage('');
+                  setOtp('');
+                }}
+                className="text-gray-500 hover:text-gray-800 cursor-pointer font-medium"
+              >
+                ← Change Details / Code
+              </button>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

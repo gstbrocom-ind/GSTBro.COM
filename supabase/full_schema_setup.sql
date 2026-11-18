@@ -2306,3 +2306,22 @@ BEGIN
 END $$;
 
 -- <<< END MIGRATION: 024_firm_automations_milestones_messaging.sql <<<
+
+
+-- ============================================================================
+-- Migration 025: Registration Constitution Types, Practice Fields & OTP Settings
+-- ============================================================================
+
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS constitution_type VARCHAR(60) DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS practice_type VARCHAR(60) DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS membership_number VARCHAR(60) DEFAULT NULL;
+
+ALTER TABLE firms 
+ADD COLUMN IF NOT EXISTS constitution_type VARCHAR(60) DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS practice_type VARCHAR(60) DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS membership_number VARCHAR(60) DEFAULT NULL;
+
+INSERT INTO site_settings (key, value, updated_at)
+VALUES ('signup_phone_otp_enabled', 'false', NOW())
+ON CONFLICT (key) DO NOTHING;
