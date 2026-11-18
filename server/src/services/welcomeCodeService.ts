@@ -471,6 +471,7 @@ export async function getWelcomeCodesSummary(): Promise<{
   expired: number;
   redemptionRate: number;
   codes: WelcomeCode[];
+  supportPhone?: string;
 }> {
   const codes = await getAllWelcomeCodes();
   const now = Date.now();
@@ -492,6 +493,18 @@ export async function getWelcomeCodesSummary(): Promise<{
   const total = codes.length;
   const redemptionRate = total > 0 ? Math.round((used / total) * 100) : 0;
 
+  let supportPhone = '+91 98765 43210';
+  try {
+    const { data: phoneSetting } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'welcome_code_support_phone')
+      .maybeSingle();
+    if (phoneSetting?.value) {
+      supportPhone = phoneSetting.value;
+    }
+  } catch {}
+
   return {
     total,
     available,
@@ -499,5 +512,6 @@ export async function getWelcomeCodesSummary(): Promise<{
     expired,
     redemptionRate,
     codes,
+    supportPhone,
   };
 }

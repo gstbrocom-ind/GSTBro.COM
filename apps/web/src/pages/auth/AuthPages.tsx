@@ -236,12 +236,16 @@ function SignupForm() {
   const [message, setMessage] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [updatesConsent, setUpdatesConsent] = useState(false);
+  const [supportPhone, setSupportPhone] = useState('+91 98765 43210');
 
-  // Check whether Phone SMS OTP is enabled by Super Admin
+  // Check whether Phone SMS OTP is enabled and fetch Welcome Code Support Hotline
   useEffect(() => {
-    apiFetch<{ phoneOtpEnabled: boolean }>('/api/auth/registration-config')
+    apiFetch<{ phoneOtpEnabled: boolean; supportPhone?: string }>('/api/auth/registration-config')
       .then((res) => {
         setPhoneOtpEnabled(res.phoneOtpEnabled);
+        if (res.supportPhone) {
+          setSupportPhone(res.supportPhone);
+        }
         if (res.phoneOtpEnabled) {
           setOtpChannel('mobile');
         } else {
@@ -949,16 +953,61 @@ function SignupForm() {
                       checkWelcomeCode();
                     }
                   }}
-                  className={`${inputClass} font-mono uppercase font-bold tracking-widest text-slate-900 border-indigo-200 bg-white pr-24`}
+                  className={`${inputClass} font-mono uppercase font-bold tracking-widest text-slate-900 border-indigo-200 bg-white pr-40`}
                 />
-                <button
-                  type="button"
-                  disabled={codeValidating || form.welcomeCode.trim().length < 5}
-                  onClick={() => checkWelcomeCode()}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 transition cursor-pointer"
-                >
-                  {codeValidating ? 'Checking...' : 'Verify'}
-                </button>
+                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  <a
+                    href={supportPhone ? `tel:${supportPhone.replace(/\s+/g, '')}` : undefined}
+                    onClick={(e) => {
+                      if (!supportPhone) {
+                        e.preventDefault();
+                        setError('Support hotline is currently being configured.');
+                        return;
+                      }
+                      setMessage(`Connecting call to onboarding desk at ${supportPhone}...`);
+                    }}
+                    title={`Call ${supportPhone} to get an Admin Welcome Code`}
+                    className="px-2.5 py-1.5 rounded-md text-xs font-bold bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white transition flex items-center gap-1 shadow-xs cursor-pointer no-underline"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="w-3.5 h-3.5"
+                    >
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                    <span>GET</span>
+                  </a>
+                  <button
+                    type="button"
+                    disabled={codeValidating || form.welcomeCode.trim().length < 5}
+                    onClick={() => checkWelcomeCode()}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 transition cursor-pointer"
+                  >
+                    {codeValidating ? 'Checking...' : 'Verify'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Call Redirect Micro-Help */}
+              <div className="flex items-center justify-between text-[11px] text-slate-600 px-1 pt-0.5">
+                <span>
+                  Don't have an invite code? Click <strong className="text-emerald-700 font-bold">GET</strong> to call our onboarding desk directly.
+                </span>
+                {supportPhone && (
+                  <a
+                    href={`tel:${supportPhone.replace(/\s+/g, '')}`}
+                    className="font-mono font-semibold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1"
+                  >
+                    <span>📞</span>
+                    <span>{supportPhone}</span>
+                  </a>
+                )}
               </div>
 
               {codeValidationState === 'valid' && (

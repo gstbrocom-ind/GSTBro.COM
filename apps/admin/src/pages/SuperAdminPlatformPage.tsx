@@ -41,6 +41,7 @@ type OtpSession = {
 
 type OtpConfigData = {
   phoneOtpEnabled: boolean;
+  supportPhone?: string;
   activeSmsProvider: string;
   activeEmailProvider: string;
   recentMobileSessions: OtpSession[];
@@ -51,6 +52,8 @@ export function SuperAdminPlatformPage() {
   const [kpis, setKpis] = useState<PlatformKpis | null>(null);
   const [firms, setFirms] = useState<FirmSummary[]>([]);
   const [otpConfig, setOtpConfig] = useState<OtpConfigData | null>(null);
+  const [hotlinePhone, setHotlinePhone] = useState('+91 98765 43210');
+  const [savingHotline, setSavingHotline] = useState(false);
   const [togglingOtp, setTogglingOtp] = useState(false);
   const [otpNotice, setOtpNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,11 +71,38 @@ export function SuperAdminPlatformPage() {
       ]);
       setKpis(kpiRes);
       setFirms(firmsRes.firms || []);
-      if (otpRes) setOtpConfig(otpRes);
+      if (otpRes) {
+        setOtpConfig(otpRes);
+        if (otpRes.supportPhone) {
+          setHotlinePhone(otpRes.supportPhone);
+        }
+      }
     } catch (err: any) {
       setError(err?.message || 'Failed to load Super Admin dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveHotline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!hotlinePhone.trim()) return;
+    setSavingHotline(true);
+    setOtpNotice(null);
+    try {
+      const res = await api<{ success: boolean; supportPhone: string; message: string }>(
+        '/api/super-admin/otp-config',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ supportPhone: hotlinePhone.trim() }),
+        }
+      );
+      setOtpNotice(`Registration "GET" hotline successfully updated to ${res.supportPhone || hotlinePhone}`);
+      setTimeout(() => setOtpNotice(null), 6000);
+    } catch (err: any) {
+      alert(`Failed to update hotline: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setSavingHotline(false);
     }
   };
 
@@ -407,6 +437,50 @@ export function SuperAdminPlatformPage() {
               Dispatches 6-digit branded verification codes directly to taxpayer/practitioner inboxes.
             </p>
           </div>
+        </div>
+
+        {/* WELCOME CODE CALL HOTLINE EDITOR */}
+        <div className="p-6 border-b border-slate-200/80 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📞</span>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">Registration "GET" Call Hotline</h3>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase tracking-wider">
+                Direct Call Redirect
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+              When prospective clients or CA firms click <strong className="text-emerald-700">GET</strong> on the Admin Welcome Code input, their device initiates a phone call directly to this number.
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveHotline} className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <input
+                type="text"
+                required
+                value={hotlinePhone}
+                onChange={(e) => setHotlinePhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="px-3 py-2 rounded-xl text-xs font-mono font-bold text-slate-900 border border-emerald-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-48 shadow-2xs"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={savingHotline || !hotlinePhone.trim()}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition cursor-pointer shadow-xs whitespace-nowrap"
+            >
+              {savingHotline ? 'Saving...' : 'Save Hotline'}
+            </button>
+            <a
+              href={`tel:${hotlinePhone.replace(/\s+/g, '')}`}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
+              title="Test Dial Hotline"
+            >
+              <span>📞</span>
+              <span>Test Dial</span>
+            </a>
+          </form>
         </div>
 
         {/* RECENT SESSIONS TABLE */}

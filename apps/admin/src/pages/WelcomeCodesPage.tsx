@@ -23,6 +23,7 @@ interface WelcomeCodesSummary {
   expired: number;
   redemptionRate: number;
   codes: WelcomeCode[];
+  supportPhone?: string;
 }
 
 export function WelcomeCodesPage() {
@@ -36,6 +37,8 @@ export function WelcomeCodesPage() {
     codes: [],
   });
 
+  const [hotlinePhone, setHotlinePhone] = useState('+91 98765 43210');
+  const [updatingHotline, setUpdatingHotline] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'USED' | 'EXPIRED'>('ALL');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -62,10 +65,31 @@ export function WelcomeCodesPage() {
     try {
       const res = await api<WelcomeCodesSummary>('/api/admin/welcome-codes');
       setData(res);
+      if (res.supportPhone) {
+        setHotlinePhone(res.supportPhone);
+      }
     } catch (err: any) {
       setToastMessage({ type: 'error', text: err.message || 'Failed to fetch welcome codes' });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleUpdateHotline(e: React.FormEvent) {
+    e.preventDefault();
+    if (!hotlinePhone.trim()) return;
+    setUpdatingHotline(true);
+    try {
+      const res = await api<{ success: boolean; supportPhone: string }>('/api/admin/welcome-codes/support-phone', {
+        method: 'PATCH',
+        body: JSON.stringify({ supportPhone: hotlinePhone.trim() }),
+      });
+      setHotlinePhone(res.supportPhone);
+      setToastMessage({ type: 'success', text: `Registration "GET" call hotline updated to ${res.supportPhone}` });
+    } catch (err: any) {
+      setToastMessage({ type: 'error', text: err.message || 'Failed to update hotline' });
+    } finally {
+      setUpdatingHotline(false);
     }
   }
 
@@ -270,6 +294,47 @@ export function WelcomeCodesPage() {
           <p className="text-2xl font-black text-blue-600">{data.redemptionRate}%</p>
           <span className="text-[10px] text-slate-400">{data.used} of {data.total} codes redeemed</span>
         </div>
+      </div>
+
+      {/* Registration 'GET' Call Hotline Card */}
+      <div className="bg-gradient-to-r from-emerald-50 via-teal-50/50 to-slate-50 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📞</span>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Registration "GET" Call Hotline</h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase tracking-wider">
+              Live Dial Redirect
+            </span>
+          </div>
+          <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+            When prospective clients or CA firms click <strong className="text-emerald-700 font-bold">GET</strong> on the Admin Welcome Code input during signup, their device immediately connects to this number.
+          </p>
+        </div>
+
+        <form onSubmit={handleUpdateHotline} className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            required
+            value={hotlinePhone}
+            onChange={(e) => setHotlinePhone(e.target.value)}
+            placeholder="+91 98765 43210"
+            className="px-3 py-2 rounded-xl text-xs font-mono font-bold text-slate-900 border border-emerald-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-44 shadow-2xs"
+          />
+          <button
+            type="submit"
+            disabled={updatingHotline || !hotlinePhone.trim()}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50 transition cursor-pointer shadow-xs whitespace-nowrap"
+          >
+            {updatingHotline ? 'Saving...' : 'Update Number'}
+          </button>
+          <a
+            href={`tel:${hotlinePhone.replace(/\s+/g, '')}`}
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition flex items-center gap-1 whitespace-nowrap cursor-pointer shadow-2xs"
+            title="Test Call"
+          >
+            <span>Dial</span>
+          </a>
+        </form>
       </div>
 
       {/* Controls & Search Bar */}

@@ -264,17 +264,19 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // -------------------------------------------------------------
-  // 1B. PUBLIC REGISTRATION CONFIG (Checks whether Phone SMS OTP is active or hidden)
+  // 1B. PUBLIC REGISTRATION CONFIG (Phone OTP status & Welcome Code Hotline)
   // -------------------------------------------------------------
   app.get('/api/auth/registration-config', async (_request, reply) => {
-    const { data: settingData } = await supabase
+    const { data: settings } = await supabase
       .from('site_settings')
-      .select('value')
-      .eq('key', 'signup_phone_otp_enabled')
-      .maybeSingle();
+      .select('key, value')
+      .in('key', ['signup_phone_otp_enabled', 'welcome_code_support_phone', 'contact_phone']);
 
-    const phoneOtpEnabled = settingData?.value === 'true';
-    return reply.send({ phoneOtpEnabled });
+    const settingsMap = new Map((settings || []).map((s: any) => [s.key, s.value]));
+    const phoneOtpEnabled = settingsMap.get('signup_phone_otp_enabled') === 'true';
+    const supportPhone = settingsMap.get('welcome_code_support_phone') || settingsMap.get('contact_phone') || '+91 98765 43210';
+
+    return reply.send({ phoneOtpEnabled, supportPhone });
   });
 
   // -------------------------------------------------------------

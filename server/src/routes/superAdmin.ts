@@ -229,8 +229,18 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
         createdAt: s.created_at,
       }));
 
+      // 4. Fetch welcome code call redirect phone number
+      const { data: phoneData } = await supabase
+        .from('site_settings')
+        .select('key, value')
+        .in('key', ['welcome_code_support_phone', 'contact_phone']);
+
+      const phoneMap = new Map((phoneData || []).map((p: any) => [p.key, p.value]));
+      const supportPhone = phoneMap.get('welcome_code_support_phone') || phoneMap.get('contact_phone') || '+91 98765 43210';
+
       return reply.send({
         phoneOtpEnabled,
+        supportPhone,
         activeSmsProvider: env.OTP_PROVIDER || 'apitxt',
         activeEmailProvider: 'Resend',
         recentMobileSessions,
@@ -238,37 +248,51 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
       });
     });
 
-    // 7. OTP Gateway - Toggle phone OTP visibility on public signup
+    // 7. OTP Gateway & Welcome Hotline - Update phone OTP visibility or hotline phone
     adminScope.patch('/api/super-admin/otp-config', async (request, reply) => {
       const bodySchema = z.object({
-        phoneOtpEnabled: z.boolean(),
+        phoneOtpEnabled: z.boolean().optional(),
+        supportPhone: z.string().trim().min(5).max(30).optional(),
       });
       const parsed = bodySchema.safeParse(request.body);
       if (!parsed.success) {
-        return reply.status(400).send({ error: 'Invalid input. phoneOtpEnabled must be a boolean.' });
+        return reply.status(400).send({ error: 'Invalid input. Please provide phoneOtpEnabled (boolean) or supportPhone (string).' });
       }
 
-      const stringValue = parsed.data.phoneOtpEnabled ? 'true' : 'false';
+      if (parsed.data.phoneOtpEnabled !== undefined) {
+        const stringValue = parsed.data.phoneOtpEnabled ? 'true' : 'false';
+        const { error } = await supabase
+          .from('site_settings')
+          .upsert({
+            key: 'signup_phone_otp_enabled',
+            value: stringValue,
+            updated_at: new Date().toISOString(),
+            updated_by: request.user.id,
+          });
+        if (error) {
+          return reply.status(500).send({ error: 'Failed to update OTP configuration' });
+        }
+      }
 
-      const { error } = await supabase
-        .from('site_settings')
-        .upsert({
-          key: 'signup_phone_otp_enabled',
-          value: stringValue,
-          updated_at: new Date().toISOString(),
-          updated_by: request.user.id,
-        });
-
-      if (error) {
-        return reply.status(500).send({ error: 'Failed to update OTP configuration' });
+      if (parsed.data.supportPhone !== undefined) {
+        const { error } = await supabase
+          .from('site_settings')
+          .upsert({
+            key: 'welcome_code_support_phone',
+            value: parsed.data.supportPhone,
+            updated_at: new Date().toISOString(),
+            updated_by: request.user.id,
+          });
+        if (error) {
+          return reply.status(500).send({ error: 'Failed to update support hotline number' });
+        }
       }
 
       return reply.send({
         success: true,
         phoneOtpEnabled: parsed.data.phoneOtpEnabled,
-        message: parsed.data.phoneOtpEnabled
-          ? 'Mobile SMS OTP verification is now enabled on the public registration page.'
-          : 'Mobile SMS OTP verification is now hidden. All registrations will verify cleanly via Email OTP.',
+        supportPhone: parsed.data.supportPhone,
+        message: 'Settings updated successfully.',
       });
     });
   });

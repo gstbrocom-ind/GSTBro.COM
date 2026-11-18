@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { supabase } from '../lib/supabase.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import {
   getWelcomeCodesSummary,
@@ -115,6 +116,41 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       await revokeWelcomeCode(id);
       return { success: true, message: 'Welcome code revoked successfully' };
+    }
+  );
+
+  // --------------------------------------------------------------------------
+  // 5. ADMIN / SUPER ADMIN: Update Welcome Code GET Hotline Phone Number
+  // --------------------------------------------------------------------------
+  app.patch(
+    '/api/admin/welcome-codes/support-phone',
+    { preHandler: [authenticate, requireRole('ADMIN', 'SUPER_ADMIN')] },
+    async (request, reply) => {
+      const body = z
+        .object({
+          supportPhone: z.string().trim().min(5).max(30),
+        })
+        .safeParse(request.body);
+
+      if (!body.success) {
+        return reply.status(400).send({ error: 'Valid phone number is required (5-30 characters)' });
+      }
+
+      const user = (request as any).user;
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({
+          key: 'welcome_code_support_phone',
+          value: body.data.supportPhone,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+
+      if (error) {
+        return reply.status(500).send({ error: 'Failed to update support phone number' });
+      }
+
+      return reply.send({ success: true, supportPhone: body.data.supportPhone });
     }
   );
 }

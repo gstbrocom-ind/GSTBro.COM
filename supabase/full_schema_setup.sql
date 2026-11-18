@@ -2325,3 +2325,11 @@ ADD COLUMN IF NOT EXISTS membership_number VARCHAR(60) DEFAULT NULL;
 INSERT INTO site_settings (key, value, updated_at)
 VALUES ('signup_phone_otp_enabled', 'false', NOW())
 ON CONFLICT (key) DO NOTHING;
+
+-- ============================================================================
+-- Migration 026: Welcome Code Support Phone Setting (GET Button Hotline)
+-- ============================================================================
+
+INSERT INTO site_settings (key, value, updated_at)
+VALUES ('welcome_code_support_phone', '+91 98765 43210', NOW())
+ON CONFLICT (key) DO NOTHING;
