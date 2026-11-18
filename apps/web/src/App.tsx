@@ -38,6 +38,7 @@ import '../../admin/src/index.css';
 const ClientPortalEntry = lazy(() => import('./pages/app/ClientPortalEntry').then((m) => ({ default: m.ClientPortalEntry })));
 const ClientMessagesPage = lazy(() => import('./pages/app/ClientMessagesPage').then((m) => ({ default: m.ClientMessagesPage })));
 const TeamPortal = lazy(() => import('./pages/app/TeamPortal').then((m) => ({ default: m.TeamPortal })));
+const FirmPortal = lazy(() => import('./pages/firm/FirmPortal').then((m) => ({ default: m.FirmPortal })));
 const InvoiceDashboard = lazy(() => import('./pages/app/invoice/InvoiceDashboard').then((m) => ({ default: m.InvoiceDashboard })));
 const PrivacyRequestsPage = lazy(() => import('./pages/app/PrivacyRequestsPage').then((m) => ({ default: m.PrivacyRequestsPage })));
 const PrivacySettingsPage = lazy(() => import('./pages/app/PrivacySettingsPage').then((m) => ({ default: m.PrivacySettingsPage })));
@@ -194,8 +195,24 @@ function AppShell() {
             <Route
               path="/team"
               element={
-                <ProtectedRoute allowedRoles={['TEAM', 'ADMIN']}>
+                <ProtectedRoute allowedRoles={['TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_STAFF']}>
                   <TeamPortal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/firm"
+              element={
+                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
+                  <FirmPortal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/firm/*"
+              element={
+                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
+                  <FirmPortal />
                 </ProtectedRoute>
               }
             />
@@ -205,7 +222,7 @@ function AppShell() {
             <Route
               path="/admin/*"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
+                <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
                   <AdminApp />
                 </ProtectedRoute>
               }

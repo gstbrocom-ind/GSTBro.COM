@@ -60,9 +60,11 @@ function LoginForm() {
       login(result.token, result.user);
       trackLoginSuccess(result.user?.role || 'CLIENT');
 
-      if (result.user.role === 'TEAM' || result.user.role === 'FIRM_STAFF') {
+      if (result.user.role === 'FIRM_OWNER' || result.user.role === 'FIRM_STAFF') {
+        navigate(result.user.mustResetPassword ? '/admin/force-reset' : '/firm');
+      } else if (result.user.role === 'TEAM') {
         navigate(result.user.mustResetPassword ? '/admin/force-reset' : '/team');
-      } else if (result.user.role === 'ADMIN' || result.user.role === 'SUPER_ADMIN' || result.user.role === 'FIRM_OWNER') {
+      } else if (result.user.role === 'ADMIN' || result.user.role === 'SUPER_ADMIN') {
         navigate(result.user.mustResetPassword ? '/admin/force-reset' : '/admin');
       } else {
         navigate('/client');
@@ -357,6 +359,7 @@ function SignupForm() {
     setError('');
 
     try {
+      let authenticatedUser: any = null;
       if (otpChannel === 'mobile') {
         const result = await apiFetch<{ token: string; user?: any; message: string }>('/api/auth/signup/verify-mobile-otp', {
           method: 'POST',
@@ -378,8 +381,9 @@ function SignupForm() {
           }),
         });
         if (result.user) {
+          authenticatedUser = result.user;
           login(result.token, result.user);
-      trackLoginSuccess(result.user?.role || 'CLIENT');
+          trackLoginSuccess(result.user?.role || 'CLIENT');
         } else {
           setToken(result.token);
         }
@@ -392,12 +396,22 @@ function SignupForm() {
             welcomeCode: form.welcomeCode.trim().toUpperCase(),
           }),
         });
+        authenticatedUser = result.user;
         login(result.token, result.user);
-      trackLoginSuccess(result.user?.role || 'CLIENT');
+        trackLoginSuccess(result.user?.role || 'CLIENT');
       }
 
       trackSignUp(form.state);
-      navigate('/dashboard');
+      const userRole = authenticatedUser?.role;
+      if (userRole === 'FIRM_OWNER' || userRole === 'FIRM_STAFF') {
+        navigate('/firm');
+      } else if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
+        navigate('/admin');
+      } else if (userRole === 'TEAM') {
+        navigate('/team');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid or expired verification code');
     } finally {

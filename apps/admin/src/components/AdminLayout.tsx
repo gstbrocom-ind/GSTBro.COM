@@ -241,6 +241,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'Compliance & Practice',
     items: [
+      { to: '/firm', label: 'CA Firm Practice Suite', icon: TeamOverviewIcon, external: true },
       { to: '/firm/drive-routing', label: 'Drive & Folder Directions', icon: DriveIcon },
       { to: '/client/invoices', label: 'GST Invoices Hub', icon: FeesIcon, external: true },
       { to: '/due-dates', label: 'Statutory Deadlines', icon: CalendarIcon },
@@ -287,7 +288,11 @@ export function AdminLayout() {
           navigate(adminPath('/force-reset'));
           return;
         }
-        if (data.user.role === 'TEAM' || data.user.role === 'FIRM_STAFF') {
+        if (data.user.role === 'FIRM_OWNER' || data.user.role === 'FIRM_STAFF') {
+          window.location.href = '/firm';
+          return;
+        }
+        if (data.user.role === 'TEAM') {
           window.location.href = '/team';
           return;
         }

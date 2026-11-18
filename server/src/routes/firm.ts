@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { supabase } from '../lib/supabase.js';
 import { authenticate, requireFirm, requireFirmAdmin } from '../middleware/auth.js';
+import { hashPassword } from '../services/passwordService.js';
 
 export const firmRoutes: FastifyPluginAsync = async (app) => {
   app.register(async (firmScope) => {
@@ -13,7 +14,10 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       const firmId = request.user.firm_id!;
       const { data: firm, error } = await supabase
         .from('firms')
-        .select('id, name, slug, email, phone, gstin, address, branding, status, created_at')
+        .select(`
+          id, name, slug, email, phone, gstin, address, branding, status, 
+          logo_url, frn_number, membership_number, stamp_signature_url, letterhead_url, brand_color, created_at
+        `)
         .eq('id', firmId)
         .single();
 
@@ -33,6 +37,12 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         gstin: z.string().optional(),
         address: z.string().optional(),
         branding: z.record(z.any()).optional(),
+        logo_url: z.string().nullable().optional(),
+        frn_number: z.string().nullable().optional(),
+        membership_number: z.string().nullable().optional(),
+        stamp_signature_url: z.string().nullable().optional(),
+        letterhead_url: z.string().nullable().optional(),
+        brand_color: z.string().optional(),
       });
 
       const parsed = bodySchema.safeParse(request.body);
@@ -47,7 +57,10 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', firmId)
-        .select('id, name, slug, email, phone, gstin, address, branding, status')
+        .select(`
+          id, name, slug, email, phone, gstin, address, branding, status,
+          logo_url, frn_number, membership_number, stamp_signature_url, letterhead_url, brand_color
+        `)
         .single();
 
       if (error) {
@@ -56,7 +69,714 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ success: true, firm: data });
     });
 
-    // 3. Get Google Drive BYOD Config
+    // ==========================================
+    // TASKS & TO-DO SYSTEM WITH AUDIT TIMESTAMPS
+    // ==========================================
+
+    // 3. Get Firm Tasks (Filtered by status, client, or assigned staff)
+    firmScope.get('/api/firm/tasks', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const query = request.query as {
+        status?: string;
+        assigned_to?: string;
+        client_id?: string;
+      };
+
+      let dbQuery = supabase
+        .from('firm_tasks')
+        .select(`
+          *,
+          client:client_id(id, name, business_name, gstin),
+          assigned_user:assigned_to(id, name, email),
+          creator:created_by(id, name),
+          completer:completed_by(id, name)
+        `)
+        .eq('firm_id', firmId)
+        .order('created_at', { ascending: false });
+
+      if (query.status && query.status !== 'ALL') {
+        dbQuery = dbQuery.eq('status', query.status);
+      }
+      if (query.assigned_to) {
+        dbQuery = dbQuery.eq('assigned_to', query.assigned_to);
+      }
+      if (query.client_id) {
+        dbQuery = dbQuery.eq('client_id', query.client_id);
+      }
+
+      const { data, error } = await dbQuery;
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ tasks: data || [] });
+    });
+
+    // 4. Create Task (Records created_by audit timestamp)
+    firmScope.post('/api/firm/tasks', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const userId = request.user.id;
+
+      const bodySchema = z.object({
+        title: z.string().min(2),
+        description: z.string().optional().nullable(),
+        category: z.enum(['GST', 'INCOME_TAX', 'AUDIT', 'ROC', 'ACCOUNTING', 'OFFICE']).default('GST'),
+        priority: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).default('NORMAL'),
+        status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED', 'ARCHIVED']).default('TODO'),
+        due_date: z.string().optional().nullable(),
+        assigned_to: z.string().uuid().optional().nullable(),
+        client_id: z.string().uuid().optional().nullable(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const isCompleted = parsed.data.status === 'COMPLETED';
+
+      const { data, error } = await supabase
+        .from('firm_tasks')
+        .insert({
+          firm_id: firmId,
+          title: parsed.data.title,
+          description: parsed.data.description || null,
+          category: parsed.data.category,
+          priority: parsed.data.priority,
+          status: parsed.data.status,
+          due_date: parsed.data.due_date || null,
+          assigned_to: parsed.data.assigned_to || null,
+          client_id: parsed.data.client_id || null,
+          created_by: userId,
+          completed_by: isCompleted ? userId : null,
+          completed_at: isCompleted ? new Date().toISOString() : null,
+        })
+        .select(`
+          *,
+          client:client_id(id, name, business_name, gstin),
+          assigned_user:assigned_to(id, name, email),
+          creator:created_by(id, name),
+          completer:completed_by(id, name)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, task: data });
+    });
+
+    // 5. Update Task (Captures completion timestamp and completing user)
+    firmScope.patch('/api/firm/tasks/:id', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const userId = request.user.id;
+      const { id } = request.params as { id: string };
+
+      const bodySchema = z.object({
+        title: z.string().min(2).optional(),
+        description: z.string().nullable().optional(),
+        category: z.enum(['GST', 'INCOME_TAX', 'AUDIT', 'ROC', 'ACCOUNTING', 'OFFICE']).optional(),
+        priority: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).optional(),
+        status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED', 'ARCHIVED']).optional(),
+        due_date: z.string().nullable().optional(),
+        assigned_to: z.string().uuid().nullable().optional(),
+        client_id: z.string().uuid().nullable().optional(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const updatePayload: Record<string, any> = {
+        ...parsed.data,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (parsed.data.status === 'COMPLETED') {
+        updatePayload.completed_at = new Date().toISOString();
+        updatePayload.completed_by = userId;
+      } else if (parsed.data.status) {
+        updatePayload.completed_at = null;
+        updatePayload.completed_by = null;
+      }
+
+      const { data, error } = await supabase
+        .from('firm_tasks')
+        .update(updatePayload)
+        .eq('id', id)
+        .eq('firm_id', firmId)
+        .select(`
+          *,
+          client:client_id(id, name, business_name, gstin),
+          assigned_user:assigned_to(id, name, email),
+          creator:created_by(id, name),
+          completer:completed_by(id, name)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, task: data });
+    });
+
+    // 6. Delete Task
+    firmScope.delete('/api/firm/tasks/:id', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      const { error } = await supabase
+        .from('firm_tasks')
+        .delete()
+        .eq('id', id)
+        .eq('firm_id', firmId);
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true });
+    });
+
+    // 7. Recurring Task Rules
+    firmScope.get('/api/firm/tasks/recurring-rules', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { data, error } = await supabase
+        .from('firm_task_recurring_rules')
+        .select('*')
+        .eq('firm_id', firmId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ rules: data || [] });
+    });
+
+    firmScope.post('/api/firm/tasks/recurring-rules', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        rule_name: z.string().min(2),
+        task_template_title: z.string().min(2),
+        category: z.string().default('GST'),
+        priority: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).default('NORMAL'),
+        days_before_due_date: z.number().int().min(1).max(30).default(5),
+        target_due_date_category: z.string().default('GSTR-1'),
+        auto_assign_to_client_staff: z.boolean().default(true),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const { data, error } = await supabase
+        .from('firm_task_recurring_rules')
+        .insert({
+          firm_id: firmId,
+          ...parsed.data,
+          is_active: true,
+        })
+        .select('*')
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, rule: data });
+    });
+
+    firmScope.delete('/api/firm/tasks/recurring-rules/:id', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      const { error } = await supabase
+        .from('firm_task_recurring_rules')
+        .delete()
+        .eq('id', id)
+        .eq('firm_id', firmId);
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true });
+    });
+
+    // 8. Auto-Generate Monthly Recurring Tasks for All Clients
+    firmScope.post('/api/firm/tasks/generate-recurring', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const userId = request.user.id;
+      const now = new Date();
+      const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      // Get active rules
+      const { data: rules } = await supabase
+        .from('firm_task_recurring_rules')
+        .select('*')
+        .eq('firm_id', firmId)
+        .eq('is_active', true);
+
+      if (!rules || rules.length === 0) {
+        return reply.send({ generatedCount: 0, message: 'No active recurring task rules configured' });
+      }
+
+      // Get clients of this firm
+      const { data: clients } = await supabase
+        .from('users')
+        .select('id, name, business_name, assigned_staff_id')
+        .eq('firm_id', firmId)
+        .eq('role', 'CLIENT');
+
+      if (!clients || clients.length === 0) {
+        return reply.send({ generatedCount: 0, message: 'No clients onboarded under this firm' });
+      }
+
+      let generated = 0;
+      for (const rule of rules) {
+        for (const client of clients) {
+          const title = `${rule.task_template_title} - ${client.business_name || client.name} (${currentPeriod})`;
+          
+          // Check if already created for this client & period
+          const { data: existing } = await supabase
+            .from('firm_tasks')
+            .select('id')
+            .eq('firm_id', firmId)
+            .eq('client_id', client.id)
+            .ilike('title', `%${client.business_name || client.name}%${currentPeriod}%`)
+            .maybeSingle();
+
+          if (!existing) {
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + (rule.days_before_due_date || 5));
+
+            await supabase.from('firm_tasks').insert({
+              firm_id: firmId,
+              client_id: client.id,
+              title,
+              description: `Auto-generated monthly task for ${currentPeriod} as per rule "${rule.rule_name}".`,
+              category: rule.category || 'GST',
+              priority: rule.priority || 'NORMAL',
+              status: 'TODO',
+              due_date: dueDate.toISOString(),
+              assigned_to: rule.auto_assign_to_client_staff ? client.assigned_staff_id : null,
+              created_by: userId,
+            });
+            generated++;
+          }
+        }
+
+        await supabase
+          .from('firm_task_recurring_rules')
+          .update({ last_generated_period: currentPeriod })
+          .eq('id', rule.id);
+      }
+
+      return reply.send({ success: true, generatedCount: generated });
+    });
+
+    // ==========================================
+    // STATUTORY DUE DATES & FIRM OVERRIDES
+    // ==========================================
+
+    // 9. Get Merged Statutory & Firm Overridden Due Dates
+    firmScope.get('/api/firm/due-dates', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+
+      const [statutoryRes, overridesRes] = await Promise.all([
+        supabase.from('due_dates').select('*').order('due_date', { ascending: true }),
+        supabase.from('firm_due_date_overrides').select('*').eq('firm_id', firmId),
+      ]);
+
+      const statutoryList = statutoryRes.data || [];
+      const overridesMap = new Map((overridesRes.data || []).map((o) => [o.deadline_key, o]));
+
+      const merged = statutoryList.map((item) => {
+        const key = item.deadline_key || item.category;
+        const override = overridesMap.get(key);
+        if (override) {
+          return {
+            ...item,
+            statutory_due_date: item.due_date,
+            due_date: override.custom_due_date,
+            is_overridden: true,
+            override_reason: override.reason,
+            override_id: override.id,
+          };
+        }
+        return {
+          ...item,
+          is_overridden: false,
+        };
+      });
+
+      return reply.send({ dueDates: merged });
+    });
+
+    // 10. Override Statutory Due Date for this Firm
+    firmScope.post('/api/firm/due-dates/override', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const userId = request.user.id;
+
+      const bodySchema = z.object({
+        statutory_due_date_id: z.string().uuid().optional(),
+        deadline_key: z.string().min(1),
+        title: z.string().optional(),
+        category: z.string().optional(),
+        custom_due_date: z.string().min(10), // 'YYYY-MM-DD'
+        reason: z.string().optional(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const { data, error } = await supabase
+        .from('firm_due_date_overrides')
+        .upsert(
+          {
+            firm_id: firmId,
+            statutory_due_date_id: parsed.data.statutory_due_date_id || null,
+            deadline_key: parsed.data.deadline_key,
+            title: parsed.data.title || null,
+            category: parsed.data.category || 'GST',
+            custom_due_date: parsed.data.custom_due_date,
+            reason: parsed.data.reason || null,
+            created_by: userId,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'firm_id,deadline_key' }
+        )
+        .select('*')
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, override: data });
+    });
+
+    // 11. Reset Due Date back to statutory default
+    firmScope.delete('/api/firm/due-dates/override/:deadlineKey', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { deadlineKey } = request.params as { deadlineKey: string };
+
+      const { error } = await supabase
+        .from('firm_due_date_overrides')
+        .delete()
+        .eq('firm_id', firmId)
+        .eq('deadline_key', deadlineKey);
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true });
+    });
+
+    // ==========================================
+    // CLIENT PIPELINE & COMPLIANCE BOARD
+    // ==========================================
+
+    // 12. List Firm Clients with filing stage and assigned staff
+    firmScope.get('/api/firm/clients', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id, name, email, phone, business_name, gstin, state, address,
+          filing_stage, assigned_staff_id, created_at,
+          assigned_staff:assigned_staff_id(id, name, email)
+        `)
+        .eq('firm_id', firmId)
+        .eq('role', 'CLIENT')
+        .order('name', { ascending: true });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ clients: data || [] });
+    });
+
+    // 13. Onboard New Client into Firm
+    firmScope.post('/api/firm/clients', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        name: z.string().min(2),
+        business_name: z.string().optional(),
+        email: z.string().email(),
+        phone: z.string().optional(),
+        gstin: z.string().optional(),
+        state: z.string().optional(),
+        address: z.string().optional(),
+        assigned_staff_id: z.string().uuid().optional().nullable(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, firm_id')
+        .eq('email', parsed.data.email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (existingUser) {
+        if (existingUser.firm_id && existingUser.firm_id !== firmId) {
+          return reply.status(400).send({ error: 'A client with this email is already registered with another firm' });
+        }
+        // Associate with this firm
+        const { data: updated, error: updateErr } = await supabase
+          .from('users')
+          .update({
+            firm_id: firmId,
+            name: parsed.data.name,
+            business_name: parsed.data.business_name || null,
+            phone: parsed.data.phone || null,
+            gstin: parsed.data.gstin || null,
+            state: parsed.data.state || null,
+            address: parsed.data.address || null,
+            assigned_staff_id: parsed.data.assigned_staff_id || null,
+          })
+          .eq('id', existingUser.id)
+          .select('id, name, email, phone, business_name, gstin, filing_stage, assigned_staff_id')
+          .single();
+
+        if (updateErr) return reply.status(500).send({ error: updateErr.message });
+        return reply.send({ success: true, client: updated });
+      }
+
+      // Create new client record
+      const defaultPasswordHash = await hashPassword('Client@123456');
+      const { data: newClient, error: insertErr } = await supabase
+        .from('users')
+        .insert({
+          firm_id: firmId,
+          email: parsed.data.email.toLowerCase().trim(),
+          name: parsed.data.name,
+          business_name: parsed.data.business_name || null,
+          phone: parsed.data.phone || null,
+          gstin: parsed.data.gstin || null,
+          state: parsed.data.state || null,
+          address: parsed.data.address || null,
+          role: 'CLIENT',
+          password_hash: defaultPasswordHash,
+          email_verified: true,
+          filing_stage: 'DATA_COLLECTION',
+          assigned_staff_id: parsed.data.assigned_staff_id || null,
+        })
+        .select('id, name, email, phone, business_name, gstin, filing_stage, assigned_staff_id')
+        .single();
+
+      if (insertErr) {
+        return reply.status(500).send({ error: insertErr.message });
+      }
+      return reply.send({ success: true, client: newClient });
+    });
+
+    // 14. Update Client Filing Stage or Assigned Staff
+    firmScope.patch('/api/firm/clients/:id', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      const bodySchema = z.object({
+        filing_stage: z.enum(['DATA_COLLECTION', 'RECON_IN_PROGRESS', 'CA_REVIEW', 'FILED']).optional(),
+        assigned_staff_id: z.string().uuid().nullable().optional(),
+        business_name: z.string().optional(),
+        gstin: z.string().optional(),
+        phone: z.string().optional(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          ...parsed.data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('firm_id', firmId)
+        .select(`
+          id, name, email, phone, business_name, gstin, state,
+          filing_stage, assigned_staff_id,
+          assigned_staff:assigned_staff_id(id, name, email)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, client: data });
+    });
+
+    // ==========================================
+    // TEAM & ARTICLE WORKLOAD MANAGEMENT
+    // ==========================================
+
+    // 15. Get Team Members with assigned client count
+    firmScope.get('/api/firm/team', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+
+      const [teamRes, clientsRes] = await Promise.all([
+        supabase
+          .from('users')
+          .select('id, name, email, phone, role, firm_role, created_at')
+          .eq('firm_id', firmId)
+          .in('role', ['TEAM', 'FIRM_STAFF', 'FIRM_OWNER', 'ADMIN'])
+          .order('name', { ascending: true }),
+        supabase
+          .from('users')
+          .select('id, assigned_staff_id')
+          .eq('firm_id', firmId)
+          .eq('role', 'CLIENT'),
+      ]);
+
+      if (teamRes.error) {
+        return reply.status(500).send({ error: teamRes.error.message });
+      }
+
+      const clientCounts: Record<string, number> = {};
+      (clientsRes.data || []).forEach((c) => {
+        if (c.assigned_staff_id) {
+          clientCounts[c.assigned_staff_id] = (clientCounts[c.assigned_staff_id] || 0) + 1;
+        }
+      });
+
+      const team = (teamRes.data || []).map((m) => ({
+        ...m,
+        assignedClientsCount: clientCounts[m.id] || 0,
+      }));
+
+      return reply.send({ team });
+    });
+
+    // 16. Invite / Add Team Member (Article / Manager)
+    firmScope.post('/api/firm/team/invite', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        name: z.string().min(2),
+        email: z.string().email(),
+        phone: z.string().optional(),
+        firm_role: z.enum(['FIRM_MANAGER', 'FIRM_STAFF']).default('FIRM_STAFF'),
+        password: z.string().min(8).default('Staff@123456'),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const passwordHash = await hashPassword(parsed.data.password);
+
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          firm_id: firmId,
+          name: parsed.data.name,
+          email: parsed.data.email.toLowerCase().trim(),
+          phone: parsed.data.phone || null,
+          role: 'FIRM_STAFF',
+          firm_role: parsed.data.firm_role,
+          password_hash: passwordHash,
+          email_verified: true,
+          must_reset_password: true,
+        })
+        .select('id, name, email, phone, role, firm_role, created_at')
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, member: data });
+    });
+
+    // ==========================================
+    // DIGITAL SIGNATURE (DSC) TRACKER
+    // ==========================================
+
+    // 17. Get DSC Tokens
+    firmScope.get('/api/firm/dsc-tokens', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { data, error } = await supabase
+        .from('firm_dsc_tokens')
+        .select(`
+          *,
+          client:client_id(id, name, business_name)
+        `)
+        .eq('firm_id', firmId)
+        .order('expiry_date', { ascending: true });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ tokens: data || [] });
+    });
+
+    // 18. Add DSC Token
+    firmScope.post('/api/firm/dsc-tokens', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        holder_name: z.string().min(2),
+        designation: z.string().optional(),
+        pan_or_din: z.string().optional(),
+        expiry_date: z.string().min(10), // 'YYYY-MM-DD'
+        token_type: z.string().default('CLASS_3'),
+        storage_location: z.string().optional(),
+        notes: z.string().optional(),
+        client_id: z.string().uuid().nullable().optional(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const { data, error } = await supabase
+        .from('firm_dsc_tokens')
+        .insert({
+          firm_id: firmId,
+          ...parsed.data,
+        })
+        .select(`
+          *,
+          client:client_id(id, name, business_name)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, token: data });
+    });
+
+    // 19. Delete DSC Token
+    firmScope.delete('/api/firm/dsc-tokens/:id', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      const { error } = await supabase
+        .from('firm_dsc_tokens')
+        .delete()
+        .eq('id', id)
+        .eq('firm_id', firmId);
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true });
+    });
+
+    // ==========================================
+    // GOOGLE DRIVE BYOD & DOCUMENT ROUTING
+    // ==========================================
+
+    // 20. Get Google Drive BYOD Config
     firmScope.get('/api/firm/drive', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
       const firmId = request.user.firm_id!;
       const { data, error } = await supabase
@@ -71,7 +791,7 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ driveConfig: data || { is_connected: false } });
     });
 
-    // 4. Configure / Connect Google Drive BYOD
+    // 21. Configure / Connect Google Drive BYOD
     firmScope.post('/api/firm/drive', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
       const firmId = request.user.firm_id!;
       const bodySchema = z.object({
@@ -111,7 +831,7 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ success: true, driveConfig: data });
     });
 
-    // 5. Get Document Routing Direction Rules
+    // 22. Get Document Routing Rules
     firmScope.get('/api/firm/routing-rules', async (request, reply) => {
       const firmId = request.user.firm_id!;
       const { data, error } = await supabase
@@ -126,7 +846,7 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ rules: data || [] });
     });
 
-    // 6. Create Routing Direction Rule (e.g. Sales -> Folder X, Purchases -> Folder Y)
+    // 23. Create Document Routing Rule
     firmScope.post('/api/firm/routing-rules', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
       const firmId = request.user.firm_id!;
       const bodySchema = z.object({
@@ -166,47 +886,7 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ success: true, rule: data });
     });
 
-    // 7. Update Routing Rule
-    firmScope.put('/api/firm/routing-rules/:id', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
-      const firmId = request.user.firm_id!;
-      const { id } = request.params as { id: string };
-      const bodySchema = z.object({
-        ruleName: z.string().min(2).optional(),
-        customFolderName: z.string().optional(),
-        targetPathTemplate: z.string().optional(),
-        googleFolderId: z.string().optional(),
-        isActive: z.boolean().optional(),
-        priority: z.number().optional(),
-      });
-
-      const parsed = bodySchema.safeParse(request.body);
-      if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.format() });
-      }
-
-      const { data, error } = await supabase
-        .from('firm_document_routing_rules')
-        .update({
-          ...(parsed.data.ruleName ? { rule_name: parsed.data.ruleName } : {}),
-          ...(parsed.data.customFolderName !== undefined ? { custom_folder_name: parsed.data.customFolderName } : {}),
-          ...(parsed.data.targetPathTemplate ? { target_path_template: parsed.data.targetPathTemplate } : {}),
-          ...(parsed.data.googleFolderId !== undefined ? { google_folder_id: parsed.data.googleFolderId } : {}),
-          ...(parsed.data.isActive !== undefined ? { is_active: parsed.data.isActive } : {}),
-          ...(parsed.data.priority !== undefined ? { priority: parsed.data.priority } : {}),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .eq('firm_id', firmId)
-        .select('*')
-        .single();
-
-      if (error) {
-        return reply.status(500).send({ error: error.message });
-      }
-      return reply.send({ success: true, rule: data });
-    });
-
-    // 8. Delete Routing Rule
+    // 24. Delete Document Routing Rule
     firmScope.delete('/api/firm/routing-rules/:id', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
       const firmId = request.user.firm_id!;
       const { id } = request.params as { id: string };
@@ -223,7 +903,11 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ success: true });
     });
 
-    // 9. Get Firm's Current Active Client Usage & Billing Estimate
+    // ==========================================
+    // FIRM USAGE & METERING ESTIMATE
+    // ==========================================
+
+    // 25. Get Firm Active Client Meter
     firmScope.get('/api/firm/usage', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
       const firmId = request.user.firm_id!;
       const now = new Date();

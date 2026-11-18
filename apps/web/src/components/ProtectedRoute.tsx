@@ -2,9 +2,11 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { ReactNode } from 'react';
 
+type SupportedRole = 'ADMIN' | 'SUPER_ADMIN' | 'FIRM_OWNER' | 'FIRM_STAFF' | 'TEAM' | 'CLIENT';
+
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles: ('ADMIN' | 'TEAM' | 'CLIENT')[];
+  allowedRoles: SupportedRole[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -36,14 +38,17 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   // 4. Role-Based Access Control: strictly enforce authorized roles
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(user.role as SupportedRole)) {
     if (user.role === 'CLIENT') {
       return <Navigate to="/dashboard" replace />;
+    }
+    if (user.role === 'FIRM_OWNER' || user.role === 'FIRM_STAFF') {
+      return <Navigate to="/firm" replace />;
     }
     if (user.role === 'TEAM') {
       return <Navigate to="/team" replace />;
     }
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
       return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/login" state={{ from: location }} replace />;
