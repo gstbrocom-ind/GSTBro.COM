@@ -137,6 +137,57 @@ export const superAdminRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ success: true, firm: data });
     });
 
+    // 3b. Permanently Delete CA Firm (Super Admin Hard Delete)
+    adminScope.delete('/api/super-admin/firms/:id', async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      // 1. Fetch firm details
+      const { data: firm, error: firmError } = await supabase
+        .from('firms')
+        .select('id, name, slug')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (firmError || !firm) {
+        return reply.status(404).send({ error: 'Firm not found' });
+      }
+
+      // 2. Cascade delete firm operational data
+      await supabase.from('firm_user_todos').delete().eq('firm_id', id);
+      await supabase.from('firm_chat_group_members').delete().eq('firm_id', id);
+      await supabase.from('firm_chat_groups').delete().eq('firm_id', id);
+      await supabase.from('firm_client_access_logs').delete().eq('firm_id', id);
+      await supabase.from('firm_dsc_tokens').delete().eq('firm_id', id);
+      await supabase.from('firm_due_date_overrides').delete().eq('firm_id', id);
+      await supabase.from('firm_task_recurring_rules').delete().eq('firm_id', id);
+      await supabase.from('firm_tasks').delete().eq('firm_id', id);
+      await supabase.from('firm_monthly_usage').delete().eq('firm_id', id);
+      await supabase.from('firm_document_routing_rules').delete().eq('firm_id', id);
+      await supabase.from('firm_drive_configs').delete().eq('firm_id', id);
+      await supabase.from('client_documents').delete().eq('firm_id', id);
+      await supabase.from('client_gst_data').delete().eq('firm_id', id);
+      await supabase.from('cases').delete().eq('firm_id', id);
+      await supabase.from('due_dates').delete().eq('firm_id', id);
+
+      // 3. Delete all staff, owners, and firm-specific clients belonging to this firm
+      await supabase
+        .from('users')
+        .delete()
+        .eq('firm_id', id);
+
+      // 4. Finally delete the firm record itself
+      const { error: deleteError } = await supabase
+        .from('firms')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        return reply.status(500).send({ error: deleteError.message || 'Failed to delete firm' });
+      }
+
+      return reply.send({ success: true, message: `Firm "${firm.name}" and all associated data have been permanently deleted.` });
+    });
+
     // 4. Website CMS - Get all content blocks
     adminScope.get('/api/super-admin/cms', async (_request, reply) => {
       const { data, error } = await supabase

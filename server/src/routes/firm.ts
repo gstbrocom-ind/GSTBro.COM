@@ -631,6 +631,46 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ success: true, client: data });
     });
 
+    // 14b. Delete Client from Firm (Partner/Manager Only)
+    firmScope.delete('/api/firm/clients/:id', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      // 1. Fetch client to ensure belongs to this firm
+      const { data: client, error: clientErr } = await supabase
+        .from('users')
+        .select('id, name, email, business_name')
+        .eq('id', id)
+        .eq('firm_id', firmId)
+        .maybeSingle();
+
+      if (clientErr || !client) {
+        return reply.status(404).send({ error: 'Client not found in your firm' });
+      }
+
+      // 2. Cascade delete client data for this firm
+      await supabase.from('firm_client_access_logs').delete().eq('client_id', id);
+      await supabase.from('client_documents').delete().eq('user_id', id).eq('firm_id', firmId);
+      await supabase.from('firm_tasks').delete().eq('client_id', id).eq('firm_id', firmId);
+      await supabase.from('firm_task_recurring_rules').delete().eq('client_id', id).eq('firm_id', firmId);
+      await supabase.from('client_gst_data').delete().eq('user_id', id).eq('firm_id', firmId);
+      await supabase.from('cases').delete().eq('user_id', id).eq('firm_id', firmId);
+      await supabase.from('client_messages').delete().eq('client_id', id).eq('firm_id', firmId);
+
+      // 3. Delete user account
+      const { error: delErr } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', id)
+        .eq('firm_id', firmId);
+
+      if (delErr) {
+        return reply.status(500).send({ error: delErr.message });
+      }
+
+      return reply.send({ success: true, message: `Client "${client.business_name || client.name}" removed successfully.` });
+    });
+
     // ==========================================
     // TEAM & ARTICLE WORKLOAD MANAGEMENT
     // ==========================================
@@ -775,6 +815,67 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         transferredClientsCount: updatedClients?.length || 0,
         transferredTasksCount: updatedTasks?.length || 0,
       });
+    });
+
+    // 16b2. Delete / Remove Team Member from Firm (Partner/Manager Only)
+    firmScope.delete('/api/firm/team/:id', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      // Prevent self-deletion
+      if (id === request.user.id) {
+        return reply.status(400).send({ error: 'You cannot delete your own account from the firm.' });
+      }
+
+      // 1. Fetch member to ensure belongs to this firm
+      const { data: member, error: memberErr } = await supabase
+        .from('users')
+        .select('id, name, email, role, firm_role')
+        .eq('id', id)
+        .eq('firm_id', firmId)
+        .maybeSingle();
+
+      if (memberErr || !member) {
+        return reply.status(404).send({ error: 'Team member not found in your firm.' });
+      }
+
+      // Prevent non-owners from deleting a firm owner
+      if (member.role === 'FIRM_OWNER' || member.firm_role === 'FIRM_OWNER') {
+        if (request.user.role !== 'FIRM_OWNER' && request.user.firm_role !== 'FIRM_OWNER') {
+          return reply.status(403).send({ error: 'Only a Firm Partner can remove another Partner.' });
+        }
+      }
+
+      // 2. Unassign clients assigned to this member
+      await supabase
+        .from('users')
+        .update({ assigned_staff_id: null, updated_at: new Date().toISOString() })
+        .eq('firm_id', firmId)
+        .eq('assigned_staff_id', id);
+
+      // 3. Unassign tasks assigned to this member
+      await supabase
+        .from('firm_tasks')
+        .update({ assigned_to: null, updated_at: new Date().toISOString() })
+        .eq('firm_id', firmId)
+        .eq('assigned_to', id);
+
+      // 4. Remove from chat groups and to-dos
+      await supabase.from('firm_chat_group_members').delete().eq('user_id', id);
+      await supabase.from('firm_user_todos').delete().eq('user_id', id);
+
+      // 5. Delete user record
+      const { error: delErr } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', id)
+        .eq('firm_id', firmId);
+
+      if (delErr) {
+        return reply.status(500).send({ error: delErr.message });
+      }
+
+      return reply.send({ success: true, message: `Team member "${member.name}" removed successfully.` });
     });
 
     // 16c. Client Data Access Audit Log

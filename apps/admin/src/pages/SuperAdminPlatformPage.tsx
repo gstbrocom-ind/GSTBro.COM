@@ -59,6 +59,7 @@ export function SuperAdminPlatformPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingFirmId, setUpdatingFirmId] = useState<string | null>(null);
+  const [deletingFirmId, setDeletingFirmId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -146,6 +147,28 @@ export function SuperAdminPlatformPage() {
       alert(`Error updating firm status: ${err?.message || 'Unknown error'}`);
     } finally {
       setUpdatingFirmId(null);
+    }
+  };
+
+  const handleDeleteFirm = async (firmId: string, firmName: string) => {
+    const confirmation = window.prompt(
+      `⚠️ PERMANENT DELETION WARNING:\n\nDeleting "${firmName}" will permanently wipe:\n- The CA Firm profile & workspace\n- All associated team member logins\n- Client allocations & task records\n\nTo confirm, type the exact firm name "${firmName}":`
+    );
+    if (!confirmation) return;
+    if (confirmation.trim() !== firmName.trim()) {
+      alert('Firm name did not match. Deletion cancelled.');
+      return;
+    }
+
+    setDeletingFirmId(firmId);
+    try {
+      await api(`/api/super-admin/firms/${firmId}`, { method: 'DELETE' });
+      alert(`Firm "${firmName}" has been permanently deleted.`);
+      await fetchData();
+    } catch (err: any) {
+      alert(`Failed to delete firm: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setDeletingFirmId(null);
     }
   };
 
@@ -339,17 +362,28 @@ export function SuperAdminPlatformPage() {
                       <div className="text-xs text-slate-400 capitalize">{firm.invoiceStatus.toLowerCase()}</div>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <button
-                        onClick={() => handleToggleStatus(firm.id, firm.status)}
-                        disabled={updatingFirmId === firm.id}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-md transition ${
-                          firm.status === 'ACTIVE'
-                            ? 'text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200'
-                            : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
-                        }`}
-                      >
-                        {updatingFirmId === firm.id ? 'Updating...' : firm.status === 'ACTIVE' ? 'Suspend Firm' : 'Activate Firm'}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleToggleStatus(firm.id, firm.status)}
+                          disabled={updatingFirmId === firm.id}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-md transition cursor-pointer ${
+                            firm.status === 'ACTIVE'
+                              ? 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200'
+                              : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+                          }`}
+                        >
+                          {updatingFirmId === firm.id ? 'Updating...' : firm.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFirm(firm.id, firm.name)}
+                          disabled={deletingFirmId === firm.id}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-md text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                          title="Permanently Delete Firm & Workspace"
+                        >
+                          <span>🗑️</span>
+                          <span>{deletingFirmId === firm.id ? 'Deleting...' : 'Delete'}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

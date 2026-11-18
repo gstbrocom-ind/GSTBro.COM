@@ -1057,6 +1057,41 @@ export function FirmPortal() {
     }
   };
 
+  const handleDeleteClient = async (clientId: string, clientName: string) => {
+    if (!confirm(`Are you sure you want to permanently delete and remove client "${clientName}" from your firm?\n\nThis will remove their file access, task records, and messages.`)) {
+      return;
+    }
+    try {
+      const res = await apiFetch<{ success: boolean; message: string }>(`/api/firm/clients/${clientId}`, {
+        method: 'DELETE',
+      });
+      if (res.success) {
+        setClients((prev) => prev.filter((c) => c.id !== clientId));
+        showNotification(res.message || `Client "${clientName}" removed from firm.`);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete client');
+    }
+  };
+
+  const handleDeleteTeamMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`Are you sure you want to remove team member "${memberName}" from the firm?\n\nTheir allocated clients and open tasks will be unassigned.`)) {
+      return;
+    }
+    try {
+      const res = await apiFetch<{ success: boolean; message: string }>(`/api/firm/team/${memberId}`, {
+        method: 'DELETE',
+      });
+      if (res.success) {
+        setTeam((prev) => prev.filter((t) => t.id !== memberId));
+        showNotification(res.message || `Team member "${memberName}" removed.`);
+        loadFirmData();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to remove team member');
+    }
+  };
+
   // Due date override
   const handleSaveDueDateOverride = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2128,6 +2163,17 @@ export function FirmPortal() {
                             <span>💬</span>
                             <span>Chat</span>
                           </button>
+                          {!isStaff && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteClient(client.id, client.business_name || client.name)}
+                              className="px-2 py-1 bg-rose-950/60 hover:bg-rose-900 text-rose-300 rounded-lg text-[11px] font-bold border border-rose-800/60 flex items-center gap-1 cursor-pointer transition shadow-xs"
+                              title="Delete Client from Firm"
+                            >
+                              <span>🗑️</span>
+                              <span>Delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -2941,7 +2987,20 @@ export function FirmPortal() {
 
                   <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
                     <span className="text-xs text-slate-400">Assigned Clients:</span>
-                    <span className="font-black text-sm text-white">{member.assignedClientsCount} Clients</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-sm text-white">{member.assignedClientsCount} Clients</span>
+                      {!isStaff && member.role !== 'FIRM_OWNER' && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTeamMember(member.id, member.name)}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-300 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 transition flex items-center gap-1 cursor-pointer shadow-xs"
+                          title="Remove Team Member from Firm"
+                        >
+                          <span>🗑️</span>
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
