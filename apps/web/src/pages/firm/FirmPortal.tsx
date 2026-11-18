@@ -129,8 +129,18 @@ export function FirmPortal() {
   const [showInviteStaffModal, setShowInviteStaffModal] = useState(false);
   const [showOverrideDateModal, setShowOverrideDateModal] = useState<DueDateItem | null>(null);
   const [showNewDscModal, setShowNewDscModal] = useState(false);
+  const [showHandoverModal, setShowHandoverModal] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [taskFilterStatus, setTaskFilterStatus] = useState<string>('ALL');
+
+  const isStaff = user?.role === 'FIRM_STAFF' || user?.firm_role === 'FIRM_STAFF';
+
+  // Handover form state
+  const [handoverForm, setHandoverForm] = useState({
+    fromStaffId: '',
+    toStaffId: '',
+    notes: '',
+  });
 
   // New task form state
   const [newTaskForm, setNewTaskForm] = useState({
@@ -432,6 +442,40 @@ export function FirmPortal() {
     }
   };
 
+  const handleExecuteHandover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!handoverForm.fromStaffId || !handoverForm.toStaffId) {
+      alert('Please select both from-staff and to-staff members.');
+      return;
+    }
+    if (handoverForm.fromStaffId === handoverForm.toStaffId) {
+      alert('From and To staff cannot be the same person.');
+      return;
+    }
+
+    try {
+      const res = await apiFetch<{
+        success: boolean;
+        transferredClientsCount: number;
+        transferredTasksCount: number;
+      }>('/api/firm/team/handover', {
+        method: 'POST',
+        body: JSON.stringify(handoverForm),
+      });
+
+      if (res.success) {
+        showNotification(
+          `Successfully handed over ${res.transferredClientsCount} clients and ${res.transferredTasksCount} pending tasks!`
+        );
+        setShowHandoverModal(false);
+        setHandoverForm({ fromStaffId: '', toStaffId: '', notes: '' });
+        loadFirmData();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to execute handover');
+    }
+  };
+
   // Due date override
   const handleSaveDueDateOverride = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -639,17 +683,26 @@ export function FirmPortal() {
 
       {/* 2. SUB-NAVIGATION BAR */}
       <nav className="bg-slate-950/60 border-b border-slate-800 px-4 sm:px-6 overflow-x-auto scrollbar-none flex gap-1">
-        {[
-          { key: 'overview', label: '📊 Practice Command Center' },
-          { key: 'pipeline', label: '📋 GST Compliance Pipeline' },
-          { key: 'tasks', label: '✅ To-Do & Tasks' },
-          { key: 'clients', label: `👥 Client Roster (${clients.length})` },
-          { key: 'team', label: `🧑‍🤝‍🧑 Team / Articles (${team.length})` },
-          { key: 'due-dates', label: '📅 Due Dates & Overrides' },
-          { key: 'dsc', label: `🔏 DSC Vault ${expiringDscCount > 0 ? `(${expiringDscCount} Expiring)` : ''}` },
-          { key: 'drive', label: '📁 BYOD Google Drive' },
-          { key: 'settings', label: '⚙️ Firm Branding & FRN' },
-        ].map((tab) => {
+        {(isStaff
+          ? [
+              { key: 'overview', label: '📊 My Article Desk' },
+              { key: 'pipeline', label: '📋 My GST Filing Pipeline' },
+              { key: 'tasks', label: `✅ My Tasks (${tasks.length})` },
+              { key: 'clients', label: `👥 My Assigned Clients (${clients.length})` },
+              { key: 'due-dates', label: '📅 Statutory Deadlines' },
+            ]
+          : [
+              { key: 'overview', label: '📊 Practice Command Center' },
+              { key: 'pipeline', label: '📋 GST Compliance Pipeline' },
+              { key: 'tasks', label: '✅ To-Do & Tasks' },
+              { key: 'clients', label: `👥 Client Roster (${clients.length})` },
+              { key: 'team', label: `🧑‍🤝‍🧑 Team / Articles (${team.length})` },
+              { key: 'due-dates', label: '📅 Due Dates & Overrides' },
+              { key: 'dsc', label: `🔏 DSC Vault ${expiringDscCount > 0 ? `(${expiringDscCount} Expiring)` : ''}` },
+              { key: 'drive', label: '📁 BYOD Google Drive' },
+              { key: 'settings', label: '⚙️ Firm Branding & FRN' },
+            ]
+        ).map((tab) => {
           const isActive = activeTab === tab.key;
           return (
             <button
@@ -1226,17 +1279,25 @@ export function FirmPortal() {
         {/* ========================================================================= */}
         {activeTab === 'team' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-white">Team & Article Workload</h2>
-                <p className="text-xs text-slate-400">Invite article clerks and balance client allocations</p>
+                <p className="text-xs text-slate-400">Invite article clerks, reassign portfolios, and balance workloads</p>
               </div>
-              <button
-                onClick={() => setShowInviteStaffModal(true)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
-              >
-                + Invite Article Clerk / Staff
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowHandoverModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>🔄 1-Click Handover / Transfer</span>
+                </button>
+                <button
+                  onClick={() => setShowInviteStaffModal(true)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
+                >
+                  + Invite Article Clerk / Staff
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2112,6 +2173,98 @@ export function FirmPortal() {
                 className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow"
               >
                 Register Token
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: 1-CLICK CLIENT & TASK HANDOVER                                     */}
+      {/* ========================================================================= */}
+      {showHandoverModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleExecuteHandover}
+            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base text-white">1-Click Client & Task Handover</h3>
+              <button
+                type="button"
+                onClick={() => setShowHandoverModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Transfer all assigned clients and pending tasks from an outgoing or rotating staff member to another.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">From Staff Member (Outgoing / On Leave)</label>
+                <select
+                  required
+                  value={handoverForm.fromStaffId}
+                  onChange={(e) => setHandoverForm({ ...handoverForm, fromStaffId: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                >
+                  <option value="">Select staff member...</option>
+                  {team.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.assignedClientsCount} Clients)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">To Staff Member (Receiving Article)</label>
+                <select
+                  required
+                  value={handoverForm.toStaffId}
+                  onChange={(e) => setHandoverForm({ ...handoverForm, toStaffId: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                >
+                  <option value="">Select recipient staff...</option>
+                  {team
+                    .filter((t) => t.id !== handoverForm.fromStaffId)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.assignedClientsCount} Clients currently)
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Handover Notes / Instructions</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Outgoing on CA Final exam study leave until July 2026. Handing over monthly return filing."
+                  value={handoverForm.notes}
+                  onChange={(e) => setHandoverForm({ ...handoverForm, notes: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHandoverModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow"
+              >
+                Transfer Portfolio Now
               </button>
             </div>
           </form>

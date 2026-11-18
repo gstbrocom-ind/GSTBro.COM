@@ -118,6 +118,13 @@ export function requireRole(...roles: UserRole[]) {
     if (roles.includes('ADMIN')) effectiveRoles.add('SUPER_ADMIN');
     if (roles.includes('SUPER_ADMIN')) effectiveRoles.add('ADMIN');
 
+    // Multi-tenant CA Firm role mappings:
+    // When TEAM is required, FIRM_STAFF and FIRM_OWNER have team access
+    if (roles.includes('TEAM')) {
+      effectiveRoles.add('FIRM_STAFF');
+      effectiveRoles.add('FIRM_OWNER');
+    }
+
     if (!effectiveRoles.has(request.user.role)) {
       return reply.status(403).send({ error: 'Forbidden: Insufficient privileges.' });
     }

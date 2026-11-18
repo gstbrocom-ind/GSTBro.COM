@@ -4,6 +4,8 @@ export interface AuthUser {
   id: string;
   role: UserRole | string;
   email?: string;
+  firm_id?: string | null;
+  firm_role?: string | null;
 }
 
 export interface CaseAccessTarget {
@@ -28,57 +30,92 @@ export function sanitizeUser<T extends Record<string, any>>(user: T): Omit<T, 'p
 
 /**
  * Determines whether an authenticated user is authorized to access a given client's resources.
- * - ADMIN: Unrestricted access across all clients.
- * - CLIENT: Strictly restricted to their own account (user.id === clientUserId).
- * - TEAM: Restricted to clients where an active team_assignment exists.
+ * 
+ * Strict Two-Tier Access Control:
+ * 1. Cross-Firm Isolation: The client and staff member MUST belong to the exact same firm_id.
+ * 2. Intra-Firm Segmentation:
+ *    - FIRM_OWNER / FIRM_MANAGER / ADMIN: Can access all clients belonging to their own firm.
+ *    - FIRM_STAFF / TEAM (Article Clerks): Restricted ONLY to clients assigned to them:
+ *      (client.assigned_staff_id === user.id OR active entry in team_assignments).
+ *      They CANNOT access other articles' clients or other firms' clients.
+ *    - CLIENT: Strictly restricted to their own account (user.id === clientUserId).
  */
 export async function canAccessClient(
   user: AuthUser,
   clientUserId: string
 ): Promise<boolean> {
   if (!user || !user.id || !clientUserId) return false;
-  if (user.role === 'ADMIN') return true;
-  if (user.role === 'CLIENT') return user.id === clientUserId;
-  if (user.role !== 'TEAM') return false;
 
-  const { data } = await supabase
-    .from('team_assignments')
-    .select('id')
-    .eq('team_user_id', user.id)
-    .eq('client_user_id', clientUserId)
-    .eq('active', true)
+  // 1. Client can only access their own profile and documents
+  if (user.role === 'CLIENT') {
+    return user.id === clientUserId;
+  }
+
+  // 2. Fetch the target client's firm_id and assigned_staff_id
+  const { data: client, error } = await supabase
+    .from('users')
+    .select('id, firm_id, assigned_staff_id, role')
+    .eq('id', clientUserId)
     .maybeSingle();
 
-  return Boolean(data);
+  if (error || !client) return false;
+
+  // 3. Super Admin platform telemetry (super admins do not access confidential client tax data)
+  if (user.role === 'SUPER_ADMIN') {
+    return false;
+  }
+
+  // 4. Tier 1: Cross-Firm Multi-Tenant Boundary Check
+  // Both user and client MUST belong to the same firm
+  if (!user.firm_id || user.firm_id !== client.firm_id) {
+    return false;
+  }
+
+  // 5. CA Firm Partner / Owner: Full access to all clients of their own practice
+  if (user.role === 'FIRM_OWNER' || user.firm_role === 'FIRM_OWNER' || user.role === 'ADMIN') {
+    return true;
+  }
+
+  // 6. Practice Manager: Full access across practice clients within firm
+  if (user.firm_role === 'FIRM_MANAGER') {
+    return true;
+  }
+
+  // 7. Tier 2: Article Assistant / Staff Segmentation (FIRM_STAFF / TEAM)
+  // Restricted ONLY to their assigned clients:
+  if (user.role === 'FIRM_STAFF' || user.role === 'TEAM') {
+    if (client.assigned_staff_id && client.assigned_staff_id === user.id) {
+      return true;
+    }
+
+    const { data: assignment } = await supabase
+      .from('team_assignments')
+      .select('id')
+      .eq('team_user_id', user.id)
+      .eq('client_user_id', clientUserId)
+      .eq('active', true)
+      .maybeSingle();
+
+    return Boolean(assignment);
+  }
+
+  return false;
 }
 
 /**
  * Determines whether an authenticated user is authorized to access or mutate a case.
- * - ADMIN: Authorized across all cases.
- * - CLIENT: Authorized ONLY if they are the owner of the case (caseRecord.user_id === user.id).
- * - TEAM: Authorized ONLY if:
- *     1. They are the assigned team member on the case (caseRecord.assigned_team_id === user.id), OR
- *     2. They have an active assignment to the client (canAccessClient(user, caseRecord.user_id)).
  */
 export async function canAccessCase(
   user: AuthUser,
   caseRecord: CaseAccessTarget
 ): Promise<boolean> {
   if (!user || !user.id || !caseRecord || !caseRecord.user_id) return false;
-  if (user.role === 'ADMIN') return true;
 
   if (user.role === 'CLIENT') {
     return caseRecord.user_id === user.id;
   }
 
-  if (user.role === 'TEAM') {
-    if (caseRecord.assigned_team_id && caseRecord.assigned_team_id === user.id) {
-      return true;
-    }
-    return canAccessClient(user, caseRecord.user_id);
-  }
-
-  return false;
+  return canAccessClient(user, caseRecord.user_id);
 }
 
 /**

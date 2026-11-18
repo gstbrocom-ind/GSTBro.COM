@@ -76,6 +76,7 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
     // 3. Get Firm Tasks (Filtered by status, client, or assigned staff)
     firmScope.get('/api/firm/tasks', async (request, reply) => {
       const firmId = request.user.firm_id!;
+      const isStaff = request.user.role === 'FIRM_STAFF' || request.user.firm_role === 'FIRM_STAFF';
       const query = request.query as {
         status?: string;
         assigned_to?: string;
@@ -94,11 +95,17 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         .eq('firm_id', firmId)
         .order('created_at', { ascending: false });
 
+      // Strict Intra-Firm Segmentation: Article Clerk sees ONLY tasks assigned to them or created by them!
+      if (isStaff) {
+        dbQuery = dbQuery.or(`assigned_to.eq.${request.user.id},created_by.eq.${request.user.id}`);
+      } else {
+        if (query.assigned_to) {
+          dbQuery = dbQuery.eq('assigned_to', query.assigned_to);
+        }
+      }
+
       if (query.status && query.status !== 'ALL') {
         dbQuery = dbQuery.eq('status', query.status);
-      }
-      if (query.assigned_to) {
-        dbQuery = dbQuery.eq('assigned_to', query.assigned_to);
       }
       if (query.client_id) {
         dbQuery = dbQuery.eq('client_id', query.client_id);
@@ -479,18 +486,26 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
     // 12. List Firm Clients with filing stage and assigned staff
     firmScope.get('/api/firm/clients', async (request, reply) => {
       const firmId = request.user.firm_id!;
+      const isStaff = request.user.role === 'FIRM_STAFF' || request.user.firm_role === 'FIRM_STAFF';
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select(`
           id, name, email, phone, business_name, gstin, state, address,
-          filing_stage, assigned_staff_id, created_at,
+          filing_stage, assigned_staff_id, team_group, created_at,
           assigned_staff:assigned_staff_id(id, name, email)
         `)
         .eq('firm_id', firmId)
-        .eq('role', 'CLIENT')
-        .order('name', { ascending: true });
+        .eq('role', 'CLIENT');
 
+      // Strict Intra-Firm Segmentation: Article Clerks can ONLY see clients assigned to them!
+      if (isStaff) {
+        query = query.eq('assigned_staff_id', request.user.id);
+      } else {
+        query = query.order('name', { ascending: true });
+      }
+
+      const { data, error } = await query;
       if (error) {
         return reply.status(500).send({ error: error.message });
       }
@@ -622,14 +637,21 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
     // 15. Get Team Members with assigned client count
     firmScope.get('/api/firm/team', async (request, reply) => {
       const firmId = request.user.firm_id!;
+      const isStaff = request.user.role === 'FIRM_STAFF' || request.user.firm_role === 'FIRM_STAFF';
+
+      let teamQuery = supabase
+        .from('users')
+        .select('id, name, email, phone, role, firm_role, team_group, created_at')
+        .eq('firm_id', firmId)
+        .in('role', ['TEAM', 'FIRM_STAFF', 'FIRM_OWNER', 'ADMIN']);
+
+      // If Article Clerk, they only see themselves and Practice Partners/Managers (for escalation/contact)
+      if (isStaff) {
+        teamQuery = teamQuery.or(`id.eq.${request.user.id},firm_role.eq.FIRM_OWNER,firm_role.eq.FIRM_MANAGER,role.eq.FIRM_OWNER`);
+      }
 
       const [teamRes, clientsRes] = await Promise.all([
-        supabase
-          .from('users')
-          .select('id, name, email, phone, role, firm_role, created_at')
-          .eq('firm_id', firmId)
-          .in('role', ['TEAM', 'FIRM_STAFF', 'FIRM_OWNER', 'ADMIN'])
-          .order('name', { ascending: true }),
+        teamQuery.order('name', { ascending: true }),
         supabase
           .from('users')
           .select('id, assigned_staff_id')
@@ -664,6 +686,7 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         email: z.string().email(),
         phone: z.string().optional(),
         firm_role: z.enum(['FIRM_MANAGER', 'FIRM_STAFF']).default('FIRM_STAFF'),
+        team_group: z.string().default('General'),
         password: z.string().min(8).default('Staff@123456'),
       });
 
@@ -683,17 +706,124 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
           phone: parsed.data.phone || null,
           role: 'FIRM_STAFF',
           firm_role: parsed.data.firm_role,
+          team_group: parsed.data.team_group,
           password_hash: passwordHash,
           email_verified: true,
           must_reset_password: true,
         })
-        .select('id, name, email, phone, role, firm_role, created_at')
+        .select('id, name, email, phone, role, firm_role, team_group, created_at')
         .single();
 
       if (error) {
         return reply.status(500).send({ error: error.message });
       }
       return reply.send({ success: true, member: data });
+    });
+
+    // 16b. Handover Client Portfolio & Tasks between Staff Members (Partner/Admin Only)
+    firmScope.post('/api/firm/team/handover', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        fromStaffId: z.string().uuid(),
+        toStaffId: z.string().uuid(),
+        notes: z.string().optional(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const { fromStaffId, toStaffId, notes } = parsed.data;
+      if (fromStaffId === toStaffId) {
+        return reply.status(400).send({ error: 'Cannot handover to the same staff member.' });
+      }
+
+      // Reassign clients
+      const { data: updatedClients, error: clientErr } = await supabase
+        .from('users')
+        .update({ assigned_staff_id: toStaffId, updated_at: new Date().toISOString() })
+        .eq('firm_id', firmId)
+        .eq('assigned_staff_id', fromStaffId)
+        .select('id');
+
+      if (clientErr) return reply.status(500).send({ error: clientErr.message });
+
+      // Reassign pending tasks
+      const { data: updatedTasks, error: taskErr } = await supabase
+        .from('firm_tasks')
+        .update({ assigned_to: toStaffId, updated_at: new Date().toISOString() })
+        .eq('firm_id', firmId)
+        .eq('assigned_to', fromStaffId)
+        .neq('status', 'COMPLETED')
+        .select('id');
+
+      if (taskErr) return reply.status(500).send({ error: taskErr.message });
+
+      // Insert audit log
+      await supabase.from('firm_client_access_logs').insert({
+        firm_id: firmId,
+        user_id: request.user.id,
+        client_id: toStaffId,
+        action: 'HANDOVER',
+        notes: `Portfolio handover from ${fromStaffId} to ${toStaffId}. Transferred ${updatedClients?.length || 0} clients and ${updatedTasks?.length || 0} pending tasks. Note: ${notes || 'None'}`,
+      });
+
+      return reply.send({
+        success: true,
+        transferredClientsCount: updatedClients?.length || 0,
+        transferredTasksCount: updatedTasks?.length || 0,
+      });
+    });
+
+    // 16c. Client Data Access Audit Log
+    firmScope.post('/api/firm/audit/log-access', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        clientId: z.string().uuid(),
+        action: z.string().min(2),
+        resourceType: z.string().optional(),
+        resourceId: z.string().optional(),
+        notes: z.string().optional(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      await supabase.from('firm_client_access_logs').insert({
+        firm_id: firmId,
+        user_id: request.user.id,
+        client_id: parsed.data.clientId,
+        action: parsed.data.action,
+        resource_type: parsed.data.resourceType || null,
+        resource_id: parsed.data.resourceId || null,
+        notes: parsed.data.notes || null,
+        ip_address: request.ip,
+      });
+
+      return reply.send({ success: true });
+    });
+
+    // 16d. Get Access Audit Logs (Partner / Admin Only)
+    firmScope.get('/api/firm/audit/access-logs', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { data, error } = await supabase
+        .from('firm_client_access_logs')
+        .select(`
+          id, action, resource_type, resource_id, notes, ip_address, created_at,
+          user:user_id(id, name, email, firm_role),
+          client:client_id(id, name, business_name)
+        `)
+        .eq('firm_id', firmId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ logs: data || [] });
     });
 
     // ==========================================
