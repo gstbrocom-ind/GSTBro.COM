@@ -133,15 +133,85 @@ type PreFilingChecklist = {
   approver?: { id: string; name: string; firm_role?: string } | null;
 };
 
+type ClientMilestone = {
+  id: string;
+  firm_id: string;
+  client_id: string;
+  milestone_type: 'BIRTHDAY' | 'INCORPORATION_DAY' | 'GST_ANNIVERSARY' | 'CUSTOM';
+  title: string;
+  milestone_date: string;
+  contact_person?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  notes?: string | null;
+  last_greeted_year?: number | null;
+  last_greeted_at?: string | null;
+  client?: { id: string; name: string; business_name?: string | null; email: string; phone?: string; assigned_staff_id?: string } | null;
+};
+
+type FirmUserTodo = {
+  id: string;
+  user_id: string;
+  firm_id?: string | null;
+  title: string;
+  priority: 'URGENT' | 'HIGH' | 'NORMAL' | 'LOW';
+  due_date?: string | null;
+  is_completed: boolean;
+  completed_at?: string | null;
+  created_at: string;
+};
+
+type FirmChatGroup = {
+  id: string;
+  firm_id: string;
+  name: string;
+  description?: string | null;
+  group_type: 'INTERNAL_TEAM' | 'CLIENT_GROUP' | 'BROADCAST';
+  created_by?: string | null;
+  members?: Array<{ user_id: string; role: string }>;
+};
+
 export function FirmPortal() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'pipeline' | 'tasks' | 'clients' | 'invoices' | 'messages' | 'team' | 'due-dates' | 'dsc' | 'drive' | 'settings'
+    'overview' | 'pipeline' | 'tasks' | 'clients' | 'invoices' | 'milestones' | 'messages' | 'team' | 'due-dates' | 'dsc' | 'drive' | 'settings'
   >('overview');
   const [selectedInvoiceClientId, setSelectedInvoiceClientId] = useState<string>('');
+
+  // Client Milestones CRM state (Birthdays, Incorporation Days, GST Milestones)
+  const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
+  const [showNewMilestoneModal, setShowNewMilestoneModal] = useState(false);
+  const [newMilestoneClientId, setNewMilestoneClientId] = useState('');
+  const [newMilestoneType, setNewMilestoneType] = useState<'BIRTHDAY' | 'INCORPORATION_DAY' | 'GST_ANNIVERSARY' | 'CUSTOM'>('INCORPORATION_DAY');
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
+  const [newMilestoneDate, setNewMilestoneDate] = useState('');
+  const [newMilestonePerson, setNewMilestonePerson] = useState('');
+  const [newMilestonePhone, setNewMilestonePhone] = useState('');
+  const [newMilestoneNotes, setNewMilestoneNotes] = useState('');
+  const [greetingMilestone, setGreetingMilestone] = useState<ClientMilestone | null>(null);
+  const [showGreetingModal, setShowGreetingModal] = useState(false);
+
+  // Personal Sticky Scratchpad To-Dos state
+  const [personalTodos, setPersonalTodos] = useState<FirmUserTodo[]>([]);
+  const [newTodoTitle, setNewTodoTitle] = useState('');
+  const [newTodoPriority, setNewTodoPriority] = useState<'URGENT' | 'HIGH' | 'NORMAL' | 'LOW'>('NORMAL');
+  const [todoFilter, setTodoFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('PENDING');
+
+  // Groups & Direct Team Messaging state
+  const [chatScope, setChatScope] = useState<'CLIENTS' | 'GROUPS' | 'DIRECT'>('CLIENTS');
+  const [chatGroups, setChatGroups] = useState<FirmChatGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [groupMessages, setGroupMessages] = useState<ChatMessage[]>([]);
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [newGroupType, setNewGroupType] = useState<'INTERNAL_TEAM' | 'BROADCAST'>('INTERNAL_TEAM');
+  const [newGroupMembers, setNewGroupMembers] = useState<string[]>([]);
+  const [selectedDirectUserId, setSelectedDirectUserId] = useState<string>('');
+  const [directMessages, setDirectMessages] = useState<ChatMessage[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [firm, setFirm] = useState<FirmProfile | null>(null);
@@ -304,6 +374,9 @@ export function FirmPortal() {
         driveRes,
         routingRes,
         permRes,
+        milestonesRes,
+        todosRes,
+        groupsRes,
       ] = await Promise.all([
         apiFetch<{ firm: FirmProfile }>('/api/firm/profile'),
         apiFetch<{ tasks: FirmTask[] }>('/api/firm/tasks'),
@@ -315,6 +388,9 @@ export function FirmPortal() {
         apiFetch<{ driveConfig: any }>('/api/firm/drive').catch(() => ({ driveConfig: { is_connected: false } })),
         apiFetch<{ rules: any[] }>('/api/firm/routing-rules').catch(() => ({ rules: [] })),
         apiFetch<{ permissions: any }>('/api/firm/permissions').catch(() => ({ permissions: {} })),
+        apiFetch<{ milestones: ClientMilestone[] }>('/api/firm/milestones').catch(() => ({ milestones: [] })),
+        apiFetch<{ todos: FirmUserTodo[] }>('/api/firm/todos').catch(() => ({ todos: [] })),
+        apiFetch<{ groups: FirmChatGroup[] }>('/api/firm/groups').catch(() => ({ groups: [] })),
       ]);
 
       setFirm(profileRes.firm);
@@ -347,6 +423,15 @@ export function FirmPortal() {
       setRecurringRules(rulesRes.rules || []);
       setDriveConfig(driveRes.driveConfig || { is_connected: false });
       setRoutingRules(routingRes.rules || []);
+      setMilestones(milestonesRes.milestones || []);
+      setPersonalTodos(todosRes.todos || []);
+      setChatGroups(groupsRes.groups || []);
+      if (groupsRes.groups && groupsRes.groups.length > 0 && !selectedGroupId) {
+        setSelectedGroupId(groupsRes.groups[0].id);
+      }
+      if (teamRes.team && teamRes.team.length > 0 && !selectedDirectUserId) {
+        setSelectedDirectUserId(teamRes.team[0].id);
+      }
     } catch (err) {
       console.error('Failed to load firm practice data:', err);
     } finally {
@@ -376,6 +461,257 @@ export function FirmPortal() {
       loadChatMessages(selectedChatClientId, chatThreadType);
     }
   }, [selectedChatClientId, chatThreadType]);
+
+  // Milestone Anniversary and Days Calculation
+  const { todayCelebrations, upcomingMilestones } = useMemo(() => {
+    const today = new Date();
+    const todayMonth = today.getMonth() + 1;
+    const todayDay = today.getDate();
+
+    const todayItems: Array<ClientMilestone & { yearsCompleted?: number }> = [];
+    const upcomingItems: Array<ClientMilestone & { daysUntil: number; yearsCompleted?: number }> = [];
+
+    milestones.forEach((m) => {
+      const parts = m.milestone_date.split('-');
+      if (parts.length < 3) return;
+      const mYear = parseInt(parts[0], 10);
+      const mMonth = parseInt(parts[1], 10);
+      const mDay = parseInt(parts[2], 10);
+      const years = isNaN(mYear) ? 0 : today.getFullYear() - mYear;
+
+      if (mMonth === todayMonth && mDay === todayDay) {
+        todayItems.push({ ...m, yearsCompleted: Math.max(0, years) });
+        return;
+      }
+
+      let targetYear = today.getFullYear();
+      let targetDate = new Date(targetYear, mMonth - 1, mDay);
+      const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+      if (targetDate.getTime() < todayZero) {
+        targetDate = new Date(targetYear + 1, mMonth - 1, mDay);
+      }
+
+      const diffDays = Math.round((targetDate.getTime() - todayZero) / (1000 * 60 * 60 * 24));
+      if (diffDays > 0 && diffDays <= 14) {
+        upcomingItems.push({ ...m, daysUntil: diffDays, yearsCompleted: Math.max(0, targetDate.getFullYear() - mYear) });
+      }
+    });
+
+    upcomingItems.sort((a, b) => a.daysUntil - b.daysUntil);
+    return { todayCelebrations: todayItems, upcomingMilestones: upcomingItems };
+  }, [milestones]);
+
+  // Milestone actions
+  const handleCreateMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMilestoneClientId || !newMilestoneTitle.trim() || !newMilestoneDate) return;
+
+    try {
+      const res = await apiFetch<{ success: boolean; milestone: ClientMilestone }>('/api/firm/milestones', {
+        method: 'POST',
+        body: JSON.stringify({
+          clientId: newMilestoneClientId,
+          milestoneType: newMilestoneType,
+          title: newMilestoneTitle.trim(),
+          milestoneDate: newMilestoneDate,
+          contactPerson: newMilestonePerson.trim() || undefined,
+          contactPhone: newMilestonePhone.trim() || undefined,
+          notes: newMilestoneNotes.trim() || undefined,
+        }),
+      });
+
+      if (res.success && res.milestone) {
+        setMilestones((prev) => [...prev, res.milestone]);
+        setShowNewMilestoneModal(false);
+        setNewMilestoneTitle('');
+        setNewMilestoneDate('');
+        setNewMilestonePerson('');
+        setNewMilestonePhone('');
+        setNewMilestoneNotes('');
+        showNotification('Client milestone date saved successfully!');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to save client milestone');
+    }
+  };
+
+  const handleDeleteMilestone = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this milestone date?')) return;
+    try {
+      await apiFetch(`/api/firm/milestones/${id}`, { method: 'DELETE' });
+      setMilestones((prev) => prev.filter((m) => m.id !== id));
+      showNotification('Milestone removed.');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete milestone');
+    }
+  };
+
+  const handleRecordMilestoneGreet = async (m: ClientMilestone) => {
+    try {
+      const res = await apiFetch<{ success: boolean; milestone: ClientMilestone }>(`/api/firm/milestones/${m.id}/greet`, {
+        method: 'POST',
+      });
+      if (res.success && res.milestone) {
+        setMilestones((prev) => prev.map((item) => (item.id === m.id ? res.milestone : item)));
+        showNotification(`Greeting recorded for ${m.title}!`);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to record greeting');
+    }
+  };
+
+  // Personal To-Do handlers
+  const handleCreatePersonalTodo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTodoTitle.trim()) return;
+
+    try {
+      const res = await apiFetch<{ success: boolean; todo: FirmUserTodo }>('/api/firm/todos', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: newTodoTitle.trim(),
+          priority: newTodoPriority,
+        }),
+      });
+
+      if (res.success && res.todo) {
+        setPersonalTodos((prev) => [res.todo, ...prev]);
+        setNewTodoTitle('');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to add to-do');
+    }
+  };
+
+  const handleTogglePersonalTodo = async (id: string) => {
+    try {
+      const res = await apiFetch<{ success: boolean; todo: FirmUserTodo }>(`/api/firm/todos/${id}/toggle`, {
+        method: 'PATCH',
+      });
+      if (res.success && res.todo) {
+        setPersonalTodos((prev) => prev.map((t) => (t.id === id ? res.todo : t)));
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to update to-do');
+    }
+  };
+
+  const handleDeletePersonalTodo = async (id: string) => {
+    try {
+      await apiFetch(`/api/firm/todos/${id}`, { method: 'DELETE' });
+      setPersonalTodos((prev) => prev.filter((t) => t.id !== id));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete to-do');
+    }
+  };
+
+  // Group & Direct Chat loaders
+  const loadGroupMessages = async (groupId: string) => {
+    if (!groupId) return;
+    try {
+      const res = await apiFetch<{ messages: ChatMessage[] }>(`/api/firm/groups/${groupId}/messages`);
+      setGroupMessages(res.messages || []);
+    } catch (err) {
+      console.error('Failed to load group messages:', err);
+    }
+  };
+
+  const loadDirectMessages = async (targetUserId: string) => {
+    if (!targetUserId) return;
+    try {
+      const res = await apiFetch<{ messages: ChatMessage[] }>(`/api/firm/team/direct-messages/${targetUserId}`);
+      setDirectMessages(res.messages || []);
+    } catch (err) {
+      console.error('Failed to load direct messages:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (chatScope === 'GROUPS' && selectedGroupId) {
+      loadGroupMessages(selectedGroupId);
+    } else if (chatScope === 'DIRECT' && selectedDirectUserId) {
+      loadDirectMessages(selectedDirectUserId);
+    }
+  }, [chatScope, selectedGroupId, selectedDirectUserId]);
+
+  const handleSendGroupMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessageText.trim() || !selectedGroupId) return;
+
+    try {
+      const res = await apiFetch<{ success: boolean; message: ChatMessage }>(`/api/firm/groups/${selectedGroupId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          message: newMessageText.trim(),
+          attachmentUrl: newAttachmentUrl.trim() || undefined,
+          attachmentName: newAttachmentName.trim() || undefined,
+        }),
+      });
+
+      if (res.success && res.message) {
+        setGroupMessages((prev) => [...prev, res.message]);
+        setNewMessageText('');
+        setNewAttachmentUrl('');
+        setNewAttachmentName('');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to post message to group');
+    }
+  };
+
+  const handleSendDirectMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessageText.trim() || !selectedDirectUserId) return;
+
+    try {
+      const res = await apiFetch<{ success: boolean; message: ChatMessage }>(`/api/firm/team/direct-messages/${selectedDirectUserId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          message: newMessageText.trim(),
+          attachmentUrl: newAttachmentUrl.trim() || undefined,
+          attachmentName: newAttachmentName.trim() || undefined,
+        }),
+      });
+
+      if (res.success && res.message) {
+        setDirectMessages((prev) => [...prev, res.message]);
+        setNewMessageText('');
+        setNewAttachmentUrl('');
+        setNewAttachmentName('');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to send direct message');
+    }
+  };
+
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim()) return;
+
+    try {
+      const res = await apiFetch<{ success: boolean; group: FirmChatGroup }>('/api/firm/groups', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newGroupName.trim(),
+          description: newGroupDesc.trim() || undefined,
+          groupType: newGroupType,
+          memberUserIds: newGroupMembers,
+        }),
+      });
+
+      if (res.success && res.group) {
+        setChatGroups((prev) => [res.group, ...prev]);
+        setSelectedGroupId(res.group.id);
+        setShowNewGroupModal(false);
+        setNewGroupName('');
+        setNewGroupDesc('');
+        setNewGroupMembers([]);
+        showNotification(`Channel "#${res.group.name}" created!`);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to create group');
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -957,7 +1293,8 @@ export function FirmPortal() {
               { key: 'tasks', label: `✅ My Tasks (${tasks.length})` },
               { key: 'clients', label: `👥 My Assigned Clients (${clients.length})` },
               { key: 'invoices', label: '🧾 Invoice Generator' },
-              { key: 'messages', label: '💬 Client & Team Chat' },
+              { key: 'milestones', label: `🎂 Client Milestones ${todayCelebrations.length > 0 ? `(${todayCelebrations.length} Today!)` : ''}` },
+              { key: 'messages', label: '💬 Messages & Groups' },
               { key: 'due-dates', label: '📅 Statutory Deadlines' },
             ]
           : [
@@ -966,7 +1303,8 @@ export function FirmPortal() {
               { key: 'tasks', label: '✅ To-Do & Tasks' },
               { key: 'clients', label: `👥 Client Roster (${clients.length})` },
               { key: 'invoices', label: '🧾 Invoice Generator' },
-              { key: 'messages', label: '💬 In-Website Messages (WhatsApp Alt)' },
+              { key: 'milestones', label: `🎂 Milestones & Celebrations ${todayCelebrations.length > 0 ? `(${todayCelebrations.length} Today!)` : ''}` },
+              { key: 'messages', label: `💬 Messaging & Groups (${chatGroups.length})` },
               { key: 'team', label: `🧑‍🤝‍🧑 Team / Articles (${team.length})` },
               { key: 'due-dates', label: '📅 Due Dates & Overrides' },
               { key: 'dsc', label: `🔏 DSC Vault ${expiringDscCount > 0 ? `(${expiringDscCount} Expiring)` : ''}` },
@@ -1062,6 +1400,121 @@ export function FirmPortal() {
                 <p className="text-[11px] text-slate-500 mt-2">Total Tokens in Vault: {dscTokens.length}</p>
               </div>
             </div>
+
+            {/* TODAY'S CELEBRATIONS & MILESTONES BANNER */}
+            {(todayCelebrations.length > 0 || upcomingMilestones.length > 0) && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-slate-950 border border-purple-500/30 space-y-3 shadow-lg">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🎉</span>
+                    <h3 className="font-extrabold text-sm text-white">Client Celebrations & Milestone Watch</h3>
+                    {todayCelebrations.length > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-rose-500 text-white font-black text-[10px] animate-pulse">
+                        {todayCelebrations.length} TODAY!
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('milestones')}
+                    className="text-xs text-purple-400 hover:text-purple-300 font-bold hover:underline cursor-pointer"
+                  >
+                    View All Milestones Directory ({milestones.length}) →
+                  </button>
+                </div>
+
+                {/* Today's Celebrations Grid */}
+                {todayCelebrations.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                    {todayCelebrations.map((m) => {
+                      const isGreeted = m.last_greeted_year === new Date().getFullYear();
+                      return (
+                        <div key={m.id} className="p-3.5 rounded-xl bg-purple-900/30 border border-purple-500/40 space-y-2 flex flex-col justify-between shadow-xs">
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-amber-300 flex items-center gap-1">
+                                {m.milestone_type === 'BIRTHDAY' ? '🎂 Birthday Today!' : m.milestone_type === 'INCORPORATION_DAY' ? '🏢 Incorporation Day!' : '📜 Anniversary Today!'}
+                              </span>
+                              {isGreeted ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                                  ✓ Greeted {m.last_greeted_year}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold animate-bounce">
+                                  Needs Wish!
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-bold text-sm text-white mt-1">{m.title}</h4>
+                            <p className="text-xs text-slate-300 font-semibold">{m.client?.business_name || m.client?.name}</p>
+                            {m.contact_phone && (
+                              <p className="text-[11px] text-slate-400 font-mono mt-0.5">📞 {m.contact_phone}</p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-purple-500/20 text-xs">
+                            <button
+                              onClick={() => {
+                                setGreetingMilestone(m);
+                                setShowGreetingModal(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] transition cursor-pointer flex items-center gap-1"
+                            >
+                              <span>💌 Wish Client</span>
+                            </button>
+                            {m.contact_phone && (
+                              <button
+                                onClick={() => {
+                                  const text = encodeURIComponent(
+                                    `Dear ${m.contact_person || m.client?.name || 'Valued Client'},\nHeartiest congratulations on your ${m.title}! Wishing you immense success, health, and prosperity.\nWarm Regards,\n${firm?.name || 'Your Chartered Accountants'}`
+                                  );
+                                  window.open(`https://wa.me/${(m.contact_phone || '').replace(/\D/g, '')}?text=${text}`, '_blank');
+                                  handleRecordMilestoneGreet(m);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition cursor-pointer flex items-center gap-1"
+                                title="Open WhatsApp with pre-drafted greeting"
+                              >
+                                <span>🟢 WhatsApp</span>
+                              </button>
+                            )}
+                            {!isGreeted && (
+                              <button
+                                onClick={() => handleRecordMilestoneGreet(m)}
+                                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] transition cursor-pointer ml-auto"
+                                title="Mark as greeted without sending message"
+                              >
+                                ✓ Done
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Upcoming next 14 days preview */}
+                {upcomingMilestones.length > 0 && (
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                      Upcoming (Next 14d):
+                    </span>
+                    {upcomingMilestones.slice(0, 5).map((m) => (
+                      <div
+                        key={m.id}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                      >
+                        <span>{m.milestone_type === 'BIRTHDAY' ? '🎂' : '🏢'}</span>
+                        <strong className="text-white">{m.title}</strong>
+                        <span className="text-slate-400">({m.client?.business_name || m.client?.name})</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300">
+                          in {m.daysUntil}d
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Quick Actions Row */}
             <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
@@ -1243,6 +1696,100 @@ export function FirmPortal() {
                       )}
                     </div>
                   ))}
+                </div>
+
+                {/* Personal Sticky Scratchpad To-Dos */}
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 pt-4 border-t border-slate-800">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-amber-400">📝</span>
+                      <h4 className="font-bold text-xs text-white">My Personal To-Do Pad</h4>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {personalTodos.filter((t) => !t.is_completed).length} Pending
+                    </span>
+                  </div>
+
+                  {/* Quick Input Form */}
+                  <form onSubmit={handleCreatePersonalTodo} className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Add personal to-do..."
+                      value={newTodoTitle}
+                      onChange={(e) => setNewTodoTitle(e.target.value)}
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    />
+                    <select
+                      value={newTodoPriority}
+                      onChange={(e) => setNewTodoPriority(e.target.value as any)}
+                      className="bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-1 text-[10px] font-bold text-slate-300"
+                    >
+                      <option value="NORMAL">Normal</option>
+                      <option value="HIGH">High</option>
+                      <option value="URGENT">Urgent</option>
+                      <option value="LOW">Low</option>
+                    </select>
+                    <button
+                      type="submit"
+                      disabled={!newTodoTitle.trim()}
+                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-xs font-bold cursor-pointer transition"
+                    >
+                      +
+                    </button>
+                  </form>
+
+                  {/* To-Do Checklist */}
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto scrollbar-none">
+                    {personalTodos.map((todo) => (
+                      <div
+                        key={todo.id}
+                        className={`p-2 rounded-lg border text-xs flex items-center justify-between gap-2 transition ${
+                          todo.is_completed
+                            ? 'bg-slate-950/40 border-slate-800/40 text-slate-500'
+                            : 'bg-slate-950 border-slate-800 text-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={todo.is_completed}
+                            onChange={() => handleTogglePersonalTodo(todo.id)}
+                            className="w-3.5 h-3.5 rounded border-slate-700 text-blue-600 focus:ring-0 cursor-pointer"
+                          />
+                          <span className={`truncate text-xs ${todo.is_completed ? 'line-through text-slate-500' : ''}`}>
+                            {todo.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {todo.priority !== 'NORMAL' && (
+                            <span
+                              className={`text-[9px] font-black uppercase px-1 rounded ${
+                                todo.priority === 'URGENT'
+                                  ? 'bg-rose-500/20 text-rose-400'
+                                  : todo.priority === 'HIGH'
+                                  ? 'bg-amber-500/20 text-amber-400'
+                                  : 'bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              {todo.priority}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePersonalTodo(todo.id)}
+                            className="text-slate-600 hover:text-rose-400 font-bold text-xs p-0.5 cursor-pointer"
+                            title="Delete"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {personalTodos.length === 0 && (
+                      <p className="text-[11px] text-slate-500 text-center py-3">No personal to-dos. Add one above!</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1624,10 +2171,217 @@ export function FirmPortal() {
         )}
 
         {/* ========================================================================= */}
+        {/* TAB 4.6: CLIENT MILESTONES & CELEBRATIONS CRM                             */}
+        {/* ========================================================================= */}
+        {activeTab === 'milestones' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>🎂</span>
+                  <span>Client Milestones, Birthdays & Celebrations CRM</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Track client birthdays, foundation anniversaries, and key dates to foster strong taxpayer relationships.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewMilestoneModal(true)}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+              >
+                <span>+ Add Client Milestone</span>
+              </button>
+            </div>
+
+            {/* Milestone Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow">
+                <p className="text-xs font-medium text-slate-400">Total Tracked Dates</p>
+                <h3 className="text-3xl font-black text-white mt-1">{milestones.length}</h3>
+                <p className="text-[11px] text-slate-500 mt-1">Birthdays & Anniversaries</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-950 border border-purple-500/30 shadow">
+                <p className="text-xs font-medium text-purple-400">Celebrations Today</p>
+                <h3 className="text-3xl font-black text-amber-300 mt-1">{todayCelebrations.length}</h3>
+                <p className="text-[11px] text-slate-500 mt-1">Actions needed today</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow">
+                <p className="text-xs font-medium text-slate-400">Upcoming in 14 Days</p>
+                <h3 className="text-3xl font-black text-blue-400 mt-1">{upcomingMilestones.length}</h3>
+                <p className="text-[11px] text-slate-500 mt-1">Next 2 weeks preview</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow">
+                <p className="text-xs font-medium text-slate-400">Greeted this Year</p>
+                <h3 className="text-3xl font-black text-emerald-400 mt-1">
+                  {milestones.filter((m) => m.last_greeted_year === new Date().getFullYear()).length}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-1">Audited greetings sent</p>
+              </div>
+            </div>
+
+            {/* Milestones Directory Table */}
+            <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-slate-800 text-slate-400 font-bold uppercase text-[10px]">
+                    <tr>
+                      <th className="py-3 px-4">Client / Business</th>
+                      <th className="py-3 px-4">Milestone Title & Type</th>
+                      <th className="py-3 px-4">Annual Date</th>
+                      <th className="py-3 px-4">Key Contact & Phone</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Greeting Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-slate-300">
+                    {milestones.map((m) => {
+                      const isGreeted = m.last_greeted_year === new Date().getFullYear();
+                      return (
+                        <tr key={m.id} className="hover:bg-slate-900/50 transition">
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-white">{m.client?.business_name || m.client?.name || 'Client'}</div>
+                            <div className="text-[11px] text-slate-400">{m.client?.name}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-slate-200">{m.title}</div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
+                              {m.milestone_type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-bold text-amber-300">
+                            {new Date(m.milestone_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="text-slate-300">{m.contact_person || '—'}</div>
+                            <div className="text-slate-400 font-mono text-[11px]">{m.contact_phone || '—'}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {isGreeted ? (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                                ✓ Greeted {m.last_greeted_year}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold">
+                                Pending
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setGreetingMilestone(m);
+                                  setShowGreetingModal(true);
+                                }}
+                                className="px-2.5 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg text-[11px] font-bold border border-purple-500/30 transition cursor-pointer"
+                              >
+                                💌 Wish
+                              </button>
+                              {m.contact_phone && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const text = encodeURIComponent(
+                                      `Dear ${m.contact_person || m.client?.name || 'Valued Client'},\nHeartiest congratulations on your ${m.title}! Wishing you immense success, health, and prosperity.\nWarm Regards,\n${firm?.name || 'Your Chartered Accountants'}`
+                                    );
+                                    window.open(`https://wa.me/${(m.contact_phone || '').replace(/\D/g, '')}?text=${text}`, '_blank');
+                                    handleRecordMilestoneGreet(m);
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 rounded-lg text-[11px] font-bold border border-emerald-500/30 transition cursor-pointer"
+                                  title="Send WhatsApp Greeting"
+                                >
+                                  🟢 WhatsApp
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMilestone(m.id)}
+                                className="px-2 py-1 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                title="Delete Milestone"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {milestones.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                          No client milestone dates added yet. Click "+ Add Client Milestone" above.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
         {/* TAB 5: IN-WEBSITE MESSAGING & COMMUNICATIONS (WHATSAPP ALTERNATIVE)       */}
         {/* ========================================================================= */}
         {activeTab === 'messages' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
+          <div className="space-y-4">
+            {/* Scope Navigation Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setChatScope('CLIENTS')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    chatScope === 'CLIENTS'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <span>👥</span>
+                  <span>Client Inboxes ({clients.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChatScope('GROUPS')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    chatScope === 'GROUPS'
+                      ? 'bg-purple-600 text-white shadow'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <span>💬</span>
+                  <span>Practice Groups & Channels ({chatGroups.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChatScope('DIRECT')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    chatScope === 'DIRECT'
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  <span>🔒</span>
+                  <span>Team Direct Messages ({team.length})</span>
+                </button>
+              </div>
+
+              {chatScope === 'GROUPS' && !isStaff && (
+                <button
+                  type="button"
+                  onClick={() => setShowNewGroupModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow transition cursor-pointer flex items-center gap-1"
+                >
+                  <span>+ Create Channel / Group</span>
+                </button>
+              )}
+            </div>
+
+            {chatScope === 'CLIENTS' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
             {/* Left: Client List for Chat */}
             <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -1852,6 +2606,297 @@ export function FirmPortal() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+            {/* VIEW 2: PRACTICE CHANNELS & GROUPS */}
+            {chatScope === 'GROUPS' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
+                {/* Left: Group Channel List */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <h3 className="font-bold text-sm text-white">Firm Channels & Groups</h3>
+                    <span className="text-[10px] text-slate-500 font-mono">Total {chatGroups.length}</span>
+                  </div>
+
+                  <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[500px]">
+                    {chatGroups.map((g) => {
+                      const isSelected = selectedGroupId === g.id;
+                      return (
+                        <button
+                          key={g.id}
+                          type="button"
+                          onClick={() => setSelectedGroupId(g.id)}
+                          className={`w-full text-left p-3 rounded-xl border transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-purple-600/10 border-purple-500/50 text-white shadow'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-900 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs">#{g.name}</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
+                              {g.group_type === 'BROADCAST' ? '📢 All-Firm' : '💬 Group'}
+                            </span>
+                          </div>
+                          {g.description && <p className="text-[11px] text-slate-400 mt-1 truncate">{g.description}</p>}
+                        </button>
+                      );
+                    })}
+
+                    {chatGroups.length === 0 && (
+                      <div className="py-12 text-center text-slate-500 text-xs">
+                        No custom groups yet. Click "+ Create Channel / Group" above.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Group Chat Stream */}
+                <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4">
+                  {selectedGroupId ? (
+                    <>
+                      {/* Group Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                        <div>
+                          <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                            <span>#</span>
+                            <span>{chatGroups.find((g) => g.id === selectedGroupId)?.name || 'Group Channel'}</span>
+                          </h3>
+                          <p className="text-[11px] text-slate-400">
+                            {chatGroups.find((g) => g.id === selectedGroupId)?.description || 'Practice team collaboration channel'}
+                          </p>
+                        </div>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-bold">
+                          Practice Channel
+                        </span>
+                      </div>
+
+                      {/* Group Messages Stream */}
+                      <div className="flex-1 space-y-3 overflow-y-auto max-h-[380px] p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
+                        {groupMessages.map((msg) => {
+                          const isMe = msg.sender_user_id === user?.id;
+                          return (
+                            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1`}>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1">
+                                <span className="font-semibold text-slate-300">{isMe ? 'You' : msg.sender?.name || 'Colleague'}</span>
+                                {msg.sender?.firm_role && (
+                                  <span className="text-purple-400 font-mono">({msg.sender.firm_role})</span>
+                                )}
+                                <span>•</span>
+                                <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                              <div
+                                className={`p-3 rounded-2xl text-xs max-w-xl space-y-1.5 shadow ${
+                                  isMe
+                                    ? 'bg-purple-600 text-white rounded-br-none'
+                                    : 'bg-slate-900 text-slate-200 border border-slate-800 rounded-bl-none'
+                                }`}
+                              >
+                                <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                                {msg.attachment_url && (
+                                  <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2">
+                                    <span className="text-[10px]">📎</span>
+                                    <a
+                                      href={msg.attachment_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[11px] underline font-bold hover:text-white"
+                                    >
+                                      {msg.attachment_name || 'Download Attachment'}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {groupMessages.length === 0 && (
+                          <div className="py-16 text-center text-slate-500 text-xs">
+                            No messages in this channel yet. Post an announcement or start the conversation!
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Group Composer */}
+                      <form onSubmit={handleSendGroupMessage} className="space-y-2 pt-2 border-t border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="url"
+                            placeholder="Attachment URL (optional)"
+                            value={newAttachmentUrl}
+                            onChange={(e) => {
+                              setNewAttachmentUrl(e.target.value);
+                              if (!newAttachmentName && e.target.value) {
+                                setNewAttachmentName('Shared Workpaper.pdf');
+                              }
+                            }}
+                            className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-300 flex-1"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <textarea
+                            rows={2}
+                            required
+                            placeholder="Post to channel..."
+                            value={newMessageText}
+                            onChange={(e) => setNewMessageText(e.target.value)}
+                            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white resize-none"
+                          />
+                          <button
+                            type="submit"
+                            className="px-5 rounded-xl font-bold text-xs text-white bg-purple-600 hover:bg-purple-500 shadow cursor-pointer transition"
+                          >
+                            Post
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-slate-500 text-xs">
+                      Select a practice channel from the left pane.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* VIEW 3: TEAM 1-ON-1 DIRECT MESSAGES */}
+            {chatScope === 'DIRECT' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
+                {/* Left: Colleague Roster */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <h3 className="font-bold text-sm text-white">Team Colleagues</h3>
+                    <span className="text-[10px] text-slate-500 font-mono">Total {team.length}</span>
+                  </div>
+
+                  <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[500px]">
+                    {team.map((member) => {
+                      const isSelected = selectedDirectUserId === member.id;
+                      return (
+                        <button
+                          key={member.id}
+                          type="button"
+                          onClick={() => setSelectedDirectUserId(member.id)}
+                          className={`w-full text-left p-3 rounded-xl border transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-600/10 border-emerald-500/50 text-white shadow'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-900 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs">{member.name}</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-mono">
+                              {member.firm_role || 'STAFF'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5 truncate">{member.email}</p>
+                        </button>
+                      );
+                    })}
+
+                    {team.length === 0 && (
+                      <div className="py-12 text-center text-slate-500 text-xs">
+                        No colleagues onboarded yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Direct 1-to-1 Stream */}
+                <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4">
+                  {selectedDirectUserId ? (
+                    <>
+                      {/* Direct Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                        <div>
+                          <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                            <span>🔒</span>
+                            <span>{team.find((t) => t.id === selectedDirectUserId)?.name || 'Direct Chat'}</span>
+                          </h3>
+                          <p className="text-[11px] text-slate-400">
+                            {team.find((t) => t.id === selectedDirectUserId)?.email} • Role: {team.find((t) => t.id === selectedDirectUserId)?.firm_role || 'Article Assistant'}
+                          </p>
+                        </div>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
+                          Direct 1-on-1
+                        </span>
+                      </div>
+
+                      {/* Direct Messages Stream */}
+                      <div className="flex-1 space-y-3 overflow-y-auto max-h-[380px] p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
+                        {directMessages.map((msg) => {
+                          const isMe = msg.sender_user_id === user?.id;
+                          return (
+                            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1`}>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1">
+                                <span className="font-semibold text-slate-300">{isMe ? 'You' : msg.sender?.name || 'Colleague'}</span>
+                                <span>•</span>
+                                <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                              <div
+                                className={`p-3 rounded-2xl text-xs max-w-xl space-y-1.5 shadow ${
+                                  isMe
+                                    ? 'bg-emerald-600 text-white rounded-br-none'
+                                    : 'bg-slate-900 text-slate-200 border border-slate-800 rounded-bl-none'
+                                }`}
+                              >
+                                <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                                {msg.attachment_url && (
+                                  <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2">
+                                    <span className="text-[10px]">📎</span>
+                                    <a
+                                      href={msg.attachment_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[11px] underline font-bold hover:text-white"
+                                    >
+                                      {msg.attachment_name || 'Download Attachment'}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {directMessages.length === 0 && (
+                          <div className="py-16 text-center text-slate-500 text-xs">
+                            No direct messages yet. Send a private message to this team member!
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Direct Composer */}
+                      <form onSubmit={handleSendDirectMessage} className="space-y-2 pt-2 border-t border-slate-800">
+                        <div className="flex gap-2">
+                          <textarea
+                            rows={2}
+                            required
+                            placeholder="Type direct message..."
+                            value={newMessageText}
+                            onChange={(e) => setNewMessageText(e.target.value)}
+                            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white resize-none"
+                          />
+                          <button
+                            type="submit"
+                            className="px-5 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-500 shadow cursor-pointer transition"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-slate-500 text-xs">
+                      Select a team colleague from the left pane to start a private direct conversation.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2936,6 +3981,344 @@ export function FirmPortal() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* MODAL: ADD CLIENT MILESTONE DATE */}
+      {showNewMilestoneModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateMilestone}
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <span>🎂</span>
+                <span>Add Client Milestone / Important Date</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewMilestoneModal(false)}
+                className="text-slate-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Select Client *</label>
+                <select
+                  required
+                  value={newMilestoneClientId}
+                  onChange={(e) => setNewMilestoneClientId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                >
+                  <option value="">-- Choose Client --</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.business_name || c.name} ({c.name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Milestone Category *</label>
+                  <select
+                    value={newMilestoneType}
+                    onChange={(e) => setNewMilestoneType(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                  >
+                    <option value="INCORPORATION_DAY">🏢 Company Incorporation Day</option>
+                    <option value="BIRTHDAY">🎂 Director / Key Person Birthday</option>
+                    <option value="GST_ANNIVERSARY">📜 GST Registration Anniversary</option>
+                    <option value="CUSTOM">⏰ Custom Milestone</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Milestone Date (YYYY-MM-DD) *</label>
+                  <input
+                    type="date"
+                    required
+                    value={newMilestoneDate}
+                    onChange={(e) => setNewMilestoneDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Milestone Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 5th Incorporation Day or Rajesh Kumar's Birthday"
+                  value={newMilestoneTitle}
+                  onChange={(e) => setNewMilestoneTitle(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Contact Person</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Mr. Rajesh Kumar (MD)"
+                    value={newMilestonePerson}
+                    onChange={(e) => setNewMilestonePerson(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Phone (for WhatsApp greetings)</label>
+                  <input
+                    type="text"
+                    placeholder="+91 98765 43210"
+                    value={newMilestonePhone}
+                    onChange={(e) => setNewMilestonePhone(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Notes / Preferences</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Likes sweets/diary gift box or formal email"
+                  value={newMilestoneNotes}
+                  onChange={(e) => setNewMilestoneNotes(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewMilestoneModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow"
+              >
+                Save Milestone Date
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: CREATE NEW PRACTICE CHAT GROUP */}
+      {showNewGroupModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateGroup}
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <span>💬</span>
+                <span>Create Practice Group / Channel</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewGroupModal(false)}
+                className="text-slate-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Channel Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. GST-Filing-Squad or Corporate-Audit-Review"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Channel Purpose / Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Daily filing coordination, notices discussion and query escalation"
+                  value={newGroupDesc}
+                  onChange={(e) => setNewGroupDesc(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Channel Visibility Type</label>
+                <select
+                  value={newGroupType}
+                  onChange={(e) => setNewGroupType(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                >
+                  <option value="INTERNAL_TEAM">🔒 Internal Team Working Group</option>
+                  <option value="BROADCAST">📢 Firm-Wide Broadcast Announcement Channel</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Select Member Colleagues ({newGroupMembers.length} selected)</label>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 rounded-xl bg-slate-900 border border-slate-800">
+                  {team.map((member) => {
+                    const isChecked = newGroupMembers.includes(member.id);
+                    return (
+                      <label
+                        key={member.id}
+                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewGroupMembers([...newGroupMembers, member.id]);
+                              } else {
+                                setNewGroupMembers(newGroupMembers.filter((id) => id !== member.id));
+                              }
+                            }}
+                            className="rounded border-slate-700 text-purple-600 focus:ring-0"
+                          />
+                          <span className="text-white font-medium">{member.name}</span>
+                          <span className="text-[10px] text-slate-400">({member.firm_role || 'STAFF'})</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">{member.email}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewGroupModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow"
+              >
+                Create Channel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: CLIENT GREETING & DELEGATION */}
+      {showGreetingModal && greetingMilestone && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-slate-950 border border-purple-500/30 rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎉</span>
+                <h3 className="font-bold text-base text-white">Client Celebration Greeting</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGreetingModal(false)}
+                className="text-slate-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-500/30 space-y-1 text-xs">
+              <h4 className="font-bold text-white text-sm">{greetingMilestone.title}</h4>
+              <p className="text-purple-300 font-medium">
+                Client: {greetingMilestone.client?.business_name || greetingMilestone.client?.name}
+              </p>
+              {greetingMilestone.contact_phone && (
+                <p className="text-slate-400 font-mono text-[11px]">Contact Phone: {greetingMilestone.contact_phone}</p>
+              )}
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="block font-semibold text-slate-300">Pre-Crafted Professional Greeting:</label>
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs leading-relaxed italic">
+                "Dear {greetingMilestone.contact_person || greetingMilestone.client?.name || 'Valued Client'}, heartiest congratulations on your {greetingMilestone.title}! Wishing you continued success, good health, and prosperity in all your endeavors. From all of us at {firm?.name || 'Your Chartered Accountants'}."
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  handleRecordMilestoneGreet(greetingMilestone);
+                  setShowGreetingModal(false);
+                }}
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+              >
+                ✓ Mark Greeted in Records
+              </button>
+
+              <div className="flex items-center gap-2">
+                {greetingMilestone.contact_phone && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = encodeURIComponent(
+                        `Dear ${greetingMilestone.contact_person || greetingMilestone.client?.name || 'Valued Client'},\nHeartiest congratulations on your ${greetingMilestone.title}! Wishing you immense success, health, and prosperity.\nWarm Regards,\n${firm?.name || 'Your Chartered Accountants'}`
+                      );
+                      window.open(`https://wa.me/${greetingMilestone.contact_phone?.replace(/\D/g, '')}?text=${text}`, '_blank');
+                      handleRecordMilestoneGreet(greetingMilestone);
+                      setShowGreetingModal(false);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🟢 Open WhatsApp</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!greetingMilestone.client_id) return;
+                    try {
+                      await apiFetch('/api/firm/messages', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          clientId: greetingMilestone.client_id,
+                          message: `🎉 Happy ${greetingMilestone.title}! Wishing you continued growth and prosperity from the team at ${firm?.name || 'our CA firm'}.`,
+                          threadType: 'CLIENT_EXTERNAL',
+                          category: 'GENERAL',
+                        }),
+                      });
+                      handleRecordMilestoneGreet(greetingMilestone);
+                      showNotification('Greeting message sent directly in client portal chat!');
+                      setShowGreetingModal(false);
+                    } catch (err: any) {
+                      alert(err.message || 'Failed to dispatch greeting');
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>💌 Send In-App Chat</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

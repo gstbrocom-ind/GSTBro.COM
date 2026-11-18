@@ -1361,5 +1361,449 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         invoiceStatus: usageRecord.data?.invoice_status || 'PENDING',
       });
     });
+
+    // ==========================================
+    // 26. CLIENT MILESTONES CRM (BIRTHDAYS & INCORPORATION DAYS)
+    // ==========================================
+
+    // List milestones (with upcoming celebrations filter)
+    firmScope.get('/api/firm/milestones', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const isStaff = request.user.role === 'FIRM_STAFF' || request.user.firm_role === 'FIRM_STAFF';
+      const { clientId } = request.query as { clientId?: string };
+
+      let query = supabase
+        .from('client_milestones')
+        .select(`
+          *,
+          client:client_id(id, name, business_name, email, phone, assigned_staff_id)
+        `)
+        .eq('firm_id', firmId)
+        .order('milestone_date', { ascending: true });
+
+      if (clientId) {
+        query = query.eq('client_id', clientId);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      let results = data || [];
+
+      // If staff, segment to only milestones of clients assigned to this staff member
+      if (isStaff) {
+        results = results.filter((m: any) => m.client && m.client.assigned_staff_id === request.user.id);
+      }
+
+      return reply.send({ milestones: results });
+    });
+
+    // Create client milestone
+    firmScope.post('/api/firm/milestones', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const schema = z.object({
+        clientId: z.string().uuid(),
+        milestoneType: z.enum(['BIRTHDAY', 'INCORPORATION_DAY', 'GST_ANNIVERSARY', 'CUSTOM']),
+        title: z.string().min(2),
+        milestoneDate: z.string(),
+        contactPerson: z.string().optional(),
+        contactPhone: z.string().optional(),
+        contactEmail: z.string().optional(),
+        notes: z.string().optional(),
+      });
+
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
+      }
+
+      const hasAccess = await canAccessClient(request.user, parsed.data.clientId);
+      if (!hasAccess) {
+        return reply.status(403).send({ error: 'Forbidden: Access denied to this client' });
+      }
+
+      const { data, error } = await supabase
+        .from('client_milestones')
+        .insert({
+          firm_id: firmId,
+          client_id: parsed.data.clientId,
+          milestone_type: parsed.data.milestoneType,
+          title: parsed.data.title,
+          milestone_date: parsed.data.milestoneDate,
+          contact_person: parsed.data.contactPerson || null,
+          contact_phone: parsed.data.contactPhone || null,
+          contact_email: parsed.data.contactEmail || null,
+          notes: parsed.data.notes || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, milestone: data });
+    });
+
+    // Delete milestone
+    firmScope.delete('/api/firm/milestones/:id', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      const { error } = await supabase
+        .from('client_milestones')
+        .delete()
+        .eq('id', id)
+        .eq('firm_id', firmId);
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true });
+    });
+
+    // Record greeting sent (audit trail)
+    firmScope.post('/api/firm/milestones/:id/greet', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+      const currentYear = new Date().getFullYear();
+
+      const { data, error } = await supabase
+        .from('client_milestones')
+        .update({
+          last_greeted_year: currentYear,
+          last_greeted_at: new Date().toISOString(),
+          last_greeted_by: request.user.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('firm_id', firmId)
+        .select()
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, milestone: data });
+    });
+
+    // ==========================================
+    // 27. PERSONAL STICKY TO-DO SCRATCHPAD
+    // ==========================================
+
+    // Get personal to-dos for logged-in user
+    firmScope.get('/api/firm/todos', async (request, reply) => {
+      const userId = request.user.id;
+
+      const { data, error } = await supabase
+        .from('firm_user_todos')
+        .select('*')
+        .eq('user_id', userId)
+        .order('is_completed', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ todos: data || [] });
+    });
+
+    // Create personal to-do
+    firmScope.post('/api/firm/todos', async (request, reply) => {
+      const userId = request.user.id;
+      const firmId = request.user.firm_id || null;
+
+      const schema = z.object({
+        title: z.string().min(1),
+        priority: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).default('NORMAL'),
+        dueDate: z.string().optional(),
+      });
+
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
+      }
+
+      const { data, error } = await supabase
+        .from('firm_user_todos')
+        .insert({
+          user_id: userId,
+          firm_id: firmId,
+          title: parsed.data.title,
+          priority: parsed.data.priority,
+          due_date: parsed.data.dueDate || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, todo: data });
+    });
+
+    // Toggle completion status
+    firmScope.patch('/api/firm/todos/:id/toggle', async (request, reply) => {
+      const userId = request.user.id;
+      const { id } = request.params as { id: string };
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from('firm_user_todos')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchErr || !existing) {
+        return reply.status(404).send({ error: 'To-do item not found' });
+      }
+
+      const nextState = !existing.is_completed;
+      const { data, error } = await supabase
+        .from('firm_user_todos')
+        .update({
+          is_completed: nextState,
+          completed_at: nextState ? new Date().toISOString() : null,
+        })
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, todo: data });
+    });
+
+    // Delete personal to-do
+    firmScope.delete('/api/firm/todos/:id', async (request, reply) => {
+      const userId = request.user.id;
+      const { id } = request.params as { id: string };
+
+      const { error } = await supabase
+        .from('firm_user_todos')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true });
+    });
+
+    // ==========================================
+    // 28. PRACTICE CHAT GROUPS & TEAM DIRECT MESSAGING
+    // ==========================================
+
+    // Get chat groups for firm
+    firmScope.get('/api/firm/groups', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const userId = request.user.id;
+
+      const { data: groups, error } = await supabase
+        .from('firm_chat_groups')
+        .select(`
+          *,
+          members:firm_chat_group_members(user_id, role, joined_at)
+        `)
+        .eq('firm_id', firmId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      // Filter groups: Broadcast/Internal groups are visible to all firm users; Custom groups require membership
+      const accessibleGroups = (groups || []).filter((g: any) => {
+        if (g.group_type === 'BROADCAST' || g.group_type === 'INTERNAL_TEAM') return true;
+        return (g.members || []).some((m: any) => m.user_id === userId);
+      });
+
+      return reply.send({ groups: accessibleGroups });
+    });
+
+    // Create a new practice group
+    firmScope.post('/api/firm/groups', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const userId = request.user.id;
+
+      const schema = z.object({
+        name: z.string().min(2).max(100),
+        description: z.string().optional(),
+        groupType: z.enum(['INTERNAL_TEAM', 'CLIENT_GROUP', 'BROADCAST']).default('INTERNAL_TEAM'),
+        memberUserIds: z.array(z.string().uuid()).optional(),
+      });
+
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
+      }
+
+      const { data: group, error } = await supabase
+        .from('firm_chat_groups')
+        .insert({
+          firm_id: firmId,
+          name: parsed.data.name,
+          description: parsed.data.description || null,
+          group_type: parsed.data.groupType,
+          created_by: userId,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      // Add creator as ADMIN
+      const membersToInsert = [{ group_id: group.id, user_id: userId, role: 'ADMIN' }];
+
+      // Add selected members
+      const extraMemberIds = (parsed.data.memberUserIds || []).filter((id) => id !== userId);
+      for (const mId of extraMemberIds) {
+        membersToInsert.push({ group_id: group.id, user_id: mId, role: 'MEMBER' });
+      }
+
+      await supabase.from('firm_chat_group_members').insert(membersToInsert);
+
+      return reply.send({ success: true, group });
+    });
+
+    // Get group messages
+    firmScope.get('/api/firm/groups/:id/messages', async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const { data, error } = await supabase
+        .from('client_messages')
+        .select(`
+          *,
+          sender:sender_user_id(id, name, email, role, firm_role)
+        `)
+        .eq('group_id', id)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ messages: data || [] });
+    });
+
+    // Post message to group
+    firmScope.post('/api/firm/groups/:id/messages', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const userId = request.user.id;
+      const userRole = request.user.role;
+
+      const schema = z.object({
+        message: z.string().min(1),
+        attachmentUrl: z.string().url().optional(),
+        attachmentName: z.string().optional(),
+        attachmentType: z.string().optional(),
+      });
+
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
+      }
+
+      const { data, error } = await supabase
+        .from('client_messages')
+        .insert({
+          group_id: id,
+          sender_user_id: userId,
+          sender_role: userRole,
+          message: parsed.data.message,
+          attachment_url: parsed.data.attachmentUrl || null,
+          attachment_name: parsed.data.attachmentName || null,
+          attachment_type: parsed.data.attachmentType || null,
+          thread_type: 'INTERNAL_TEAM_NOTE',
+        })
+        .select(`
+          *,
+          sender:sender_user_id(id, name, email, role, firm_role)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, message: data });
+    });
+
+    // 1-to-1 Direct Team Messages between two firm members
+    firmScope.get('/api/firm/team/direct-messages/:targetUserId', async (request, reply) => {
+      const userId = request.user.id;
+      const { targetUserId } = request.params as { targetUserId: string };
+
+      const { data, error } = await supabase
+        .from('client_messages')
+        .select(`
+          *,
+          sender:sender_user_id(id, name, email, role, firm_role)
+        `)
+        .or(`and(sender_user_id.eq.${userId},recipient_user_id.eq.${targetUserId}),and(sender_user_id.eq.${targetUserId},recipient_user_id.eq.${userId})`)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ messages: data || [] });
+    });
+
+    // Send 1-to-1 Direct Team Message
+    firmScope.post('/api/firm/team/direct-messages/:targetUserId', async (request, reply) => {
+      const userId = request.user.id;
+      const userRole = request.user.role;
+      const { targetUserId } = request.params as { targetUserId: string };
+
+      const schema = z.object({
+        message: z.string().min(1),
+        attachmentUrl: z.string().url().optional(),
+        attachmentName: z.string().optional(),
+        attachmentType: z.string().optional(),
+      });
+
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
+      }
+
+      const { data, error } = await supabase
+        .from('client_messages')
+        .insert({
+          recipient_user_id: targetUserId,
+          sender_user_id: userId,
+          sender_role: userRole,
+          message: parsed.data.message,
+          attachment_url: parsed.data.attachmentUrl || null,
+          attachment_name: parsed.data.attachmentName || null,
+          attachment_type: parsed.data.attachmentType || null,
+          thread_type: 'INTERNAL_TEAM_NOTE',
+        })
+        .select(`
+          *,
+          sender:sender_user_id(id, name, email, role, firm_role)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, message: data });
+    });
   });
 };
