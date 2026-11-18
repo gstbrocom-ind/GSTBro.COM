@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { supabase } from '../lib/supabase.js';
 import { authenticate, requireFirm, requireFirmAdmin } from '../middleware/auth.js';
 import { hashPassword } from '../services/passwordService.js';
+import { canAccessClient } from '../lib/authorization.js';
 
 export const firmRoutes: FastifyPluginAsync = async (app) => {
   app.register(async (firmScope) => {
@@ -1031,6 +1032,296 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(500).send({ error: error.message });
       }
       return reply.send({ success: true });
+    });
+
+    // ==========================================
+    // ROLE PERMISSIONS MANAGER (5-LEVEL HIERARCHY)
+    // ==========================================
+
+    // 25. Get Firm Role Permissions Matrix
+    firmScope.get('/api/firm/permissions', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { data: firm, error } = await supabase
+        .from('firms')
+        .select('permissions')
+        .eq('id', firmId)
+        .single();
+
+      if (error || !firm) {
+        return reply.status(500).send({ error: 'Failed to load permissions' });
+      }
+
+      return reply.send({ permissions: firm.permissions || {} });
+    });
+
+    // 26. Update Firm Role Permissions (Partner / Admin Only)
+    firmScope.put('/api/firm/permissions', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        permissions: z.record(z.record(z.boolean())),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const { data, error } = await supabase
+        .from('firms')
+        .update({
+          permissions: parsed.data.permissions,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', firmId)
+        .select('permissions')
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, permissions: data.permissions });
+    });
+
+    // ==========================================
+    // IN-WEBSITE MESSAGING & QUERY SUITE (REPLACING WHATSAPP)
+    // ==========================================
+
+    // 27. Get Client Conversation Messages / Internal Notes
+    firmScope.get('/api/firm/messages', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const query = request.query as {
+        clientId: string;
+        threadType?: 'CLIENT_EXTERNAL' | 'INTERNAL_TEAM_NOTE';
+        category?: string;
+        status?: string;
+      };
+
+      if (!query.clientId) {
+        return reply.status(400).send({ error: 'clientId query parameter is required' });
+      }
+
+      const isClient = request.user.role === 'CLIENT';
+      if (isClient) {
+        // Clients can ONLY access their own external messages
+        if (query.clientId !== request.user.id || query.threadType === 'INTERNAL_TEAM_NOTE') {
+          return reply.status(403).send({ error: 'Forbidden' });
+        }
+      } else {
+        // Staff/Article access check
+        const hasAccess = await canAccessClient(request.user, query.clientId);
+        if (!hasAccess) {
+          return reply.status(403).send({ error: 'Forbidden: You do not have access to this client.' });
+        }
+      }
+
+      let dbQuery = supabase
+        .from('client_messages')
+        .select(`
+          id, client_user_id, sender_user_id, message, created_at, read_at,
+          thread_type, category, attachment_url, attachment_name, attachment_type,
+          status, resolved_by, resolved_at,
+          sender:sender_user_id(id, name, email, role, firm_role)
+        `)
+        .eq('client_user_id', query.clientId)
+        .order('created_at', { ascending: true });
+
+      // If client requests, force thread_type = CLIENT_EXTERNAL
+      if (isClient) {
+        dbQuery = dbQuery.eq('thread_type', 'CLIENT_EXTERNAL');
+      } else if (query.threadType) {
+        dbQuery = dbQuery.eq('thread_type', query.threadType);
+      }
+
+      if (query.category) {
+        dbQuery = dbQuery.eq('category', query.category);
+      }
+      if (query.status) {
+        dbQuery = dbQuery.eq('status', query.status);
+      }
+
+      const { data, error } = await dbQuery;
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ messages: data || [] });
+    });
+
+    // 28. Post In-Website Message or Private Team Note
+    firmScope.post('/api/firm/messages', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const isClient = request.user.role === 'CLIENT';
+
+      const bodySchema = z.object({
+        clientId: z.string().uuid(),
+        message: z.string().min(1),
+        threadType: z.enum(['CLIENT_EXTERNAL', 'INTERNAL_TEAM_NOTE']).default('CLIENT_EXTERNAL'),
+        category: z.enum(['GENERAL', 'MONTHLY_DOCS', 'ITC_RECON', 'NOTICE_REPLY', 'BILLING']).default('GENERAL'),
+        attachmentUrl: z.string().optional().nullable(),
+        attachmentName: z.string().optional().nullable(),
+        attachmentType: z.string().optional().nullable(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      if (isClient) {
+        if (parsed.data.clientId !== request.user.id || parsed.data.threadType === 'INTERNAL_TEAM_NOTE') {
+          return reply.status(403).send({ error: 'Clients cannot post internal team notes.' });
+        }
+      } else {
+        const hasAccess = await canAccessClient(request.user, parsed.data.clientId);
+        if (!hasAccess) {
+          return reply.status(403).send({ error: 'Forbidden: You do not have access to this client.' });
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('client_messages')
+        .insert({
+          firm_id: firmId,
+          client_user_id: parsed.data.clientId,
+          sender_user_id: request.user.id,
+          message: parsed.data.message,
+          thread_type: parsed.data.threadType,
+          category: parsed.data.category,
+          attachment_url: parsed.data.attachmentUrl || null,
+          attachment_name: parsed.data.attachmentName || null,
+          attachment_type: parsed.data.attachmentType || null,
+          status: 'OPEN',
+        })
+        .select(`
+          id, client_user_id, sender_user_id, message, created_at, read_at,
+          thread_type, category, attachment_url, attachment_name, attachment_type,
+          status,
+          sender:sender_user_id(id, name, email, role, firm_role)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, message: data });
+    });
+
+    // 29. Resolve Client Query Thread
+    firmScope.patch('/api/firm/messages/:id/resolve', async (request, reply) => {
+      const { id } = request.params as { id: string };
+
+      const { data, error } = await supabase
+        .from('client_messages')
+        .update({
+          status: 'RESOLVED',
+          resolved_by: request.user.id,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select('id, status, resolved_at')
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+      return reply.send({ success: true, message: data });
+    });
+
+    // ==========================================
+    // PRE-FILING 5-POINT SIGN-OFF CHECKLIST
+    // ==========================================
+
+    // 30. Get Pre-Filing Checklist
+    firmScope.get('/api/firm/checklists', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const query = request.query as {
+        clientId: string;
+        period: string;
+        returnType?: string;
+      };
+
+      if (!query.clientId || !query.period) {
+        return reply.status(400).send({ error: 'clientId and period are required' });
+      }
+
+      const { data, error } = await supabase
+        .from('pre_filing_checklists')
+        .select(`
+          *,
+          approver:approved_by(id, name, email, role, firm_role)
+        `)
+        .eq('firm_id', firmId)
+        .eq('client_id', query.clientId)
+        .eq('period', query.period)
+        .eq('return_type', query.returnType || 'GSTR-3B')
+        .maybeSingle();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ checklist: data || null });
+    });
+
+    // 31. Update & Sign-off Pre-Filing Checklist
+    firmScope.put('/api/firm/checklists', async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const bodySchema = z.object({
+        clientId: z.string().uuid(),
+        period: z.string().min(6), // 'YYYY-MM'
+        returnType: z.enum(['GSTR-1', 'GSTR-3B', 'IFF', 'CMP-08', 'GSTR-9']).default('GSTR-3B'),
+        itc2bReconciled: z.boolean().default(false),
+        rcmChecked: z.boolean().default(false),
+        outwardEwayMatched: z.boolean().default(false),
+        cashLedgerVerified: z.boolean().default(false),
+        clientDraftApproved: z.boolean().default(false),
+        notes: z.string().optional().nullable(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const allApproved =
+        parsed.data.itc2bReconciled &&
+        parsed.data.rcmChecked &&
+        parsed.data.outwardEwayMatched &&
+        parsed.data.cashLedgerVerified &&
+        parsed.data.clientDraftApproved;
+
+      const { data, error } = await supabase
+        .from('pre_filing_checklists')
+        .upsert(
+          {
+            firm_id: firmId,
+            client_id: parsed.data.clientId,
+            period: parsed.data.period,
+            return_type: parsed.data.returnType,
+            itc_2b_reconciled: parsed.data.itc2bReconciled,
+            rcm_checked: parsed.data.rcmChecked,
+            outward_eway_matched: parsed.data.outwardEwayMatched,
+            cash_ledger_verified: parsed.data.cashLedgerVerified,
+            client_draft_approved: parsed.data.clientDraftApproved,
+            notes: parsed.data.notes || null,
+            approved_by: allApproved ? request.user.id : null,
+            approved_at: allApproved ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'client_id,period,return_type' }
+        )
+        .select(`
+          *,
+          approver:approved_by(id, name, email, role, firm_role)
+        `)
+        .single();
+
+      if (error) {
+        return reply.status(500).send({ error: error.message });
+      }
+
+      return reply.send({ success: true, checklist: data });
     });
 
     // ==========================================

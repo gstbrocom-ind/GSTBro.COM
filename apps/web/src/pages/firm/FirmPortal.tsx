@@ -19,6 +19,7 @@ type FirmProfile = {
   letterhead_url?: string | null;
   brand_color?: string | null;
   branding?: Record<string, any>;
+  permissions?: Record<string, Record<string, boolean>>;
   status: string;
 };
 
@@ -73,6 +74,7 @@ type TeamMember = {
   phone?: string | null;
   role: string;
   firm_role: string;
+  team_group?: string;
   assignedClientsCount: number;
 };
 
@@ -100,13 +102,43 @@ type DscToken = {
   client?: { id: string; name: string; business_name?: string | null } | null;
 };
 
+type ChatMessage = {
+  id: string;
+  client_user_id: string;
+  sender_user_id: string;
+  message: string;
+  created_at: string;
+  thread_type: 'CLIENT_EXTERNAL' | 'INTERNAL_TEAM_NOTE';
+  category: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  status: 'OPEN' | 'IN_REVIEW' | 'RESOLVED';
+  sender?: { id: string; name: string; email: string; role: string; firm_role?: string } | null;
+};
+
+type PreFilingChecklist = {
+  id?: string;
+  client_id: string;
+  period: string;
+  return_type: string;
+  itc_2b_reconciled: boolean;
+  rcm_checked: boolean;
+  outward_eway_matched: boolean;
+  cash_ledger_verified: boolean;
+  client_draft_approved: boolean;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  notes?: string | null;
+  approver?: { id: string; name: string; firm_role?: string } | null;
+};
+
 export function FirmPortal() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'pipeline' | 'tasks' | 'clients' | 'team' | 'due-dates' | 'dsc' | 'drive' | 'settings'
+    'overview' | 'pipeline' | 'tasks' | 'clients' | 'messages' | 'team' | 'due-dates' | 'dsc' | 'drive' | 'settings'
   >('overview');
 
   const [loading, setLoading] = useState(true);
@@ -121,6 +153,52 @@ export function FirmPortal() {
     is_connected: false,
   });
   const [routingRules, setRoutingRules] = useState<any[]>([]);
+
+  // In-Website Chat state (WhatsApp replacement)
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [selectedChatClientId, setSelectedChatClientId] = useState<string>('');
+  const [chatThreadType, setChatThreadType] = useState<'CLIENT_EXTERNAL' | 'INTERNAL_TEAM_NOTE'>('CLIENT_EXTERNAL');
+  const [chatCategoryFilter, setChatCategoryFilter] = useState<string>('ALL');
+  const [newMessageText, setNewMessageText] = useState('');
+  const [newMessageCategory, setNewMessageCategory] = useState<'GENERAL' | 'MONTHLY_DOCS' | 'ITC_RECON' | 'NOTICE_REPLY' | 'BILLING'>('GENERAL');
+  const [newAttachmentUrl, setNewAttachmentUrl] = useState('');
+  const [newAttachmentName, setNewAttachmentName] = useState('');
+  const [chatSearch, setChatSearch] = useState('');
+
+  // Role permissions matrix state (5-Level Hierarchy)
+  const [rolePermissions, setRolePermissions] = useState<Record<string, Record<string, boolean>>>({
+    FIRM_MANAGER: {
+      change_due_dates: true,
+      client_access_all: true,
+      allocate_clients: true,
+      manage_tasks: true,
+      view_pending_dashboard: true,
+      approve_returns: true,
+      view_invoicing_fees: true,
+    },
+    FIRM_STAFF: {
+      change_due_dates: false,
+      client_access_all: false,
+      allocate_clients: false,
+      manage_tasks: false,
+      view_pending_dashboard: false,
+      approve_returns: false,
+      view_invoicing_fees: false,
+    },
+  });
+
+  // Pre-filing checklist modal state
+  const [showChecklistModal, setShowChecklistModal] = useState<FirmClient | null>(null);
+  const [checklistState, setChecklistState] = useState<PreFilingChecklist>({
+    client_id: '',
+    period: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+    return_type: 'GSTR-3B',
+    itc_2b_reconciled: false,
+    rcm_checked: false,
+    outward_eway_matched: false,
+    cash_ledger_verified: false,
+    client_draft_approved: false,
+  });
 
   // Modals & Action States
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
@@ -170,6 +248,7 @@ export function FirmPortal() {
     email: '',
     phone: '',
     firm_role: 'FIRM_STAFF' as 'FIRM_MANAGER' | 'FIRM_STAFF',
+    team_group: 'General',
     password: '',
   });
 
@@ -222,6 +301,7 @@ export function FirmPortal() {
         rulesRes,
         driveRes,
         routingRes,
+        permRes,
       ] = await Promise.all([
         apiFetch<{ firm: FirmProfile }>('/api/firm/profile'),
         apiFetch<{ tasks: FirmTask[] }>('/api/firm/tasks'),
@@ -232,6 +312,7 @@ export function FirmPortal() {
         apiFetch<{ rules: RecurringRule[] }>('/api/firm/tasks/recurring-rules'),
         apiFetch<{ driveConfig: any }>('/api/firm/drive').catch(() => ({ driveConfig: { is_connected: false } })),
         apiFetch<{ rules: any[] }>('/api/firm/routing-rules').catch(() => ({ rules: [] })),
+        apiFetch<{ permissions: any }>('/api/firm/permissions').catch(() => ({ permissions: {} })),
       ]);
 
       setFirm(profileRes.firm);
@@ -248,8 +329,16 @@ export function FirmPortal() {
         brand_color: profileRes.firm.brand_color || '#2563eb',
       });
 
+      if (permRes.permissions && Object.keys(permRes.permissions).length > 0) {
+        setRolePermissions(permRes.permissions);
+      }
+
       setTasks(tasksRes.tasks || []);
       setClients(clientsRes.clients || []);
+      if (clientsRes.clients.length > 0 && !selectedChatClientId) {
+        setSelectedChatClientId(clientsRes.clients[0].id);
+      }
+
       setTeam(teamRes.team || []);
       setDueDates(dueDatesRes.dueDates || []);
       setDscTokens(dscRes.tokens || []);
@@ -266,6 +355,159 @@ export function FirmPortal() {
   useEffect(() => {
     loadFirmData();
   }, []);
+
+  // Chat message loading
+  const loadChatMessages = async (clientId: string, threadType: 'CLIENT_EXTERNAL' | 'INTERNAL_TEAM_NOTE') => {
+    if (!clientId) return;
+    try {
+      const res = await apiFetch<{ messages: ChatMessage[] }>(
+        `/api/firm/messages?clientId=${clientId}&threadType=${threadType}`
+      );
+      setMessages(res.messages || []);
+    } catch (err) {
+      console.error('Failed to load chat messages:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedChatClientId) {
+      loadChatMessages(selectedChatClientId, chatThreadType);
+    }
+  }, [selectedChatClientId, chatThreadType]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessageText.trim() || !selectedChatClientId) return;
+
+    try {
+      const res = await apiFetch<{ success: boolean; message: ChatMessage }>('/api/firm/messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          clientId: selectedChatClientId,
+          message: newMessageText.trim(),
+          threadType: chatThreadType,
+          category: newMessageCategory,
+          attachmentUrl: newAttachmentUrl.trim() || null,
+          attachmentName: newAttachmentName.trim() || null,
+        }),
+      });
+
+      if (res.success && res.message) {
+        setMessages((prev) => [...prev, res.message]);
+        setNewMessageText('');
+        setNewAttachmentUrl('');
+        setNewAttachmentName('');
+        showNotification(
+          chatThreadType === 'INTERNAL_TEAM_NOTE'
+            ? 'Private internal note posted (hidden from client)!'
+            : 'Message sent to client!'
+        );
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to send message');
+    }
+  };
+
+  const handleResolveMessage = async (msgId: string) => {
+    try {
+      const res = await apiFetch<{ success: boolean; message: any }>(`/api/firm/messages/${msgId}/resolve`, {
+        method: 'PATCH',
+      });
+      if (res.success) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msgId ? { ...m, status: 'RESOLVED' } : m))
+        );
+        showNotification('Query thread marked as resolved!');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to resolve query');
+    }
+  };
+
+  // Pre-filing Checklist handlers
+  const handleOpenChecklist = async (client: FirmClient) => {
+    setShowChecklistModal(client);
+    const now = new Date();
+    const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    try {
+      const res = await apiFetch<{ checklist: PreFilingChecklist | null }>(
+        `/api/firm/checklists?clientId=${client.id}&period=${period}&returnType=GSTR-3B`
+      );
+      if (res.checklist) {
+        setChecklistState(res.checklist);
+      } else {
+        setChecklistState({
+          client_id: client.id,
+          period,
+          return_type: 'GSTR-3B',
+          itc_2b_reconciled: false,
+          rcm_checked: false,
+          outward_eway_matched: false,
+          cash_ledger_verified: false,
+          client_draft_approved: false,
+        });
+      }
+    } catch {
+      setChecklistState({
+        client_id: client.id,
+        period,
+        return_type: 'GSTR-3B',
+        itc_2b_reconciled: false,
+        rcm_checked: false,
+        outward_eway_matched: false,
+        cash_ledger_verified: false,
+        client_draft_approved: false,
+      });
+    }
+  };
+
+  const handleSaveChecklist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showChecklistModal) return;
+    try {
+      const res = await apiFetch<{ success: boolean; checklist: PreFilingChecklist }>('/api/firm/checklists', {
+        method: 'PUT',
+        body: JSON.stringify({
+          clientId: showChecklistModal.id,
+          period: checklistState.period,
+          returnType: checklistState.return_type,
+          itc2bReconciled: checklistState.itc_2b_reconciled,
+          rcmChecked: checklistState.rcm_checked,
+          outwardEwayMatched: checklistState.outward_eway_matched,
+          cashLedgerVerified: checklistState.cash_ledger_verified,
+          clientDraftApproved: checklistState.client_draft_approved,
+          notes: checklistState.notes || null,
+        }),
+      });
+
+      if (res.success) {
+        setChecklistState(res.checklist);
+        showNotification(
+          res.checklist.approved_at
+            ? '✓ Pre-filing sign-off completed! All 5 checklist verifications verified.'
+            : 'Pre-filing checklist updated.'
+        );
+        setShowChecklistModal(null);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to save checklist');
+    }
+  };
+
+  // Save Role Permissions matrix
+  const handleSavePermissions = async () => {
+    try {
+      const res = await apiFetch<{ success: boolean; permissions: any }>('/api/firm/permissions', {
+        method: 'PUT',
+        body: JSON.stringify({ permissions: rolePermissions }),
+      });
+      if (res.success) {
+        showNotification('Practice role permissions matrix updated successfully!');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to save permissions');
+    }
+  };
 
   // Task actions
   const handleToggleTaskStatus = async (task: FirmTask) => {
@@ -433,6 +675,7 @@ export function FirmPortal() {
           email: '',
           phone: '',
           firm_role: 'FIRM_STAFF',
+          team_group: 'General',
           password: '',
         });
         showNotification('Article Clerk / Team member added to your firm!');
@@ -608,6 +851,26 @@ export function FirmPortal() {
     }).length;
   }, [dscTokens]);
 
+  const selectedClient = useMemo(() => {
+    return clients.find((c) => c.id === selectedChatClientId) || null;
+  }, [clients, selectedChatClientId]);
+
+  const filteredChatClients = useMemo(() => {
+    if (!chatSearch.trim()) return clients;
+    const q = chatSearch.toLowerCase();
+    return clients.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.business_name && c.business_name.toLowerCase().includes(q)) ||
+        (c.gstin && c.gstin.toLowerCase().includes(q))
+    );
+  }, [clients, chatSearch]);
+
+  const filteredMessages = useMemo(() => {
+    if (chatCategoryFilter === 'ALL') return messages;
+    return messages.filter((m) => m.category === chatCategoryFilter);
+  }, [messages, chatCategoryFilter]);
+
   if (loading) {
     return <PortalLoadingSkeleton />;
   }
@@ -640,7 +903,7 @@ export function FirmPortal() {
                 {firm?.name || 'Chartered Accountants Practice'}
               </h1>
               <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                CA Firm Workspace
+                {isStaff ? 'Article Assistant Workspace' : 'CA Firm Suite'}
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -655,7 +918,9 @@ export function FirmPortal() {
           <div className="hidden sm:flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-slate-300 font-medium">{user?.name}</span>
-            <span className="text-slate-500">({user?.role === 'FIRM_OWNER' ? 'Partner / CA' : 'Staff / Article'})</span>
+            <span className="text-slate-500">
+              ({user?.role === 'FIRM_OWNER' ? 'Partner / CA' : user?.firm_role === 'FIRM_MANAGER' ? 'Manager' : 'Article Clerk'})
+            </span>
           </div>
 
           <button
@@ -681,7 +946,7 @@ export function FirmPortal() {
         </div>
       )}
 
-      {/* 2. SUB-NAVIGATION BAR */}
+      {/* 2. SUB-NAVIGATION BAR (DYNAMIC FOR ARTICLE CLERK VS PARTNER) */}
       <nav className="bg-slate-950/60 border-b border-slate-800 px-4 sm:px-6 overflow-x-auto scrollbar-none flex gap-1">
         {(isStaff
           ? [
@@ -689,6 +954,7 @@ export function FirmPortal() {
               { key: 'pipeline', label: '📋 My GST Filing Pipeline' },
               { key: 'tasks', label: `✅ My Tasks (${tasks.length})` },
               { key: 'clients', label: `👥 My Assigned Clients (${clients.length})` },
+              { key: 'messages', label: '💬 Client & Team Chat' },
               { key: 'due-dates', label: '📅 Statutory Deadlines' },
             ]
           : [
@@ -696,11 +962,12 @@ export function FirmPortal() {
               { key: 'pipeline', label: '📋 GST Compliance Pipeline' },
               { key: 'tasks', label: '✅ To-Do & Tasks' },
               { key: 'clients', label: `👥 Client Roster (${clients.length})` },
+              { key: 'messages', label: '💬 In-Website Messages (WhatsApp Alt)' },
               { key: 'team', label: `🧑‍🤝‍🧑 Team / Articles (${team.length})` },
               { key: 'due-dates', label: '📅 Due Dates & Overrides' },
               { key: 'dsc', label: `🔏 DSC Vault ${expiringDscCount > 0 ? `(${expiringDscCount} Expiring)` : ''}` },
               { key: 'drive', label: '📁 BYOD Google Drive' },
-              { key: 'settings', label: '⚙️ Firm Branding & FRN' },
+              { key: 'settings', label: '⚙️ Firm Branding & Permissions' },
             ]
         ).map((tab) => {
           const isActive = activeTab === tab.key;
@@ -730,7 +997,9 @@ export function FirmPortal() {
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow">
-                <p className="text-xs font-medium text-slate-400">Total Managed Clients</p>
+                <p className="text-xs font-medium text-slate-400">
+                  {isStaff ? 'My Assigned Clients' : 'Total Managed Clients'}
+                </p>
                 <div className="flex items-baseline justify-between mt-2">
                   <h3 className="text-3xl font-black text-white">{clients.length}</h3>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">
@@ -794,29 +1063,39 @@ export function FirmPortal() {
             <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Quick Actions:</span>
               <button
-                onClick={() => setShowNewClientModal(true)}
-                className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
-              >
-                <span>+ Onboard New Client</span>
-              </button>
-              <button
                 onClick={() => setShowNewTaskModal(true)}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
               >
                 <span>+ Add To-Do / Task</span>
               </button>
-              <button
-                onClick={() => setShowInviteStaffModal(true)}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
-              >
-                <span>+ Invite Article Clerk</span>
-              </button>
-              <button
-                onClick={handleTriggerMonthlyRecurring}
-                className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ml-auto"
-              >
-                <span>⚡ Auto-Generate Monthly Tasks</span>
-              </button>
+              {!isStaff && (
+                <>
+                  <button
+                    onClick={() => setShowNewClientModal(true)}
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>+ Onboard New Client</span>
+                  </button>
+                  <button
+                    onClick={() => setShowInviteStaffModal(true)}
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>+ Invite Article Clerk</span>
+                  </button>
+                  <button
+                    onClick={() => setShowHandoverModal(true)}
+                    className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>🔄 1-Click Handover</span>
+                  </button>
+                  <button
+                    onClick={handleTriggerMonthlyRecurring}
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ml-auto"
+                  >
+                    <span>⚡ Auto-Generate Monthly Tasks</span>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Two-Column Grid: Active Tasks + Upcoming Due Dates */}
@@ -906,7 +1185,7 @@ export function FirmPortal() {
 
                   {tasks.length === 0 && (
                     <div className="py-8 text-center text-slate-500 text-xs">
-                      No tasks created yet. Click "+ Add To-Do / Task" to create your first practice task.
+                      No tasks found. Click "+ Add To-Do / Task" to create your first task.
                     </div>
                   )}
                 </div>
@@ -968,12 +1247,14 @@ export function FirmPortal() {
                   Track client returns across all 4 stages: Data Collection → ITC Recon → CA Review → Filed
                 </p>
               </div>
-              <button
-                onClick={() => setShowNewClientModal(true)}
-                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
-              >
-                + Onboard Client
-              </button>
+              {!isStaff && (
+                <button
+                  onClick={() => setShowNewClientModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
+                >
+                  + Onboard Client
+                </button>
+              )}
             </div>
 
             {/* 4 Pipeline Stages */}
@@ -1010,25 +1291,21 @@ export function FirmPortal() {
                             <p className="text-[10px] text-slate-400 font-mono mt-0.5">{client.gstin || 'GSTIN Pending'}</p>
                           </div>
 
-                          {/* Assignee selection */}
-                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/80">
-                            <span className="text-slate-500 text-[10px]">Article:</span>
-                            <select
-                              value={client.assigned_staff_id || ''}
-                              onChange={(e) => handleAssignStaff(client.id, e.target.value)}
-                              className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-slate-300 focus:outline-none"
+                          {/* Pre-filing Sign-off checklist trigger button */}
+                          <div className="pt-1 flex items-center justify-between">
+                            <button
+                              onClick={() => handleOpenChecklist(client)}
+                              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-blue-400 border border-slate-700 flex items-center gap-1 cursor-pointer"
                             >
-                              <option value="">Unassigned</option>
-                              {team.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                  {t.name}
-                                </option>
-                              ))}
-                            </select>
+                              <span>📝 5-Point Sign-Off</span>
+                            </button>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {client.assigned_staff?.name || 'Unassigned'}
+                            </span>
                           </div>
 
                           {/* Move stage dropdown */}
-                          <div className="flex items-center justify-between text-[10px] pt-1">
+                          <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-800/60">
                             <span className="text-slate-500">Stage:</span>
                             <select
                               value={client.filing_stage || 'DATA_COLLECTION'}
@@ -1069,12 +1346,14 @@ export function FirmPortal() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleTriggerMonthlyRecurring}
-                  className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer"
-                >
-                  ⚡ Auto-Generate Monthly Tasks
-                </button>
+                {!isStaff && (
+                  <button
+                    onClick={handleTriggerMonthlyRecurring}
+                    className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer"
+                  >
+                    ⚡ Auto-Generate Monthly Tasks
+                  </button>
+                )}
                 <button
                   onClick={() => setShowNewTaskModal(true)}
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow transition cursor-pointer"
@@ -1201,12 +1480,14 @@ export function FirmPortal() {
                 <h2 className="text-lg font-bold text-white">Client Directory</h2>
                 <p className="text-xs text-slate-400">Businesses and taxpayers managed by your firm</p>
               </div>
-              <button
-                onClick={() => setShowNewClientModal(true)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
-              >
-                + Onboard New Client
-              </button>
+              {!isStaff && (
+                <button
+                  onClick={() => setShowNewClientModal(true)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
+                >
+                  + Onboard New Client
+                </button>
+              )}
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950">
@@ -1247,8 +1528,9 @@ export function FirmPortal() {
                       <td className="py-3 px-4">
                         <select
                           value={client.assigned_staff_id || ''}
+                          disabled={isStaff}
                           onChange={(e) => handleAssignStaff(client.id, e.target.value)}
-                          className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200"
+                          className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 disabled:opacity-50"
                         >
                           <option value="">Unassigned</option>
                           {team.map((t) => (
@@ -1264,7 +1546,7 @@ export function FirmPortal() {
                   {clients.length === 0 && (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-slate-500">
-                        No clients onboarded yet. Click "+ Onboard New Client" to start managing client files.
+                        No clients found.
                       </td>
                     </tr>
                   )}
@@ -1275,7 +1557,239 @@ export function FirmPortal() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 5: TEAM & ARTICLE CLERKS                                              */}
+        {/* TAB 5: IN-WEBSITE MESSAGING & COMMUNICATIONS (WHATSAPP ALTERNATIVE)       */}
+        {/* ========================================================================= */}
+        {activeTab === 'messages' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
+            {/* Left: Client List for Chat */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 className="font-bold text-sm text-white">Client Inboxes</h3>
+                <span className="text-[10px] text-slate-500 font-mono">Total {filteredChatClients.length}</span>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={chatSearch}
+                onChange={(e) => setChatSearch(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white"
+              />
+
+              <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[500px]">
+                {filteredChatClients.map((client) => {
+                  const isSelected = selectedChatClientId === client.id;
+                  return (
+                    <button
+                      key={client.id}
+                      onClick={() => setSelectedChatClientId(client.id)}
+                      className={`w-full text-left p-3 rounded-xl border transition cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-600/10 border-blue-500/50 text-white shadow'
+                          : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-900 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="font-bold text-xs truncate">{client.business_name || client.name}</div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                        <span>{client.name}</span>
+                        <span className="text-slate-500">{client.assigned_staff?.name || 'Unassigned'}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {filteredChatClients.length === 0 && (
+                  <div className="py-12 text-center text-slate-500 text-xs">No clients found</div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Active Chat Stream */}
+            <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4">
+              {selectedClient ? (
+                <>
+                  {/* Chat Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="font-bold text-sm text-white">{selectedClient.business_name || selectedClient.name}</h3>
+                      <p className="text-[11px] text-slate-400 font-mono">
+                        GSTIN: {selectedClient.gstin || 'None'} • Article: {selectedClient.assigned_staff?.name || 'Unassigned'}
+                      </p>
+                    </div>
+
+                    {/* Dual-Thread Toggle Buttons */}
+                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800">
+                      <button
+                        onClick={() => setChatThreadType('CLIENT_EXTERNAL')}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
+                          chatThreadType === 'CLIENT_EXTERNAL'
+                            ? 'bg-blue-600 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        🌐 Client Chat
+                      </button>
+                      <button
+                        onClick={() => setChatThreadType('INTERNAL_TEAM_NOTE')}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1 ${
+                          chatThreadType === 'INTERNAL_TEAM_NOTE'
+                            ? 'bg-purple-600 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <span>🔒 Private Notes</span>
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-purple-900/80 text-purple-200">Team Only</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Privacy Banner if Internal Team Note */}
+                  {chatThreadType === 'INTERNAL_TEAM_NOTE' && (
+                    <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] flex items-center gap-2">
+                      <span>🔒</span>
+                      <span>
+                        <strong>Confidential Internal Stream:</strong> Messages and notes posted here are strictly visible only to your firm's Articles, Managers, and Partners. The client cannot see this.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Messages Feed */}
+                  <div className="flex-1 space-y-3 overflow-y-auto max-h-[380px] p-2 rounded-xl bg-slate-900/40 border border-slate-800/60">
+                    {filteredMessages.map((msg) => {
+                      const isMe = msg.sender_user_id === user?.id;
+                      const isClientSender = msg.sender?.role === 'CLIENT';
+
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1`}
+                        >
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1">
+                            <span className="font-bold text-slate-400">{msg.sender?.name || 'Unknown'}</span>
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-800 text-slate-300">
+                              {isClientSender ? 'Client' : msg.sender?.firm_role === 'FIRM_MANAGER' ? 'Manager' : msg.sender?.role === 'FIRM_OWNER' ? 'Partner' : 'Article Assistant'}
+                            </span>
+                            <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+
+                          <div
+                            className={`p-3 rounded-2xl max-w-lg text-xs leading-relaxed shadow ${
+                              isMe
+                                ? 'bg-blue-600 text-white rounded-tr-none'
+                                : msg.thread_type === 'INTERNAL_TEAM_NOTE'
+                                ? 'bg-purple-900/40 border border-purple-500/30 text-purple-100 rounded-tl-none'
+                                : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
+                            }`}
+                          >
+                            <p>{msg.message}</p>
+
+                            {/* Attachment Pill */}
+                            {msg.attachment_url && (
+                              <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2">
+                                <span className="text-[10px]">📎</span>
+                                <a
+                                  href={msg.attachment_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] underline font-bold hover:text-white"
+                                >
+                                  {msg.attachment_name || 'Download Attachment'}
+                                </a>
+                              </div>
+                            )}
+
+                            {/* Query Status resolution button */}
+                            <div className="mt-2 pt-1 flex items-center justify-between text-[10px] opacity-80">
+                              <span>Tag: {msg.category}</span>
+                              {msg.status !== 'RESOLVED' ? (
+                                <button
+                                  onClick={() => handleResolveMessage(msg.id)}
+                                  className="text-emerald-300 hover:underline font-bold"
+                                >
+                                  Mark Resolved ✓
+                                </button>
+                              ) : (
+                                <span className="text-emerald-300 font-bold">Resolved ✓</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {filteredMessages.length === 0 && (
+                      <div className="py-16 text-center text-slate-500 text-xs">
+                        No messages in this thread yet. Send a message to replace WhatsApp communications.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Message Composer */}
+                  <form onSubmit={handleSendMessage} className="space-y-2 pt-2 border-t border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={newMessageCategory}
+                        onChange={(e) => setNewMessageCategory(e.target.value as any)}
+                        className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-slate-300"
+                      >
+                        <option value="GENERAL">General Query</option>
+                        <option value="MONTHLY_DOCS">Monthly Docs Request</option>
+                        <option value="ITC_RECON">ITC / 2B Clarification</option>
+                        <option value="NOTICE_REPLY">Notice & Legal</option>
+                        <option value="BILLING">Billing & Fee</option>
+                      </select>
+
+                      <input
+                        type="url"
+                        placeholder="Attachment URL (optional)"
+                        value={newAttachmentUrl}
+                        onChange={(e) => {
+                          setNewAttachmentUrl(e.target.value);
+                          if (!newAttachmentName && e.target.value) {
+                            setNewAttachmentName('Tax Document.pdf');
+                          }
+                        }}
+                        className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-slate-300 flex-1"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <textarea
+                        rows={2}
+                        required
+                        placeholder={
+                          chatThreadType === 'INTERNAL_TEAM_NOTE'
+                            ? 'Post confidential internal note (only visible to firm team)...'
+                            : 'Type message to client...'
+                        }
+                        value={newMessageText}
+                        onChange={(e) => setNewMessageText(e.target.value)}
+                        className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-white resize-none"
+                      />
+                      <button
+                        type="submit"
+                        className={`px-5 rounded-xl font-bold text-xs text-white shadow cursor-pointer transition ${
+                          chatThreadType === 'INTERNAL_TEAM_NOTE'
+                            ? 'bg-purple-600 hover:bg-purple-500'
+                            : 'bg-blue-600 hover:bg-blue-500'
+                        }`}
+                      >
+                        {chatThreadType === 'INTERNAL_TEAM_NOTE' ? 'Post Note' : 'Send'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-slate-500 text-xs">
+                  Select a client from the left pane to view or send messages.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 6: TEAM & ARTICLE CLERKS                                              */}
         {/* ========================================================================= */}
         {activeTab === 'team' && (
           <div className="space-y-4">
@@ -1309,7 +1823,7 @@ export function FirmPortal() {
                       <p className="text-xs text-slate-400">{member.email}</p>
                     </div>
                     <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      {member.firm_role === 'FIRM_MANAGER' ? 'Manager' : 'Article Clerk'}
+                      {member.firm_role === 'FIRM_MANAGER' ? 'Manager' : member.role === 'FIRM_OWNER' ? 'Partner' : 'Article Clerk'}
                     </span>
                   </div>
 
@@ -1324,7 +1838,7 @@ export function FirmPortal() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 6: STATUTORY DUE DATES & OVERRIDES                                    */}
+        {/* TAB 7: STATUTORY DUE DATES & OVERRIDES                                    */}
         {/* ========================================================================= */}
         {activeTab === 'due-dates' && (
           <div className="space-y-4">
@@ -1375,19 +1889,21 @@ export function FirmPortal() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setShowOverrideDateModal(item);
-                            setOverrideForm({
-                              custom_due_date: item.due_date.substring(0, 10),
-                              reason: item.override_reason || '',
-                            });
-                          }}
-                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer"
-                        >
-                          Override Date
-                        </button>
-                        {item.is_overridden && (
+                        {!isStaff && (
+                          <button
+                            onClick={() => {
+                              setShowOverrideDateModal(item);
+                              setOverrideForm({
+                                custom_due_date: item.due_date.substring(0, 10),
+                                reason: item.override_reason || '',
+                              });
+                            }}
+                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer"
+                          >
+                            Override Date
+                          </button>
+                        )}
+                        {!isStaff && item.is_overridden && (
                           <button
                             onClick={() => handleResetDueDate(item)}
                             className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold cursor-pointer"
@@ -1405,7 +1921,7 @@ export function FirmPortal() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 7: DIGITAL SIGNATURE (DSC) VAULT                                      */}
+        {/* TAB 8: DIGITAL SIGNATURE (DSC) VAULT                                      */}
         {/* ========================================================================= */}
         {activeTab === 'dsc' && (
           <div className="space-y-4">
@@ -1478,18 +1994,12 @@ export function FirmPortal() {
                   </div>
                 );
               })}
-
-              {dscTokens.length === 0 && (
-                <div className="col-span-3 py-12 text-center text-slate-500 text-xs">
-                  No DSC tokens registered in your practice vault.
-                </div>
-              )}
             </div>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 8: GOOGLE DRIVE BYOD & DOCUMENT ROUTING                               */}
+        {/* TAB 9: GOOGLE DRIVE BYOD & DOCUMENT ROUTING                               */}
         {/* ========================================================================= */}
         {activeTab === 'drive' && (
           <div className="space-y-6">
@@ -1511,153 +2021,256 @@ export function FirmPortal() {
                   {driveConfig.is_connected ? '● Connected' : '○ Not Configured'}
                 </span>
               </div>
-
-              {driveConfig.is_connected ? (
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                  <p className="text-xs text-slate-300 font-semibold">
-                    Root Practice Folder:{' '}
-                    <strong className="text-white">{driveConfig.root_folder_name || 'My GST Bro Firm Drive'}</strong>
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-mono">Folder ID: {driveConfig.root_folder_id}</p>
-                </div>
-              ) : (
-                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200">
-                  Configure your Google Cloud Service Account or OAuth credentials in Settings to auto-route files
-                  directly to your team's Google Drive.
-                </div>
-              )}
-            </div>
-
-            {/* Document Routing Rules */}
-            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
-              <h3 className="text-base font-bold text-white">Smart Document Routing Rules</h3>
-              <p className="text-xs text-slate-400">
-                Incoming invoices and tax documents are automatically sorted into target directories
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { cat: 'SALES', label: 'Sales Invoices & Registers', target: '{Client}/Sales/{Year}_{Month}' },
-                  { cat: 'PURCHASES', label: 'Purchase Invoices & Bills', target: '{Client}/Purchases/{Year}_{Month}' },
-                  { cat: 'FILED_RETURNS', label: 'Filed GSTR-1 & 3B (ARN)', target: '{Client}/Filed_Returns' },
-                  { cat: 'NOTICES', label: 'Department Notices & Orders', target: '{Client}/Notices_Scrutiny' },
-                ].map((rule) => (
-                  <div key={rule.cat} className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-                    <span className="text-[10px] font-black uppercase text-blue-400 tracking-wider">
-                      {rule.cat}
-                    </span>
-                    <h5 className="font-bold text-xs text-white">{rule.label}</h5>
-                    <p className="text-[11px] text-slate-400 font-mono mt-1">Directs to: {rule.target}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 9: WHITE-LABEL BRANDING & PRACTICE SETTINGS                           */}
+        {/* TAB 10: WHITE-LABEL BRANDING & ROLE PERMISSIONS MANAGER (5-LEVEL HIERARCHY)*/}
         {/* ========================================================================= */}
         {activeTab === 'settings' && (
-          <form onSubmit={handleSaveFirmSettings} className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-6">
-            <div>
-              <h2 className="text-lg font-bold text-white">Firm White-Label Branding & Profile</h2>
-              <p className="text-xs text-slate-400">
-                Customize your firm name, logo, ICAI registration numbers, and brand colors
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-8">
+            {/* 1. White-label Firm Profile */}
+            <form onSubmit={handleSaveFirmSettings} className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-6">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Practice Display Name</label>
-                <input
-                  type="text"
-                  value={settingsForm.name}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
-                  placeholder="e.g. M/s Rahul Sharma & Associates, Chartered Accountants"
-                  required
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
+                <h2 className="text-lg font-bold text-white">Firm White-Label Branding & Profile</h2>
+                <p className="text-xs text-slate-400">Customize your firm name, logo, ICAI registration numbers, and brand colors</p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">ICAI Firm Reg Number (FRN)</label>
-                <input
-                  type="text"
-                  value={settingsForm.frn_number}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, frn_number: e.target.value })}
-                  placeholder="e.g. 012345N"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Partner Membership No (M.No)</label>
-                <input
-                  type="text"
-                  value={settingsForm.membership_number}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, membership_number: e.target.value })}
-                  placeholder="e.g. 543210"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Firm Logo URL</label>
-                <input
-                  type="url"
-                  value={settingsForm.logo_url}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, logo_url: e.target.value })}
-                  placeholder="https://.../logo.png"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Brand Accent Color</label>
-                <div className="flex items-center gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Practice Display Name</label>
                   <input
-                    type="color"
-                    value={settingsForm.brand_color}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, brand_color: e.target.value })}
-                    className="w-10 h-10 rounded-xl border-0 bg-transparent cursor-pointer"
+                    type="text"
+                    value={settingsForm.name}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
+                    required
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
                   />
-                  <span className="font-mono text-xs text-slate-300">{settingsForm.brand_color}</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">ICAI Firm Reg Number (FRN)</label>
+                  <input
+                    type="text"
+                    value={settingsForm.frn_number}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, frn_number: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Partner Membership No (M.No)</label>
+                  <input
+                    type="text"
+                    value={settingsForm.membership_number}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, membership_number: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Firm Logo URL</label>
+                  <input
+                    type="url"
+                    value={settingsForm.logo_url}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, logo_url: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Official Office Email</label>
-                <input
-                  type="email"
-                  value={settingsForm.email}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, email: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition cursor-pointer"
+                >
+                  Save Practice Branding
+                </button>
+              </div>
+            </form>
+
+            {/* 2. Granular Dynamic Role Permissions Manager (5-Level Hierarchy) */}
+            <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-white">🛡️ Role Permissions Manager (5-Level Hierarchy)</h2>
+                  <p className="text-xs text-slate-400">
+                    Allow or disallow specific capabilities for Firm Managers and Article Clerks. Changes apply immediately.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSavePermissions}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg transition cursor-pointer"
+                >
+                  Save Role Permissions Matrix
+                </button>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Office Address & Header Info</label>
-                <textarea
-                  value={settingsForm.address}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, address: e.target.value })}
-                  rows={2}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
+              <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                    <tr>
+                      <th className="py-3 px-4">Practice Capability</th>
+                      <th className="py-3 px-4 text-center">Firm Partners</th>
+                      <th className="py-3 px-4 text-center">Firm Managers</th>
+                      <th className="py-3 px-4 text-center">Article Clerks / Staff</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-slate-200">
+                    {[
+                      { key: 'change_due_dates', label: 'Override & Change Due Dates', desc: 'Can extend statutory dates and set office deadlines' },
+                      { key: 'client_access_all', label: 'View All Firm Clients', desc: 'Access all practice clients vs strictly assigned clients' },
+                      { key: 'allocate_clients', label: 'Allocate & Reassign Clients', desc: 'Can transfer client portfolios between staff' },
+                      { key: 'manage_tasks', label: 'Create & Manage Tasks for Others', desc: 'Can delegate and delete tasks for other team members' },
+                      { key: 'view_pending_dashboard', label: 'Pending Tasks Workload Dashboard', desc: 'Access to firm-wide pending task bottleneck metrics' },
+                      { key: 'approve_returns', label: 'Final Return Sign-Off (5-Point)', desc: 'Can approve and sign off computations before portal filing' },
+                      { key: 'view_invoicing_fees', label: 'Practice Invoicing & Client Fees', desc: 'Can view client fee ledgers and GST Bro subscription charges' },
+                    ].map((perm) => (
+                      <tr key={perm.key} className="hover:bg-slate-900/40">
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-white">{perm.label}</div>
+                          <div className="text-[11px] text-slate-400">{perm.desc}</div>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className="text-emerald-400 font-bold">✓ Always Allowed</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={rolePermissions.FIRM_MANAGER?.[perm.key] ?? true}
+                            onChange={(e) =>
+                              setRolePermissions({
+                                ...rolePermissions,
+                                FIRM_MANAGER: {
+                                  ...(rolePermissions.FIRM_MANAGER || {}),
+                                  [perm.key]: e.target.checked,
+                                },
+                              })
+                            }
+                            className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 cursor-pointer"
+                          />
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={rolePermissions.FIRM_STAFF?.[perm.key] ?? false}
+                            onChange={(e) =>
+                              setRolePermissions({
+                                ...rolePermissions,
+                                FIRM_STAFF: {
+                                  ...(rolePermissions.FIRM_STAFF || {}),
+                                  [perm.key]: e.target.checked,
+                                },
+                              })
+                            }
+                            className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 cursor-pointer"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
+          </div>
+        )}
+      </main>
 
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
+      {/* ========================================================================= */}
+      {/* MODAL: PRE-FILING 5-POINT SIGN-OFF CHECKLIST                              */}
+      {/* ========================================================================= */}
+      {showChecklistModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveChecklist}
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base text-white">Pre-Filing 5-Point Sign-Off</h3>
+                <p className="text-xs text-slate-400">
+                  {showChecklistModal.business_name || showChecklistModal.name} • Period: {checklistState.period}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowChecklistModal(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              {[
+                { key: 'itc_2b_reconciled', label: '1. GSTR-2B ITC Reconciled with Purchase Register', desc: 'Unmatched invoices quarantined and flagged to client' },
+                { key: 'rcm_checked', label: '2. Reverse Charge Mechanism (RCM) Liabilities Checked', desc: 'Section 9(3) / 9(4) liabilities verified with cash outflow' },
+                { key: 'outward_eway_matched', label: '3. Outward Supplies Matched with E-Way Bill Summary', desc: 'B2B and B2C sales totals agree with generation portal' },
+                { key: 'cash_ledger_verified', label: '4. Electronic Cash & Credit Ledger Balances Verified', desc: 'Challan created and sufficient balance present for tax offset' },
+                { key: 'client_draft_approved', label: '5. Client Draft Approval Received in In-App Chat', desc: 'Client acknowledged final liability figures before portal sign-off' },
+              ].map((item) => (
+                <label
+                  key={item.key}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={(checklistState as any)[item.key] || false}
+                    onChange={(e) =>
+                      setChecklistState({
+                        ...checklistState,
+                        [item.key]: e.target.checked,
+                      })
+                    }
+                    className="mt-0.5 w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700 cursor-pointer"
+                  />
+                  <div>
+                    <h5 className="font-bold text-xs text-white">{item.label}</h5>
+                    <p className="text-[11px] text-slate-400">{item.desc}</p>
+                  </div>
+                </label>
+              ))}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Partner Sign-Off Notes / Exceptions</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Verified with client accountant Mr. Sharma. Ready for OTP generation."
+                  value={checklistState.notes || ''}
+                  onChange={(e) => setChecklistState({ ...checklistState, notes: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </div>
+
+              {checklistState.approved_at && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center justify-between">
+                  <span>✓ Digitally Approved by {checklistState.approver?.name || 'Partner'}</span>
+                  <span className="text-[10px] text-emerald-400">
+                    {new Date(checklistState.approved_at).toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowChecklistModal(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow"
               >
-                Save Practice Branding
+                Save Sign-Off Verification
               </button>
             </div>
           </form>
-        )}
-      </main>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: CREATE NEW PRACTICE TASK                                           */}
@@ -1764,17 +2377,6 @@ export function FirmPortal() {
                   type="date"
                   value={newTaskForm.due_date}
                   onChange={(e) => setNewTaskForm({ ...newTaskForm, due_date: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Description / Notes</label>
-                <textarea
-                  rows={2}
-                  placeholder="Additional instructions for the article assistant..."
-                  value={newTaskForm.description}
-                  onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
                 />
               </div>
@@ -1985,7 +2587,6 @@ export function FirmPortal() {
                   onChange={(e) => setInviteStaffForm({ ...inviteStaffForm, password: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Staff will be asked to change on first login</p>
               </div>
             </div>
 
@@ -2002,6 +2603,98 @@ export function FirmPortal() {
                 className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow"
               >
                 Add to Practice
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: 1-CLICK CLIENT & TASK HANDOVER                                     */}
+      {/* ========================================================================= */}
+      {showHandoverModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleExecuteHandover}
+            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base text-white">1-Click Client & Task Handover</h3>
+              <button
+                type="button"
+                onClick={() => setShowHandoverModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Transfer all assigned clients and pending tasks from an outgoing staff member to another.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">From Staff Member (Outgoing / On Leave)</label>
+                <select
+                  required
+                  value={handoverForm.fromStaffId}
+                  onChange={(e) => setHandoverForm({ ...handoverForm, fromStaffId: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                >
+                  <option value="">Select staff member...</option>
+                  {team.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.assignedClientsCount} Clients)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">To Staff Member (Receiving Article)</label>
+                <select
+                  required
+                  value={handoverForm.toStaffId}
+                  onChange={(e) => setHandoverForm({ ...handoverForm, toStaffId: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                >
+                  <option value="">Select recipient staff...</option>
+                  {team
+                    .filter((t) => t.id !== handoverForm.fromStaffId)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.assignedClientsCount} Clients currently)
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Handover Notes / Instructions</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Outgoing on CA Final exam study leave until July 2026. Handing over monthly return filing."
+                  value={handoverForm.notes}
+                  onChange={(e) => setHandoverForm({ ...handoverForm, notes: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHandoverModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow"
+              >
+                Transfer Portfolio Now
               </button>
             </div>
           </form>
@@ -2173,98 +2866,6 @@ export function FirmPortal() {
                 className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow"
               >
                 Register Token
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: 1-CLICK CLIENT & TASK HANDOVER                                     */}
-      {/* ========================================================================= */}
-      {showHandoverModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleExecuteHandover}
-            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base text-white">1-Click Client & Task Handover</h3>
-              <button
-                type="button"
-                onClick={() => setShowHandoverModal(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Transfer all assigned clients and pending tasks from an outgoing or rotating staff member to another.
-            </p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">From Staff Member (Outgoing / On Leave)</label>
-                <select
-                  required
-                  value={handoverForm.fromStaffId}
-                  onChange={(e) => setHandoverForm({ ...handoverForm, fromStaffId: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                >
-                  <option value="">Select staff member...</option>
-                  {team.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.assignedClientsCount} Clients)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">To Staff Member (Receiving Article)</label>
-                <select
-                  required
-                  value={handoverForm.toStaffId}
-                  onChange={(e) => setHandoverForm({ ...handoverForm, toStaffId: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                >
-                  <option value="">Select recipient staff...</option>
-                  {team
-                    .filter((t) => t.id !== handoverForm.fromStaffId)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.assignedClientsCount} Clients currently)
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Handover Notes / Instructions</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Outgoing on CA Final exam study leave until July 2026. Handing over monthly return filing."
-                  value={handoverForm.notes}
-                  onChange={(e) => setHandoverForm({ ...handoverForm, notes: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                />
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowHandoverModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow"
-              >
-                Transfer Portfolio Now
               </button>
             </div>
           </form>
