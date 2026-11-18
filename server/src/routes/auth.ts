@@ -426,6 +426,8 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     // Mark Welcome Code as consumed/registered
+    // Track whether this is a CA Firm signup so we can issue the correct JWT role
+    let isProvisionedAsCaFirm = false;
     try {
       await consumeWelcomeCode(body.signupData.welcomeCode, {
         id: String(createdUser.id),
@@ -434,7 +436,7 @@ export async function authRoutes(app: FastifyInstance) {
       });
 
       if (codeCheck.isCaFirm) {
-        await provisionCaFirmOnRegistration(
+        const provisioned = await provisionCaFirmOnRegistration(
           {
             id: String(createdUser.id),
             email: String(createdUser.email),
@@ -445,24 +447,32 @@ export async function authRoutes(app: FastifyInstance) {
           },
           codeCheck.codeRecord
         );
+        if (provisioned) {
+          isProvisionedAsCaFirm = true;
+          // Keep in-memory user role in sync with the DB update so the JWT
+          // and publicUser() response both carry the correct FIRM_OWNER role.
+          createdUser = { ...createdUser, role: 'FIRM_OWNER', firm_role: 'FIRM_OWNER' };
+        }
       }
     } catch (codeErr) {
       request.log.warn({ codeErr }, 'Welcome code consumption warning');
     }
 
-    // Provision Drive client folder
-    try {
-      const { getDriveService } = await import('../services/googleDrive.js');
-      const drive = getDriveService();
-      if (drive) {
-        await drive.createClientFolder(
-          String(createdUser.id),
-          String(createdUser.business_name ?? createdUser.name),
-          String(createdUser.id)
-        );
+    // Provision Drive client folder (only for regular CLIENT signups)
+    if (!isProvisionedAsCaFirm) {
+      try {
+        const { getDriveService } = await import('../services/googleDrive.js');
+        const drive = getDriveService();
+        if (drive) {
+          await drive.createClientFolder(
+            String(createdUser.id),
+            String(createdUser.business_name ?? createdUser.name),
+            String(createdUser.id)
+          );
+        }
+      } catch (err) {
+        request.log.warn({ err }, 'Client Drive folder creation skipped during signup');
       }
-    } catch (err) {
-      request.log.warn({ err }, 'Client Drive folder creation skipped during signup');
     }
 
     // Record DPDP Consents (DPDP Act, 2023 & Rules 2025)
@@ -490,7 +500,9 @@ export async function authRoutes(app: FastifyInstance) {
     return {
       token,
       user: publicUser(createdUser as any),
-      message: 'Mobile number verified and account created successfully!',
+      message: isProvisionedAsCaFirm
+        ? 'CA Firm account created! Redirecting to your Firm Dashboard...'
+        : 'Mobile number verified and account created successfully!',
     };
   });
 
@@ -589,46 +601,56 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (error || !user) return reply.status(404).send({ error: 'Account not found' });
 
+    // Mutable user object – role may be upgraded to FIRM_OWNER below
+    let resolvedUser: typeof user = user;
+
     if (body.welcomeCode) {
       try {
+        const codeCheck = await verifyWelcomeCode(body.welcomeCode);
         await consumeWelcomeCode(body.welcomeCode, {
-          id: user.id,
-          email: user.email,
-          name: user.name,
+          id: resolvedUser.id,
+          email: resolvedUser.email,
+          name: resolvedUser.name,
         });
 
-        const codeCheck = await verifyWelcomeCode(body.welcomeCode);
         if (codeCheck.isCaFirm) {
-          await provisionCaFirmOnRegistration(
+          const provisioned = await provisionCaFirmOnRegistration(
             {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              phone: user.phone || null,
-              business_name: user.business_name || null,
-              gstin: user.gstin || null,
+              id: resolvedUser.id,
+              email: resolvedUser.email,
+              name: resolvedUser.name,
+              phone: resolvedUser.phone || null,
+              business_name: resolvedUser.business_name || null,
+              gstin: resolvedUser.gstin || null,
             },
             codeCheck.codeRecord
           );
+          if (provisioned) {
+            // Sync in-memory role so JWT and response carry FIRM_OWNER
+            resolvedUser = { ...resolvedUser, role: 'FIRM_OWNER', firm_role: 'FIRM_OWNER' };
+          }
         }
       } catch (codeErr) {
         request.log.warn({ codeErr }, 'Welcome code consumption warning');
       }
     }
 
-    try {
-      const { getDriveService } = await import('../services/googleDrive.js');
-      const drive = getDriveService();
-      if (drive) await drive.createClientFolder(user.id, user.business_name ?? user.name, user.id);
-    } catch (err) {
-      request.log.warn({ err }, 'Client Drive folder creation skipped during signup verification');
+    // Provision Drive folder only for regular CLIENT signups
+    if (resolvedUser.role === 'CLIENT') {
+      try {
+        const { getDriveService } = await import('../services/googleDrive.js');
+        const drive = getDriveService();
+        if (drive) await drive.createClientFolder(resolvedUser.id, resolvedUser.business_name ?? resolvedUser.name, resolvedUser.id);
+      } catch (err) {
+        request.log.warn({ err }, 'Client Drive folder creation skipped during signup verification');
+      }
     }
 
     // Record DPDP Consents (DPDP Act, 2023 & Rules 2025)
     try {
       await recordSignupConsents({
-        userId: user.id,
-        email: user.email,
+        userId: resolvedUser.id,
+        email: resolvedUser.email,
         ipAddress: request.ip,
         userAgent: (request.headers['user-agent'] as string) ?? null,
       });
@@ -637,9 +659,9 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const sid = crypto.randomUUID();
-    await setActiveUserSession(user.id, sid);
-    const token = app.jwt.sign({ id: user.id, email: user.email, role: user.role, sid });
-    return { token, user: publicUser(user) };
+    await setActiveUserSession(resolvedUser.id, sid);
+    const token = app.jwt.sign({ id: resolvedUser.id, email: resolvedUser.email, role: resolvedUser.role, sid });
+    return { token, user: publicUser(resolvedUser) };
   });
 
   // -------------------------------------------------------------

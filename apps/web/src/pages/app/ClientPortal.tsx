@@ -157,7 +157,7 @@ const PORTAL_TABS = [
   ['portals', 'Statutory Portals Gateway', '🏛️'],
   ['documents', 'Document Vault & Drive', '□'],
   ['calendar', 'Compliance Calendar', '◷'],
-  ['fees', 'GST Bro Fee Invoices', '💳'],
+  ['fees', 'Fee Invoices & Receipts', '💳'],
   ['messages', 'Assigned Team Chat', '◌'],
   ['account', 'Company Profile', '⚙'],
 ] as const;
@@ -461,7 +461,7 @@ export function ClientPortal() {
         ['portals', 'Statutory Portals Gateway', '🏛️'],
         ['documents', 'Document Vault & Drive', '□'],
         ['calendar', 'Compliance Calendar', '◷'],
-        ['fees', 'GST Bro Fee Invoices', '💳'],
+        ['fees', 'Fee Invoices & Receipts', '💳'],
         ['messages', 'Assigned Team Chat', '◌'],
         ['account', 'Company Profile', '⚙'],
       ] as const;
@@ -785,7 +785,7 @@ export function ClientPortal() {
                       ✓ Monthly Regular Taxpayer
                     </span>
                     <span className="px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold">
-                      🛡️ Managed by GST Bro Team
+                      🛡️ Managed by Your CA Firm
                     </span>
                   </div>
                 </div>
@@ -819,7 +819,7 @@ export function ClientPortal() {
                         Your Assigned Dedicated GST Expert
                       </span>
                       <strong className="text-sm text-slate-900 font-bold block">
-                        {data.assignedTeam.name || 'GST Bro Compliance Specialist'}
+                        {data.assignedTeam.name || 'Your Compliance Specialist'}
                       </strong>
                       <span className="text-xs text-slate-500">
                         {data.assignedTeam.email && `${data.assignedTeam.email} · `}
@@ -2116,7 +2116,7 @@ export function ClientPortal() {
               <div className="panel-heading border-b pb-3">
                 <div>
                   <p className="eyebrow">BILLING</p>
-                  <h2>GST Bro Service Invoices</h2>
+                  <h2>Fee Invoices & Receipts</h2>
                   <p>Invoices and fee payments for your professional GST management services</p>
                 </div>
               </div>
@@ -2191,7 +2191,7 @@ export function ClientPortal() {
                           background: isClient ? '#dbeafe' : '#f1f5f9',
                         }}
                       >
-                        <b>{isClient ? 'You' : (data?.assignedTeam?.name || 'GST Bro Support Desk')}</b>
+                        <b>{isClient ? 'You' : (data?.assignedTeam?.name || 'Your CA Firm')}</b>
                         <p>{item.message}</p>
                         <small>{new Date(item.created_at).toLocaleString()}</small>
                       </div>

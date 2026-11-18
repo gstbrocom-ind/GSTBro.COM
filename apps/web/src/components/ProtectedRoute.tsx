@@ -9,6 +9,16 @@ interface ProtectedRouteProps {
   allowedRoles: SupportedRole[];
 }
 
+/** Map every role to its canonical home path. */
+const ROLE_HOME: Record<SupportedRole, string> = {
+  CLIENT: '/dashboard',
+  TEAM: '/team',
+  FIRM_OWNER: '/firm',
+  FIRM_STAFF: '/firm',
+  ADMIN: '/admin',
+  SUPER_ADMIN: '/admin',
+};
+
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -38,22 +48,20 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   // 4. Role-Based Access Control: strictly enforce authorized roles
+  //    CA Firm roles must NEVER land on the CLIENT portal, and vice versa.
   if (!allowedRoles.includes(user.role as SupportedRole)) {
-    if (user.role === 'CLIENT') {
-      return <Navigate to="/dashboard" replace />;
-    }
-    if (user.role === 'FIRM_OWNER' || user.role === 'FIRM_STAFF') {
-      return <Navigate to="/firm" replace />;
-    }
-    if (user.role === 'TEAM') {
-      return <Navigate to="/team" replace />;
-    }
-    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
-      return <Navigate to="/admin" replace />;
-    }
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const home = ROLE_HOME[user.role as SupportedRole] ?? '/login';
+    return <Navigate to={home} replace />;
   }
 
-  // 5. Authenticated and role-authorized -> render protected viewport
+  // 5. Extra guard: prevent CA Firm users from accidentally rendering /dashboard or /client
+  if (
+    (user.role === 'FIRM_OWNER' || user.role === 'FIRM_STAFF') &&
+    (location.pathname === '/dashboard' || location.pathname.startsWith('/client'))
+  ) {
+    return <Navigate to="/firm" replace />;
+  }
+
+  // 6. Authenticated and role-authorized -> render protected viewport
   return <>{children}</>;
 }
