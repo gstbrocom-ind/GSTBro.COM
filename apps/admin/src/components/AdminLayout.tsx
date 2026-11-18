@@ -225,6 +225,7 @@ const navGroups: NavGroup[] = [
     items: [
       { to: '/super-admin', label: 'Platform Telemetry & CAs', icon: DashboardIcon },
       { to: '/settings/content', label: 'Website CMS Editor', icon: ContentIcon },
+      { to: '/invoices', label: '⚡ Invoice Generator Tool', icon: FeesIcon, external: true },
     ],
   },
   {
@@ -243,7 +244,7 @@ const navGroups: NavGroup[] = [
     items: [
       { to: '/firm', label: 'CA Firm Practice Suite', icon: TeamOverviewIcon, external: true },
       { to: '/firm/drive-routing', label: 'Drive & Folder Directions', icon: DriveIcon },
-      { to: '/client/invoices', label: 'GST Invoices Hub', icon: FeesIcon, external: true },
+      { to: '/invoices', label: 'GST Invoices & Generator Tool', icon: FeesIcon, external: true },
       { to: '/due-dates', label: 'Statutory Deadlines', icon: CalendarIcon },
       { to: '/fees', label: 'Billing & Invoices', icon: FeesIcon },
       { to: '/team', label: 'Staff & Roles', icon: TeamIcon },

@@ -26,11 +26,11 @@ export function InvoiceDashboard({ clientId }: { clientId?: string }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<InvoiceTab>('SINGLE');
 
-  // Multi-vendor selection for TEAM and ADMIN roles
+  // Multi-vendor selection for Staff, Owners, Team, and Admin roles
   const [clients, setClients] = useState<Array<{ id: string; name: string; business_name?: string; email: string }>>([]);
   const [selectedVendorId, setSelectedVendorId] = useState<string>(clientId || user?.id || '');
 
-  const canSwitchVendor = user?.role === 'ADMIN' || user?.role === 'TEAM';
+  const canSwitchVendor = ['ADMIN', 'SUPER_ADMIN', 'TEAM', 'FIRM_OWNER', 'FIRM_STAFF'].includes(user?.role || '');
 
   useEffect(() => {
     if (clientId) {
@@ -46,13 +46,15 @@ export function InvoiceDashboard({ clientId }: { clientId?: string }) {
 
   async function loadClients() {
     try {
-      const endpoint = user?.role === 'ADMIN' ? '/api/admin/clients' : '/api/team/dashboard';
+      let endpoint = '/api/admin/clients';
+      if (user?.role === 'FIRM_OWNER' || user?.role === 'FIRM_STAFF') {
+        endpoint = '/api/firm/clients';
+      } else if (user?.role === 'TEAM') {
+        endpoint = '/api/team/dashboard';
+      }
       const res: any = await apiFetch(endpoint);
       const list = res.clients || res.assignedClients || [];
       setClients(list);
-      if (list.length > 0 && !clientId && user?.role === 'ADMIN') {
-        setSelectedVendorId(list[0].id);
-      }
     } catch {
       // fallback
     }
@@ -62,14 +64,20 @@ export function InvoiceDashboard({ clientId }: { clientId?: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Vendor Switcher Bar for Team and Admin */}
-      {canSwitchVendor && clients.length > 0 && (
-        <div className="bg-slate-900 text-white p-3.5 sm:p-4 rounded-2xl shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+      {/* Vendor Switcher Bar for Team, Firm, and Admin */}
+      {canSwitchVendor && (
+        <div className="bg-slate-900 text-white p-3.5 sm:p-4 rounded-2xl shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border border-slate-800">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-amber-400 uppercase tracking-wider">
-              {user?.role === 'ADMIN' ? '👑 Admin Mode' : '👨‍💻 Specialist Workspace'}
+              {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+                ? '👑 Super Admin Tool Mode'
+                : user?.role === 'FIRM_OWNER'
+                ? '🏛️ CA Firm Practice Tool'
+                : user?.role === 'FIRM_STAFF'
+                ? '👨‍💼 Article / Staff Workbench'
+                : '👨‍💻 Specialist Workspace'}
             </span>
-            <span className="text-slate-400">| Managing Invoices For Vendor:</span>
+            <span className="text-slate-400">| Managing Invoices For:</span>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <select
@@ -77,12 +85,12 @@ export function InvoiceDashboard({ clientId }: { clientId?: string }) {
               onChange={(e) => setSelectedVendorId(e.target.value)}
               className="w-full sm:w-auto bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-1.5 font-bold text-xs outline-none focus:border-blue-500"
             >
-              {user?.role !== 'ADMIN' && (
-                <option value={user?.id}>My Own Account ({user?.businessName || user?.name})</option>
-              )}
+              <option value={user?.id}>
+                ⚡ Standalone Tool / My Account ({user?.businessName || user?.name || 'Self'})
+              </option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.business_name || c.name} ({c.email})
+                  👤 {c.business_name || c.name} ({c.email})
                 </option>
               ))}
             </select>

@@ -46,12 +46,22 @@ export async function canAccessClient(
 ): Promise<boolean> {
   if (!user || !user.id || !clientUserId) return false;
 
-  // 1. Client can only access their own profile and documents
-  if (user.role === 'CLIENT') {
-    return user.id === clientUserId;
+  // 1. Any user can always access their own account/invoices (self-service & standalone tool usage)
+  if (user.id === clientUserId) {
+    return true;
   }
 
-  // 2. Fetch the target client's firm_id and assigned_staff_id
+  // 2. Super Admin & Platform Admin: Full tool and operational access
+  if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+    return true;
+  }
+
+  // 3. Client can only access their own account (already handled by rule 1)
+  if (user.role === 'CLIENT') {
+    return false;
+  }
+
+  // 4. Fetch the target client's firm_id and assigned_staff_id
   const { data: client, error } = await supabase
     .from('users')
     .select('id, firm_id, assigned_staff_id, role')
@@ -60,29 +70,24 @@ export async function canAccessClient(
 
   if (error || !client) return false;
 
-  // 3. Super Admin platform telemetry (super admins do not access confidential client tax data)
-  if (user.role === 'SUPER_ADMIN') {
-    return false;
-  }
-
-  // 4. Tier 1: Cross-Firm Multi-Tenant Boundary Check
-  // Both user and client MUST belong to the same firm
+  // 5. Tier 1: Cross-Firm Multi-Tenant Boundary Check
+  // Both firm user and client MUST belong to the exact same firm
   if (!user.firm_id || user.firm_id !== client.firm_id) {
     return false;
   }
 
-  // 5. CA Firm Partner / Owner: Full access to all clients of their own practice
-  if (user.role === 'FIRM_OWNER' || user.firm_role === 'FIRM_OWNER' || user.role === 'ADMIN') {
+  // 6. CA Firm Partner / Owner: Full access to all clients of their own practice
+  if (user.role === 'FIRM_OWNER' || user.firm_role === 'FIRM_OWNER') {
     return true;
   }
 
-  // 6. Practice Manager: Full access across practice clients within firm
+  // 7. Practice Manager: Full access across practice clients within firm
   if (user.firm_role === 'FIRM_MANAGER') {
     return true;
   }
 
-  // 7. Tier 2: Article Assistant / Staff Segmentation (FIRM_STAFF / TEAM)
-  // Restricted ONLY to their assigned clients:
+  // 8. Tier 2: Article Assistant / Staff Segmentation (FIRM_STAFF / TEAM)
+  // Restricted ONLY to clients assigned to them:
   if (user.role === 'FIRM_STAFF' || user.role === 'TEAM') {
     if (client.assigned_staff_id && client.assigned_staff_id === user.id) {
       return true;

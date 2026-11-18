@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch, clearToken, getToken } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { PortalLoadingSkeleton } from '../../components/PortalLoadingSkeleton';
+import { InvoiceDashboard } from '../app/invoice/InvoiceDashboard';
 
 type FirmProfile = {
   id: string;
@@ -138,8 +139,9 @@ export function FirmPortal() {
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'pipeline' | 'tasks' | 'clients' | 'messages' | 'team' | 'due-dates' | 'dsc' | 'drive' | 'settings'
+    'overview' | 'pipeline' | 'tasks' | 'clients' | 'invoices' | 'messages' | 'team' | 'due-dates' | 'dsc' | 'drive' | 'settings'
   >('overview');
+  const [selectedInvoiceClientId, setSelectedInvoiceClientId] = useState<string>('');
 
   const [loading, setLoading] = useState(true);
   const [firm, setFirm] = useState<FirmProfile | null>(null);
@@ -954,6 +956,7 @@ export function FirmPortal() {
               { key: 'pipeline', label: '📋 My GST Filing Pipeline' },
               { key: 'tasks', label: `✅ My Tasks (${tasks.length})` },
               { key: 'clients', label: `👥 My Assigned Clients (${clients.length})` },
+              { key: 'invoices', label: '🧾 Invoice Generator' },
               { key: 'messages', label: '💬 Client & Team Chat' },
               { key: 'due-dates', label: '📅 Statutory Deadlines' },
             ]
@@ -962,6 +965,7 @@ export function FirmPortal() {
               { key: 'pipeline', label: '📋 GST Compliance Pipeline' },
               { key: 'tasks', label: '✅ To-Do & Tasks' },
               { key: 'clients', label: `👥 Client Roster (${clients.length})` },
+              { key: 'invoices', label: '🧾 Invoice Generator' },
               { key: 'messages', label: '💬 In-Website Messages (WhatsApp Alt)' },
               { key: 'team', label: `🧑‍🤝‍🧑 Team / Articles (${team.length})` },
               { key: 'due-dates', label: '📅 Due Dates & Overrides' },
@@ -1067,6 +1071,16 @@ export function FirmPortal() {
                 className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
               >
                 <span>+ Add To-Do / Task</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedInvoiceClientId('');
+                  setActiveTab('invoices');
+                }}
+                className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🧾 Open Invoice Generator</span>
               </button>
               {!isStaff && (
                 <>
@@ -1499,6 +1513,7 @@ export function FirmPortal() {
                     <th className="py-3 px-4">Contact Info</th>
                     <th className="py-3 px-4">Filing Stage</th>
                     <th className="py-3 px-4">Assigned Article</th>
+                    <th className="py-3 px-4 text-right">Tools</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 text-slate-300">
@@ -1540,18 +1555,70 @@ export function FirmPortal() {
                           ))}
                         </select>
                       </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedInvoiceClientId(client.id);
+                              setActiveTab('invoices');
+                            }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-[11px] font-bold border border-slate-700 flex items-center gap-1 cursor-pointer transition shadow-xs"
+                            title="Generate or view invoices for this client"
+                          >
+                            <span>🧾</span>
+                            <span>Invoices</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedChatClientId(client.id);
+                              setActiveTab('messages');
+                            }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-[11px] font-bold border border-slate-700 flex items-center gap-1 cursor-pointer transition shadow-xs"
+                            title="Open chat with this client"
+                          >
+                            <span>💬</span>
+                            <span>Chat</span>
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
 
                   {clients.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-500">
+                      <td colSpan={6} className="py-8 text-center text-slate-500">
                         No clients found.
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4.5: INVOICE GENERATOR TOOL (PRACTICE SUITE & CLIENT BILLING)         */}
+        {/* ========================================================================= */}
+        {activeTab === 'invoices' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>🧾</span>
+                  <span>Invoice Generator & Billing Suite</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  {isStaff
+                    ? 'Generate professional GST invoices for your firm or for clients allocated to you.'
+                    : 'Generate practice invoices, manage recurring bulk billing, and supervise client invoices.'}
+                </p>
+              </div>
+            </div>
+            <div className="bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-800 shadow">
+              <InvoiceDashboard clientId={selectedInvoiceClientId || undefined} />
             </div>
           </div>
         )}
