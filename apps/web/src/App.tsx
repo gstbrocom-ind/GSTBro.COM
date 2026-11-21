@@ -65,6 +65,8 @@ function AppShell() {
   const [introActive, setIntroActive] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('intro') || urlParams.has('preview')) return true;
       const ua = navigator.userAgent.toLowerCase();
       const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|lighthouse|headlesschrome|bytespider/i.test(ua);
       if (isBot) return false;

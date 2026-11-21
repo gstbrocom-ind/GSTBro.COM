@@ -25,10 +25,10 @@ export function IndianFlagFormation() {
   }, []);
 
   return (
-    <div className="relative inline-flex flex-col items-center justify-center my-2 select-none pointer-events-none w-full max-w-[540px] px-2 sm:px-0">
+    <div className="relative inline-flex flex-col items-center justify-center my-1 sm:my-2 select-none pointer-events-none w-full max-w-[540px] px-2 sm:px-0">
       {/* Outer Ambient Glow radiating Saffron, White & Green */}
       <div
-        className={`absolute -inset-8 rounded-3xl blur-3xl transition-opacity duration-1000 pointer-events-none ${
+        className={`absolute -inset-4 sm:-inset-8 rounded-3xl blur-2xl sm:blur-3xl transition-opacity duration-1000 pointer-events-none ${
           stage >= 1 ? 'opacity-70 scale-100' : 'opacity-0 scale-80'
         }`}
         style={{
@@ -38,7 +38,7 @@ export function IndianFlagFormation() {
       />
 
       {/* Main Photographic Silk Stage Container */}
-      <div className="relative w-full h-[200px] sm:h-[240px] rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.65)] border border-white/40 bg-gradient-to-br from-[#FAFCFF] via-[#FFFFFF] to-[#F1F5F9]">
+      <div className="relative w-full h-[160px] xs:h-[190px] sm:h-[240px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.65)] border border-white/40 bg-gradient-to-br from-[#FAFCFF] via-[#FFFFFF] to-[#F1F5F9]">
         
         {/* Soft Pearlescent Satin Background Shadow / Creases */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_35%_50%,rgba(255,255,255,1)_0%,rgba(240,244,248,0.8)_60%,rgba(226,232,240,0.9)_100%)]" />
@@ -182,7 +182,7 @@ export function IndianFlagFormation() {
         {/* Navy Blue Wheel with 24 Tapered Spokes, Hub, & Realistic Drop Shadow      */}
         {/* ========================================================================= */}
         <div
-          className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-all duration-1000"
+          className="absolute left-3 xs:left-6 sm:left-12 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center transition-all duration-1000"
           style={{
             transform:
               stage >= 4
@@ -193,11 +193,11 @@ export function IndianFlagFormation() {
           }}
         >
           {/* Subtle Ambient Blue Radial Aura */}
-          <div className="absolute inset-0 -m-4 rounded-full bg-blue-600/15 blur-xl pointer-events-none" />
+          <div className="absolute inset-0 -m-3 sm:-m-4 rounded-full bg-blue-600/15 blur-lg sm:blur-xl pointer-events-none" />
 
           {/* Realistic 3D Tactile Ashoka Chakra SVG */}
           <svg
-            className="w-28 h-28 sm:w-36 sm:h-36 text-[#002060] filter drop-shadow-[4px_12px_22px_rgba(0,32,96,0.38)] animate-spin"
+            className="w-20 h-20 xs:w-26 xs:h-26 sm:w-36 sm:h-36 text-[#002060] filter drop-shadow-[2px_6px_14px_rgba(0,32,96,0.38)] sm:drop-shadow-[4px_12px_22px_rgba(0,32,96,0.38)] animate-spin"
             style={{
               animationDuration: '24s',
               animationTimingFunction: 'linear',
@@ -275,7 +275,7 @@ export function IndianFlagFormation() {
         {/* 4. TYPOGRAPHY & NATIONAL CREST IN WHITE EXPEDITION FIELD (RIGHT SIDE)      */}
         {/* ========================================================================= */}
         <div
-          className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 z-20 max-w-[200px] sm:max-w-[260px] text-right space-y-1.5 transition-all duration-1000"
+          className="absolute right-3 xs:right-6 sm:right-10 top-1/2 -translate-y-1/2 z-20 max-w-[145px] xs:max-w-[185px] sm:max-w-[260px] text-right space-y-1 sm:space-y-1.5 transition-all duration-1000"
           style={{
             transform: stage >= 4 ? 'translateY(-50%) translate(0, 0)' : 'translateY(-50%) translate(20px, 0)',
             opacity: stage >= 4 ? 1 : 0,
@@ -283,28 +283,28 @@ export function IndianFlagFormation() {
           }}
         >
           {/* Saffron & Green Accent Pill */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/85 shadow-md border border-slate-200/80 backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-[#FF671F]" />
-            <span className="text-[10px] sm:text-xs font-black tracking-widest text-slate-800 uppercase font-mono">
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white/85 shadow-md border border-slate-200/80 backdrop-blur-md">
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#FF671F]" />
+            <span className="text-[9px] sm:text-xs font-black tracking-wider sm:tracking-widest text-slate-800 uppercase font-mono">
               BHARAT • भारत
             </span>
-            <span className="w-2 h-2 rounded-full bg-[#138808]" />
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#138808]" />
           </div>
 
           {/* National Celebration Title */}
-          <h2 className="text-sm sm:text-lg font-black tracking-tight text-slate-900 leading-tight">
+          <h2 className="text-xs xs:text-sm sm:text-lg font-black tracking-tight text-slate-900 leading-tight">
             Republic of India
           </h2>
 
           {/* Golden Embossed Motto: Satyameva Jayate */}
-          <div className="flex items-center justify-end gap-1.5 pt-0.5">
-            <span className="h-[1px] w-6 bg-gradient-to-r from-transparent to-amber-500" />
-            <span className="text-xs sm:text-sm font-black text-amber-600 font-serif tracking-widest drop-shadow-[0_1px_4px_rgba(217,119,6,0.3)]">
+          <div className="flex items-center justify-end gap-1 sm:gap-1.5 pt-0.5">
+            <span className="h-[1px] w-4 sm:w-6 bg-gradient-to-r from-transparent to-amber-500" />
+            <span className="text-[11px] sm:text-sm font-black text-amber-600 font-serif tracking-wide sm:tracking-widest drop-shadow-[0_1px_4px_rgba(217,119,6,0.3)]">
               सत्यमेव जयते
             </span>
           </div>
 
-          <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium tracking-wider font-mono">
+          <p className="text-[8px] sm:text-[10px] text-slate-500 font-medium tracking-wider font-mono">
             TRUTH ALONE TRIUMPHS
           </p>
         </div>

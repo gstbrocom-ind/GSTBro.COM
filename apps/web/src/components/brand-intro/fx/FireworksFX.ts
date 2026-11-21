@@ -74,10 +74,11 @@ export class FireworksFX {
   }
 
   private explode(x: number, y: number, baseColor: string) {
-    const count = this.width < 640 ? 45 : 75;
+    const isMobile = this.width < 640;
+    const count = isMobile ? 32 : 65;
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.2;
-      const speed = Math.random() * 5.5 + 1.2;
+      const speed = Math.random() * (isMobile ? 4.5 : 5.5) + 1.2;
       const color = Math.random() > 0.4
         ? baseColor
         : this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)];
@@ -89,7 +90,7 @@ export class FireworksFX {
         vy: Math.sin(angle) * speed,
         alpha: 1.0,
         color,
-        size: Math.random() * 2.5 + 1.2,
+        size: Math.random() * 2.2 + 1.0,
         decay: Math.random() * 0.018 + 0.012,
         gravity: 0.065,
         trail: [],
@@ -125,8 +126,12 @@ export class FireworksFX {
       }
       ctx.strokeStyle = r.color;
       ctx.lineWidth = 2.5;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = r.color;
+      if (this.width >= 640) {
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = r.color;
+      } else {
+        ctx.shadowBlur = 0;
+      }
       ctx.stroke();
 
       // Check detonation point
@@ -173,8 +178,12 @@ export class FireworksFX {
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fillStyle = p.color;
       ctx.globalAlpha = p.alpha;
-      ctx.shadowBlur = p.size * 3;
-      ctx.shadowColor = p.color;
+      if (this.width >= 640) {
+        ctx.shadowBlur = p.size * 2;
+        ctx.shadowColor = p.color;
+      } else {
+        ctx.shadowBlur = 0;
+      }
       ctx.fill();
     }
 

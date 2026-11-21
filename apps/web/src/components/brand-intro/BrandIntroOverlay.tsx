@@ -24,6 +24,9 @@ export function BrandIntroOverlay({
     if (preview) return true;
     if (typeof window === 'undefined') return false;
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('intro') || urlParams.has('preview')) return true;
+
       const ua = navigator.userAgent.toLowerCase();
       const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|lighthouse|headlesschrome|bytespider/i.test(ua);
       if (isBot) return false;
@@ -85,21 +88,25 @@ export function BrandIntroOverlay({
   };
 
   useEffect(() => {
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const forceIntro = urlParams?.has('intro') || urlParams?.has('preview');
+
     // 1. Crawlers & Bots detection for zero SEO impact
     if (typeof navigator !== 'undefined') {
       const ua = navigator.userAgent.toLowerCase();
       const isBot = /googlebot|bingbot|yandex|duckduckbot|slurp|baiduspider|lighthouse|headlesschrome|bytespider/i.test(ua);
-      if (isBot && !preview) {
+      if (isBot && !preview && !forceIntro) {
         setVisible(false);
         if (typeof document !== 'undefined') {
           document.documentElement.classList.remove('intro-pending');
         }
+        if (onIntroActiveChange) onIntroActiveChange(false);
         return;
       }
     }
 
     // 2. Reduced motion check
-    if (typeof window !== 'undefined' && !preview) {
+    if (typeof window !== 'undefined' && !preview && !forceIntro) {
       const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReduced) {
         try {
@@ -109,6 +116,7 @@ export function BrandIntroOverlay({
         if (typeof document !== 'undefined') {
           document.documentElement.classList.remove('intro-pending');
         }
+        if (onIntroActiveChange) onIntroActiveChange(false);
         return;
       }
 
@@ -119,11 +127,12 @@ export function BrandIntroOverlay({
         if (typeof document !== 'undefined') {
           document.documentElement.classList.remove('intro-pending');
         }
+        if (onIntroActiveChange) onIntroActiveChange(false);
         return;
       }
     }
 
-    // Wait until real settings are loaded before deciding or animating
+    // Wait until settings are loaded or use available fallback
     if (!preview) {
       if (!settings) {
         return;
@@ -134,11 +143,12 @@ export function BrandIntroOverlay({
       startedRef.current = true;
     }
 
-    if (!isEnabled && !preview) {
+    if (!isEnabled && !preview && !forceIntro) {
       setVisible(false);
       if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('intro-pending');
       }
+      if (onIntroActiveChange) onIntroActiveChange(false);
       return;
     }
 
@@ -185,7 +195,7 @@ export function BrandIntroOverlay({
     return () => window.removeEventListener('keydown', handleKey);
   }, [visible]);
 
-  // Dynamic Procedural Visual FX (Crackers, Petals, or Stardust)
+  // Dynamic Procedural Visual FX (Crackers, Petals, or Stardust) - High-DPI & Mobile Optimized
   useEffect(() => {
     if (!visible) return;
     const canvas = canvasRef.current;
@@ -194,8 +204,26 @@ export function BrandIntroOverlay({
     if (!ctx) return;
 
     let animId: number;
-    const width = (canvas.width = window.innerWidth);
-    const height = (canvas.height = window.innerHeight);
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    const setupCanvas = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    };
+
+    setupCanvas();
 
     // Instantiate appropriate FX engine
     let fireworksEngine: FireworksFX | null = null;
@@ -219,7 +247,10 @@ export function BrandIntroOverlay({
       color: string;
     }
 
-    const count = Math.min(width < 640 ? 30 : 55, 65);
+    // Scale particle count based on device capability
+    const count = isTouchDevice
+      ? Math.min(width < 640 ? 20 : 35, 40)
+      : Math.min(width < 640 ? 30 : 55, 65);
     const ambientParticles: AmbientParticle[] = [];
     const colors = activeTheme.particleColors;
 
@@ -244,7 +275,7 @@ export function BrandIntroOverlay({
       } else if (petalsEngine) {
         petalsEngine.updateAndDraw(time);
       } else {
-        // Ambient stardust
+        // Ambient stardust (fast 2-pass drawing without expensive shadowBlur on mobile)
         for (let i = 0; i < ambientParticles.length; i++) {
           const p = ambientParticles[i];
           p.x += p.vx;
@@ -262,9 +293,14 @@ export function BrandIntroOverlay({
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fillStyle = p.color;
           ctx.globalAlpha = Math.max(0.1, Math.min(0.9, p.alpha));
-          ctx.shadowBlur = p.size * 3;
-          ctx.shadowColor = p.color;
+          if (!isTouchDevice) {
+            ctx.shadowBlur = p.size * 2.5;
+            ctx.shadowColor = p.color;
+          }
           ctx.fill();
+        }
+        if (!isTouchDevice) {
+          ctx.shadowBlur = 0;
         }
       }
 
@@ -274,20 +310,22 @@ export function BrandIntroOverlay({
     animId = requestAnimationFrame(render);
 
     const handleResize = () => {
-      const newW = (canvas.width = window.innerWidth);
-      const newH = (canvas.height = window.innerHeight);
-      if (fireworksEngine) fireworksEngine.resize(newW, newH);
-      if (petalsEngine) petalsEngine.resize(newW, newH);
+      setupCanvas();
+      if (fireworksEngine) fireworksEngine.resize(width, height);
+      if (petalsEngine) petalsEngine.resize(width, height);
     };
+
     window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
 
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, [visible, activeTheme]);
 
-  if (!visible || (!settings && !preview)) return null;
+  if (!visible) return null;
 
   return (
     <div
@@ -297,20 +335,20 @@ export function BrandIntroOverlay({
       style={{
         background: activeTheme.bgGradient,
       }}
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden select-none transition-opacity duration-500 ease-out ${
+      className={`fixed inset-0 z-[99999] w-full h-[100dvh] min-h-[100dvh] flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none touch-manipulation transition-opacity duration-500 ease-out ${
         fadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
       {/* 1. Procedural Visual FX Canvas (Crackers / Petals / Stardust) */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 pointer-events-none z-0"
+        className="fixed inset-0 pointer-events-none z-0 w-full h-full"
         aria-hidden="true"
       />
 
       {/* 2. Sweeping Light Trails (Pure SVG Motion) */}
       <svg
-        className={`absolute inset-0 w-full h-full pointer-events-none z-0 transition-opacity duration-1000 ${
+        className={`fixed inset-0 w-full h-full pointer-events-none z-0 transition-opacity duration-1000 ${
           animStep >= 1 ? 'opacity-75 scale-100' : 'opacity-0 scale-95'
         }`}
         viewBox="0 0 1440 900"
@@ -351,22 +389,22 @@ export function BrandIntroOverlay({
         />
       </svg>
 
-      {/* 3. Skip Button (Fixed Top-Right) */}
-      <div className="absolute top-5 right-5 sm:top-8 sm:right-8 z-30">
+      {/* 3. Skip Button (Safe-Area Aware & Touch-Optimized for all devices) */}
+      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-40">
         <button
           type="button"
           onClick={dismiss}
-          className="group px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-xs font-bold text-white/90 hover:text-white backdrop-blur-md border border-white/20 shadow-lg transition-all cursor-pointer flex items-center gap-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
+          className="group min-h-[44px] min-w-[44px] px-4 py-2.5 sm:px-5 sm:py-2 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-xs font-bold text-white backdrop-blur-lg border border-white/25 shadow-xl transition-all cursor-pointer flex items-center gap-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-400"
           aria-label="Skip brand introduction"
         >
           <span>Skip Intro</span>
           <span className="text-xs transition-transform group-hover:translate-x-1">&rarr;</span>
-          <span className="text-[10px] text-white/50 ml-1 hidden sm:inline font-mono">[Esc]</span>
+          <span className="text-[10px] text-white/60 ml-0.5 hidden sm:inline font-mono">[Esc]</span>
         </button>
       </div>
 
-      {/* 4. Central Cinematic Content */}
-      <div className="relative z-10 max-w-2xl mx-auto px-6 text-center space-y-5">
+      {/* 4. Central Cinematic Content (Centered, Safe for Landscape & Mobile Viewports) */}
+      <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 text-center space-y-3 sm:space-y-4 md:space-y-5 my-auto py-6 sm:py-8 w-full flex flex-col items-center justify-center">
         {/* Festive Badge */}
         <div
           className={`transition-all duration-700 transform ${
@@ -375,9 +413,9 @@ export function BrandIntroOverlay({
               : 'opacity-0 -translate-y-4'
           }`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-white/95 backdrop-blur-md shadow-md">
-            {activeTheme.icon && <span className="text-sm">{activeTheme.icon}</span>}
-            <span>{activeTheme.badge}</span>
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1.5 sm:px-4 sm:py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-white/95 backdrop-blur-md shadow-md max-w-[90vw]">
+            {activeTheme.icon && <span className="text-sm shrink-0">{activeTheme.icon}</span>}
+            <span className="truncate">{activeTheme.badge}</span>
           </div>
         </div>
 
@@ -392,13 +430,13 @@ export function BrandIntroOverlay({
           <div className="relative inline-block">
             {/* Ambient Backlight Halo */}
             <div
-              className="absolute -inset-8 blur-3xl opacity-60 rounded-full pointer-events-none"
+              className="absolute -inset-6 sm:-inset-8 blur-3xl opacity-60 rounded-full pointer-events-none"
               style={{
                 background: `radial-gradient(circle, ${activeTheme.trailColors[0]} 0%, transparent 70%)`,
               }}
             />
 
-            <h1 className="relative text-5xl sm:text-7xl font-black tracking-tight leading-none text-white drop-shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
+            <h1 className="relative text-4xl xs:text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-none text-white drop-shadow-[0_10px_35px_rgba(0,0,0,0.8)]">
               GST
               <span
                 className="text-transparent bg-clip-text"
@@ -412,11 +450,11 @@ export function BrandIntroOverlay({
 
             {/* Sub-domain Label */}
             <div className="mt-1 flex items-center justify-center gap-1.5">
-              <span className="h-[1px] w-6 bg-gradient-to-r from-transparent to-blue-400" />
-              <span className="text-xs sm:text-sm font-black tracking-[0.25em] text-cyan-300 font-mono uppercase">
+              <span className="h-[1px] w-4 sm:w-6 bg-gradient-to-r from-transparent to-blue-400" />
+              <span className="text-[11px] sm:text-sm font-black tracking-[0.2em] sm:tracking-[0.25em] text-cyan-300 font-mono uppercase">
                 GSTBro.com
               </span>
-              <span className="h-[1px] w-6 bg-gradient-to-l from-transparent to-blue-400" />
+              <span className="h-[1px] w-4 sm:w-6 bg-gradient-to-l from-transparent to-blue-400" />
             </div>
           </div>
         </div>
@@ -424,7 +462,7 @@ export function BrandIntroOverlay({
         {/* Dynamic National Flag Ribbon (If theme has a flag) */}
         {activeTheme.flagCountry && animStep >= 2 && (
           <div
-            className={`transition-all duration-700 delay-200 transform ${
+            className={`transition-all duration-700 delay-200 transform w-full flex items-center justify-center ${
               animStep >= 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
             }`}
           >
@@ -434,7 +472,7 @@ export function BrandIntroOverlay({
 
         {/* Gold Accent Divider */}
         <div
-          className={`mx-auto h-[1.5px] w-24 rounded-full transition-all duration-700 delay-300 ${
+          className={`mx-auto h-[1.5px] w-20 sm:w-24 rounded-full transition-all duration-700 delay-300 ${
             animStep >= 2 ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-0'
           }`}
           style={{
@@ -444,26 +482,26 @@ export function BrandIntroOverlay({
 
         {/* Greeting & Tagline */}
         <div
-          className={`space-y-2 transition-all duration-700 delay-400 transform ${
+          className={`space-y-1.5 sm:space-y-2 transition-all duration-700 delay-400 transform ${
             animStep >= 3
               ? 'opacity-100 translate-y-0'
               : 'opacity-0 translate-y-4'
           }`}
         >
           <h2
-            className="text-lg sm:text-2xl font-black tracking-tight text-white/95"
+            className="text-base xs:text-lg sm:text-2xl font-black tracking-tight text-white/95 px-2"
             style={{ textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}
           >
             {displayGreeting}
           </h2>
 
-          <p className="text-xs sm:text-sm font-semibold tracking-wider uppercase text-slate-300 font-mono">
+          <p className="text-[11px] xs:text-xs sm:text-sm font-semibold tracking-wider uppercase text-slate-300 font-mono px-2">
             {displayTagline}
           </p>
         </div>
 
         {/* Progress Loading Track */}
-        <div className="pt-3 max-w-xs mx-auto">
+        <div className="pt-2 sm:pt-3 max-w-xs mx-auto w-full px-4">
           <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-xs">
             <div
               className="h-full rounded-full transition-all ease-linear"
@@ -476,6 +514,9 @@ export function BrandIntroOverlay({
           </div>
         </div>
       </div>
+
+      {/* 5. Safe Area Bottom Spacer */}
+      <div className="h-[env(safe-area-inset-bottom,0px)] pointer-events-none" />
     </div>
   );
 }

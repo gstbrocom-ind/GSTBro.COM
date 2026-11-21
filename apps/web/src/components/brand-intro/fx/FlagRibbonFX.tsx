@@ -11,10 +11,10 @@ export function FlagRibbonFX({ country }: FlagRibbonProps) {
 
   if (country === 'uae') {
     return (
-      <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none">
-        <div className="relative w-44 sm:w-56 h-12 rounded-xl overflow-hidden shadow-2xl border border-white/20 flex backdrop-blur-xs">
+      <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none max-w-[90vw]">
+        <div className="relative w-44 sm:w-56 max-w-full h-11 sm:h-12 rounded-xl overflow-hidden shadow-2xl border border-white/20 flex backdrop-blur-xs">
           {/* Vertical Red Stripe on Left */}
-          <div className="w-12 bg-gradient-to-b from-[#FF0000] to-[#CC0000] flex items-center justify-center">
+          <div className="w-10 sm:w-12 bg-gradient-to-b from-[#FF0000] to-[#CC0000] flex items-center justify-center">
             <span className="text-xs">🇦🇪</span>
           </div>
 
@@ -33,10 +33,10 @@ export function FlagRibbonFX({ country }: FlagRibbonProps) {
 
   if (country === 'usa') {
     return (
-      <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none">
-        <div className="relative w-48 sm:w-60 h-12 rounded-xl overflow-hidden shadow-2xl border border-white/20 flex backdrop-blur-xs">
+      <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none max-w-[90vw]">
+        <div className="relative w-48 sm:w-60 max-w-full h-11 sm:h-12 rounded-xl overflow-hidden shadow-2xl border border-white/20 flex backdrop-blur-xs">
           {/* Blue Canton with Stars */}
-          <div className="w-16 bg-[#002868] flex items-center justify-center text-white text-xs font-black tracking-widest">
+          <div className="w-14 sm:w-16 bg-[#002868] flex items-center justify-center text-white text-[10px] sm:text-xs font-black tracking-widest">
             ★ ★ ★
           </div>
 
@@ -57,8 +57,8 @@ export function FlagRibbonFX({ country }: FlagRibbonProps) {
 
   if (country === 'singapore') {
     return (
-      <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none">
-        <div className="relative w-44 sm:w-56 h-12 rounded-xl overflow-hidden shadow-2xl border border-white/20 flex flex-col backdrop-blur-xs">
+      <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none max-w-[90vw]">
+        <div className="relative w-44 sm:w-56 max-w-full h-11 sm:h-12 rounded-xl overflow-hidden shadow-2xl border border-white/20 flex flex-col backdrop-blur-xs">
           <div className="flex-1 bg-[#ED2939] flex items-center justify-start px-3 text-white text-xs gap-1.5 font-bold">
             <span>🌙</span>
             <span className="text-[9px]">★ ★ ★ ★ ★</span>
@@ -73,23 +73,23 @@ export function FlagRibbonFX({ country }: FlagRibbonProps) {
 
   // National CA Day & GST Day (July 1st)
   return (
-    <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none">
-      <div className="relative px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/50 shadow-2xl backdrop-blur-md flex items-center gap-3">
-        <span className="text-xl">⚖️</span>
-        <div className="text-left">
-          <div className="flex items-center gap-1.5">
-            <strong className="text-xs font-black text-amber-300 uppercase tracking-wider">
+    <div className="relative inline-flex flex-col items-center justify-center my-2 pointer-events-none max-w-[90vw]">
+      <div className="relative px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/50 shadow-2xl backdrop-blur-md flex items-center gap-2 sm:gap-3 max-w-full">
+        <span className="text-base sm:text-xl shrink-0">⚖️</span>
+        <div className="text-left min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <strong className="text-[11px] sm:text-xs font-black text-amber-300 uppercase tracking-wider">
               National CA Day &amp; GST Day
             </strong>
-            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-200 border border-amber-300/30">
+            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-200 border border-amber-300/30 shrink-0">
               July 1st
             </span>
           </div>
-          <span className="text-[10px] text-slate-300 block font-mono">
+          <span className="text-[9px] sm:text-[10px] text-slate-300 block font-mono truncate">
             Saluting the Pillars of the Indian Economy • ICAI Governance
           </span>
         </div>
-        <span className="text-xl">📜</span>
+        <span className="text-base sm:text-xl shrink-0">📜</span>
       </div>
     </div>
   );

@@ -61,7 +61,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
       } catch {}
     }
-    return null;
+    return DEFAULT_FALLBACK_SETTINGS;
   });
   const lastFetchRef = useRef<number>(0);
 
