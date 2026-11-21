@@ -287,15 +287,19 @@ function SignupForm() {
 
     setCodeValidating(true);
     try {
-      const res = await apiFetch<{ valid: boolean; isCaFirm?: boolean; message?: string }>('/api/auth/welcome-codes/verify', {
+      const res = await apiFetch<{ valid: boolean; isCaFirm?: boolean; firmName?: string; message?: string }>('/api/auth/welcome-codes/verify', {
         method: 'POST',
         body: JSON.stringify({ code: raw.toUpperCase() }),
       });
       if (res.valid) {
         setCodeValidationState('valid');
-        setCodeValidationMsg('✓ Welcome Code confirmed! You are authorized to register.');
         if (res.isCaFirm) {
+          setCodeValidationMsg('✓ CA Firm Registration Code confirmed! You are authorized to register your practice.');
           setAccountType('CA_FIRM');
+        } else if (res.firmName) {
+          setCodeValidationMsg(`✓ Welcome Code confirmed! You are registering under ${res.firmName}.`);
+        } else {
+          setCodeValidationMsg('✓ Welcome Code confirmed! You are authorized to register.');
         }
         return true;
       } else {

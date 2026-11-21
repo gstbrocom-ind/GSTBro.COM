@@ -36,27 +36,31 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
       return {
         valid: true,
         isCaFirm: res.isCaFirm || false,
+        firmId: res.firmId,
+        firmName: res.firmName,
         message: res.isCaFirm
           ? 'CA Firm Welcome Code verified! You can proceed to register your practice.'
+          : res.firmName
+          ? `Welcome Code confirmed! You are joining ${res.firmName}.`
           : 'Welcome Code verified! You can proceed with registration.',
       };
     }
   );
 
   // --------------------------------------------------------------------------
-  // 2. ADMIN / SUPER ADMIN: List all Welcome Codes & statistics
+  // 2. ADMIN / SUPER ADMIN: List CA Firm Welcome Codes & statistics
   // --------------------------------------------------------------------------
   app.get(
     '/api/admin/welcome-codes',
     { preHandler: [authenticate, requireRole('ADMIN', 'SUPER_ADMIN')] },
     async () => {
-      const summary = await getWelcomeCodesSummary();
+      const summary = await getWelcomeCodesSummary({ targetRole: 'CA_FIRM' });
       return summary;
     }
   );
 
   // --------------------------------------------------------------------------
-  // 3. ADMIN / SUPER ADMIN: Generate one or more unique Welcome Codes
+  // 3. ADMIN / SUPER ADMIN: Generate Welcome Codes for CA Firms Only
   // --------------------------------------------------------------------------
   app.post(
     '/api/admin/welcome-codes/generate',
@@ -72,7 +76,7 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
             .optional()
             .default('UPPERCASE_ONLY'),
           customCode: z.string().trim().min(4).max(16).optional(),
-          targetRole: z.enum(['CLIENT', 'CA_FIRM']).optional().default('CLIENT'),
+          targetRole: z.literal('CA_FIRM').optional().default('CA_FIRM'),
           firmName: z.string().trim().max(120).optional(),
           note: z.string().trim().max(250).optional(),
           expiresInDays: z.number().int().min(1).max(365).nullable().optional(),
@@ -86,7 +90,7 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
           length: body.length,
           charset: body.charset,
           customCode: body.customCode,
-          targetRole: body.targetRole,
+          targetRole: 'CA_FIRM', // Strictly CA_FIRM for Super Admin
           firmName: body.firmName,
           note: body.note,
           expiresInDays: body.expiresInDays,
@@ -96,11 +100,11 @@ export async function welcomeCodeRoutes(app: FastifyInstance) {
           success: true,
           count: result.count,
           codes: result.created,
-          message: `Successfully generated ${result.count} unique welcome code(s)`,
+          message: `Successfully generated ${result.count} unique CA Firm registration code(s)`,
         });
       } catch (err: any) {
         return reply.status(400).send({
-          error: err.message || 'Failed to generate welcome codes',
+          error: err.message || 'Failed to generate CA Firm welcome codes',
         });
       }
     }

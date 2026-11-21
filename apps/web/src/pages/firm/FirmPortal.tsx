@@ -283,6 +283,26 @@ export function FirmPortal() {
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [taskFilterStatus, setTaskFilterStatus] = useState<string>('ALL');
 
+  // Practice Client Welcome Codes State
+  const [showClientCodesModal, setShowClientCodesModal] = useState(false);
+  const [firmCodesData, setFirmCodesData] = useState<{
+    total: number;
+    available: number;
+    used: number;
+    expired: number;
+    redemptionRate: number;
+    codes: any[];
+  }>({ total: 0, available: 0, used: 0, expired: 0, redemptionRate: 0, codes: [] });
+  const [loadingFirmCodes, setLoadingFirmCodes] = useState(false);
+  const [generatingFirmCode, setGeneratingFirmCode] = useState(false);
+  const [firmCodeForm, setFirmCodeForm] = useState({
+    count: 1,
+    customCode: '',
+    note: '',
+    expiresInDays: 30 as number | null,
+  });
+  const [copiedFirmCode, setCopiedFirmCode] = useState<string | null>(null);
+
   const isStaff = user?.role === 'FIRM_STAFF' || user?.firm_role === 'FIRM_STAFF';
 
   // Handover form state
@@ -1090,6 +1110,58 @@ export function FirmPortal() {
     } catch (err: any) {
       alert(err.message || 'Failed to remove team member');
     }
+  };
+
+  const loadFirmWelcomeCodes = async () => {
+    setLoadingFirmCodes(true);
+    try {
+      const res = await apiFetch<any>('/api/firm/welcome-codes');
+      setFirmCodesData(res);
+    } catch (err: any) {
+      alert(err.message || 'Failed to load client invite codes');
+    } finally {
+      setLoadingFirmCodes(false);
+    }
+  };
+
+  const handleGenerateFirmCodes = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGeneratingFirmCode(true);
+    try {
+      const res = await apiFetch<{ success: boolean; count: number; message: string }>('/api/firm/welcome-codes/generate', {
+        method: 'POST',
+        body: JSON.stringify(firmCodeForm),
+      });
+      if (res.success) {
+        showNotification(res.message || `Generated ${res.count} client invite code(s)!`);
+        setFirmCodeForm({ count: 1, customCode: '', note: '', expiresInDays: 30 });
+        await loadFirmWelcomeCodes();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to generate client invite codes');
+    } finally {
+      setGeneratingFirmCode(false);
+    }
+  };
+
+  const handleRevokeFirmCode = async (id: string, code: string) => {
+    if (!confirm(`Are you sure you want to revoke unused invite code "${code}"?`)) return;
+    try {
+      await apiFetch(`/api/firm/welcome-codes/${id}`, { method: 'DELETE' });
+      showNotification(`Invite code "${code}" revoked.`);
+      await loadFirmWelcomeCodes();
+    } catch (err: any) {
+      alert(err.message || 'Failed to revoke invite code');
+    }
+  };
+
+  const handleShareFirmInvite = (code: string, note?: string) => {
+    const firmName = firm?.name || 'our practice';
+    const text = `Welcome to ${firmName}!\n\nYou have been invited to onboard your business compliance workspace.\n\nYour exclusive registration Welcome Code is:\n👉  ${code}\n\nPlease complete your registration here:\n${window.location.origin}/signup\n${note ? `\n(Reference: ${note})` : ''}`;
+    navigator.clipboard.writeText(text);
+    setCopiedFirmCode(code);
+    showNotification(`Invite message for code "${code}" copied to clipboard!`);
+    setTimeout(() => setCopiedFirmCode(null), 2500);
   };
 
   // Due date override
@@ -2077,12 +2149,26 @@ export function FirmPortal() {
                 <p className="text-xs text-slate-400">Businesses and taxpayers managed by your firm</p>
               </div>
               {!isStaff && (
-                <button
-                  onClick={() => setShowNewClientModal(true)}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
-                >
-                  + Onboard New Client
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowClientCodesModal(true);
+                      loadFirmWelcomeCodes();
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                    title="Generate unique registration codes for prospective clients"
+                  >
+                    <span>🎟️</span>
+                    <span>Client Invite Codes</span>
+                  </button>
+                  <button
+                    onClick={() => setShowNewClientModal(true)}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
+                  >
+                    + Onboard New Client
+                  </button>
+                </div>
               )}
             </div>
 
@@ -3688,6 +3774,186 @@ export function FirmPortal() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: PRACTICE CLIENT INVITE CODES (WELCOME CODES)                      */}
+      {/* ========================================================================= */}
+      {showClientCodesModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎟️</span>
+                  <h3 className="font-bold text-base text-white">Client Invitation Codes</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                    Practice Scoped
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Generate unique welcome codes for prospective clients. Clients who register with your code are automatically onboarded into <strong className="text-white">{firm?.name || 'your firm'}</strong>.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowClientCodesModal(false)}
+                className="text-slate-400 hover:text-white text-lg p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Issued</span>
+                <span className="text-xl font-black text-white">{firmCodesData.total}</span>
+              </div>
+              <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl border-l-4 border-l-emerald-500">
+                <span className="text-[10px] uppercase font-bold text-emerald-400 block">Available</span>
+                <span className="text-xl font-black text-emerald-400">{firmCodesData.available}</span>
+              </div>
+              <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl border-l-4 border-l-purple-500">
+                <span className="text-[10px] uppercase font-bold text-purple-400 block">Redeemed</span>
+                <span className="text-xl font-black text-purple-400">{firmCodesData.used}</span>
+              </div>
+              <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl">
+                <span className="text-[10px] uppercase font-bold text-rose-400 block">Expired</span>
+                <span className="text-xl font-black text-rose-400">{firmCodesData.expired}</span>
+              </div>
+            </div>
+
+            {/* Quick Generator Box */}
+            <form onSubmit={handleGenerateFirmCodes} className="p-4 bg-slate-900/60 border border-indigo-900/40 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>⚡</span>
+                  <span>Issue New Client Welcome Code</span>
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Client Reference / Note</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Acme Corp - Direct Invite"
+                    value={firmCodeForm.note}
+                    onChange={(e) => setFirmCodeForm({ ...firmCodeForm, note: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Custom Code (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ACME26 (5-16 chars)"
+                    maxLength={16}
+                    value={firmCodeForm.customCode}
+                    onChange={(e) => setFirmCodeForm({ ...firmCodeForm, customCode: e.target.value.toUpperCase().replace(/\s+/g, '') })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Validity Period</label>
+                  <select
+                    value={firmCodeForm.expiresInDays ?? ''}
+                    onChange={(e) => setFirmCodeForm({ ...firmCodeForm, expiresInDays: e.target.value ? Number(e.target.value) : null })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="7">7 Days</option>
+                    <option value="15">15 Days</option>
+                    <option value="30">30 Days</option>
+                    <option value="90">90 Days</option>
+                    <option value="">Never Expires</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={generatingFirmCode}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <span>{generatingFirmCode ? 'Generating...' : '+ Generate Invite Code'}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Codes List */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {loadingFirmCodes ? (
+                <div className="p-8 text-center text-xs text-slate-500">Loading practice codes...</div>
+              ) : firmCodesData.codes.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500">
+                  No invite codes generated yet. Use the form above to generate your first client welcome code.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {firmCodesData.codes.map((c: any) => {
+                    const isCopied = copiedFirmCode === c.code;
+                    return (
+                      <div
+                        key={c.id}
+                        className="p-3 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-sm tracking-wider text-indigo-300 bg-indigo-950/60 border border-indigo-800/60 px-2 py-0.5 rounded-lg">
+                              {c.code}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                c.used
+                                  ? 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
+                                  : c.expires_at && new Date(c.expires_at).getTime() < Date.now()
+                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-400/30'
+                                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
+                              }`}
+                            >
+                              {c.used ? 'Redeemed' : c.expires_at && new Date(c.expires_at).getTime() < Date.now() ? 'Expired' : 'Available'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {c.note ? <span>Note: <strong className="text-slate-300">{c.note}</strong></span> : <span>General client invite</span>}
+                            {c.used && c.used_by_name && (
+                              <span className="ml-2 text-purple-300">
+                                • Registered by: <strong>{c.used_by_name}</strong> ({c.used_by_email}) on {new Date(c.used_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                          {!c.used && (
+                            <button
+                              type="button"
+                              onClick={() => handleShareFirmInvite(c.code, c.note)}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-semibold border border-slate-700 transition flex items-center gap-1 cursor-pointer"
+                              title="Copy WhatsApp / Email Invitation Message"
+                            >
+                              <span>{isCopied ? '✓ Copied' : '📋 Copy Invite'}</span>
+                            </button>
+                          )}
+                          {!c.used && (
+                            <button
+                              type="button"
+                              onClick={() => handleRevokeFirmCode(c.id, c.code)}
+                              className="px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 rounded-lg text-[11px] font-semibold border border-rose-800/40 transition cursor-pointer"
+                              title="Revoke unused code"
+                            >
+                              <span>Revoke</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

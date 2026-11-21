@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js';
 import { authenticate, requireFirm, requireFirmAdmin } from '../middleware/auth.js';
 import { hashPassword } from '../services/passwordService.js';
 import { canAccessClient } from '../lib/authorization.js';
+import { createWelcomeCodes, revokeWelcomeCode, getWelcomeCodesSummary } from '../services/welcomeCodeService.js';
 
 export const firmRoutes: FastifyPluginAsync = async (app) => {
   app.register(async (firmScope) => {
@@ -1905,6 +1906,90 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return reply.send({ success: true, message: data });
+    });
+
+    // ==========================================
+    // FIRM CLIENT WELCOME CODES (CA FIRM PRACTICE)
+    // ==========================================
+
+    // 29. List Client Welcome Codes for this Firm
+    firmScope.get('/api/firm/welcome-codes', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const summary = await getWelcomeCodesSummary({ firmId });
+      return reply.send(summary);
+    });
+
+    // 30. Generate Client Welcome Codes for this Firm
+    firmScope.post('/api/firm/welcome-codes/generate', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const user = request.user;
+
+      const body = z
+        .object({
+          count: z.number().int().min(1).max(50).optional().default(1),
+          length: z.number().int().min(5).max(10).optional().default(6),
+          charset: z
+            .enum(['UPPERCASE_ONLY', 'ALPHANUMERIC', 'NUMBERS_ONLY', 'SPECIAL_CHARS', 'CUSTOM'])
+            .optional()
+            .default('UPPERCASE_ONLY'),
+          customCode: z.string().trim().min(4).max(16).optional(),
+          note: z.string().trim().max(250).optional(),
+          expiresInDays: z.number().int().min(1).max(365).nullable().optional(),
+        })
+        .strict()
+        .parse(request.body);
+
+      // Fetch firm name for invite branding
+      const { data: firm } = await supabase
+        .from('firms')
+        .select('name')
+        .eq('id', firmId)
+        .maybeSingle();
+
+      try {
+        const result = await createWelcomeCodes(user.id, {
+          count: body.count,
+          length: body.length,
+          charset: body.charset,
+          customCode: body.customCode,
+          targetRole: 'CLIENT',
+          firmId,
+          firmName: firm?.name,
+          note: body.note,
+          expiresInDays: body.expiresInDays,
+        });
+
+        return reply.status(201).send({
+          success: true,
+          count: result.count,
+          codes: result.created,
+          message: `Successfully generated ${result.count} client invite code(s)`,
+        });
+      } catch (err: any) {
+        return reply.status(400).send({
+          error: err.message || 'Failed to generate client invite codes',
+        });
+      }
+    });
+
+    // 31. Revoke / Delete Client Welcome Code for this Firm
+    firmScope.delete('/api/firm/welcome-codes/:id', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const { id } = request.params as { id: string };
+
+      // Ensure code belongs to caller's firm
+      const { data: code } = await supabase
+        .from('welcome_codes')
+        .select('id, firm_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!code || code.firm_id !== firmId) {
+        return reply.status(404).send({ error: 'Invite code not found in your firm' });
+      }
+
+      await revokeWelcomeCode(id);
+      return reply.send({ success: true, message: 'Client invite code revoked successfully' });
     });
   });
 };

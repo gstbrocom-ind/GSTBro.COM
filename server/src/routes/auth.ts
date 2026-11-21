@@ -500,6 +500,12 @@ export async function authRoutes(app: FastifyInstance) {
           // and publicUser() response both carry the correct FIRM_OWNER role.
           createdUser = { ...createdUser, role: 'FIRM_OWNER', firm_role: 'FIRM_OWNER' };
         }
+      } else if (codeCheck.codeRecord?.firm_id) {
+        await supabase
+          .from('users')
+          .update({ firm_id: codeCheck.codeRecord.firm_id, updated_at: new Date().toISOString() })
+          .eq('id', createdUser.id);
+        (createdUser as any).firm_id = codeCheck.codeRecord.firm_id;
       }
     } catch (codeErr) {
       request.log.warn({ codeErr }, 'Welcome code consumption warning');
@@ -685,6 +691,12 @@ export async function authRoutes(app: FastifyInstance) {
             // Sync in-memory role so JWT and response carry FIRM_OWNER
             resolvedUser = { ...resolvedUser, role: 'FIRM_OWNER', firm_role: 'FIRM_OWNER' } as any;
           }
+        } else if (codeCheck.codeRecord?.firm_id) {
+          await supabase
+            .from('users')
+            .update({ firm_id: codeCheck.codeRecord.firm_id, updated_at: new Date().toISOString() })
+            .eq('id', resolvedUser.id);
+          (resolvedUser as any).firm_id = codeCheck.codeRecord.firm_id;
         }
       } catch (codeErr) {
         request.log.warn({ codeErr }, 'Welcome code consumption warning');

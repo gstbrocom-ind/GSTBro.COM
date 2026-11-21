@@ -221,35 +221,26 @@ function SparklesIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 const navGroups: NavGroup[] = [
   {
-    title: 'Platform Super Admin',
+    title: 'Platform Oversight',
     items: [
       { to: '/super-admin', label: 'Platform Telemetry & CAs', icon: DashboardIcon },
-      { to: '/settings/content', label: 'Website CMS Editor', icon: ContentIcon },
+      { to: '/welcome-codes', label: 'CA Firm Welcome Codes', icon: WelcomeCodesIcon },
+    ],
+  },
+  {
+    title: 'Platform Tools',
+    items: [
       { to: '/invoices', label: '⚡ Invoice Generator Tool', icon: FeesIcon, external: true },
     ],
   },
   {
-    title: 'Operations',
+    title: 'Website & Content',
     items: [
-      { to: '/', label: 'Overview', icon: DashboardIcon },
-      { to: '/clients', label: 'Client Accounts', icon: ClientsIcon },
-      { to: '/welcome-codes', label: 'Welcome Codes', icon: WelcomeCodesIcon },
-      { to: '/messages', label: 'Client Communications', icon: ChatIcon },
-      { to: '/activity-logs', label: 'Activity Log', icon: ActivityIcon },
-      { to: '/leads', label: 'Inward Inquiries', icon: LeadsIcon },
-    ],
-  },
-  {
-    title: 'Compliance & Practice',
-    items: [
-      { to: '/firm', label: 'CA Firm Practice Suite', icon: TeamOverviewIcon, external: true },
-      { to: '/firm/drive-routing', label: 'Drive & Folder Directions', icon: DriveIcon },
-      { to: '/invoices', label: 'GST Invoices & Generator Tool', icon: FeesIcon, external: true },
-      { to: '/due-dates', label: 'Statutory Deadlines', icon: CalendarIcon },
-      { to: '/fees', label: 'Billing & Invoices', icon: FeesIcon },
-      { to: '/team', label: 'Staff & Roles', icon: TeamIcon },
-      { to: '/drive', label: 'Drive File Vault', icon: DriveIcon },
-      { to: '/team', label: 'Practice Workbench', icon: TeamOverviewIcon, external: true },
+      { to: '/settings/content', label: 'Website CMS Editor', icon: ContentIcon },
+      { to: '/settings/brand-intro', label: 'Brand Intro & Themes', icon: SparklesIcon },
+      { to: '/settings/site', label: 'Site Profile & Hotlines', icon: SettingsIcon },
+      { to: '/settings/social', label: 'Social Channels', icon: SocialIcon },
+      { to: '/settings/seo', label: 'SEO Metadata', icon: SeoIcon },
     ],
   },
   {
@@ -258,16 +249,6 @@ const navGroups: NavGroup[] = [
       { to: '/privacy/requests', label: 'Rights Request Queue', icon: ShieldIcon },
       { to: '/privacy/governance', label: 'Consent & Breach Register', icon: IncidentIcon },
       { to: '/privacy/retention', label: 'Retention & Erasure', icon: RetentionIcon },
-    ],
-  },
-  {
-    title: 'Portal Settings',
-    items: [
-      { to: '/settings/brand-intro', label: 'Brand Intro & Themes', icon: SparklesIcon },
-      { to: '/settings/content', label: 'Website CMS Editor', icon: ContentIcon },
-      { to: '/settings/site', label: 'Site Profile', icon: SettingsIcon },
-      { to: '/settings/social', label: 'Social Channels', icon: SocialIcon },
-      { to: '/settings/seo', label: 'SEO Metadata', icon: SeoIcon },
     ],
   },
 ];

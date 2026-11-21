@@ -46,8 +46,8 @@ export function WelcomeCodesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Generator form state
-  const [genTargetRole, setGenTargetRole] = useState<'CLIENT' | 'CA_FIRM'>('CLIENT');
+  // Generator form state (Super Admin generates CA Firm invite codes only)
+  const [genTargetRole] = useState<'CA_FIRM'>('CA_FIRM');
   const [genFirmName, setGenFirmName] = useState('');
   const [genCount, setGenCount] = useState(1);
   const [genLength, setGenLength] = useState(6);
@@ -213,18 +213,18 @@ export function WelcomeCodesPage() {
       <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white p-4 sm:p-6 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
-              🔒 Invite-Only Client Onboarding
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+              🏛️ CA Firm & Practice Onboarding
             </span>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-              5–8 Digits Unique
+              CA- Prefixed Unique Codes
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-2 flex items-center gap-2">
-            <span>🎟️</span> Client Welcome & Registration Codes
+            <span>🎟️</span> CA Firm Registration Welcome Codes
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-            Account registration is locked to authorized clients. Generate single or batch welcome codes, assign them to prospective clients, and track real-time registration redemptions.
+            Super Admin issues exclusive invitation codes to onboard Chartered Accountants and Tax Consultants. Individual CA firms generate client welcome codes directly inside their own practice portal.
           </p>
         </div>
 
@@ -563,40 +563,19 @@ export function WelcomeCodesPage() {
             </div>
 
             <form onSubmit={handleGenerate} className="mt-4 space-y-4 text-xs">
-              {/* Account Type Selector */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Target Account Type</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setGenTargetRole('CLIENT')}
-                    className={`p-2.5 rounded-xl border text-left transition ${
-                      genTargetRole === 'CLIENT'
-                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs ring-1 ring-indigo-500'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="font-bold text-xs">👤 Client Account</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Standard client onboarding</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGenTargetRole('CA_FIRM')}
-                    className={`p-2.5 rounded-xl border text-left transition ${
-                      genTargetRole === 'CA_FIRM'
-                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-xs ring-1 ring-indigo-500'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="font-bold text-xs text-indigo-900">🏛️ CA Firm / Consultant</div>
-                    <div className="text-[10px] text-indigo-600 mt-0.5">Generates CA- code & creates firm workspace</div>
-                  </button>
+              {/* Account Type Notice */}
+              <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-indigo-950 flex items-start gap-3 shadow-2xs">
+                <span className="text-2xl">🏛️</span>
+                <div>
+                  <div className="font-bold text-xs text-indigo-950">CA Firm / Practice Onboarding Code</div>
+                  <div className="text-[11px] text-indigo-800/90 mt-0.5 leading-relaxed">
+                    Super Admin generates invite codes exclusively for Chartered Accountants and Tax Consultants (automatically prefixed with <code className="bg-indigo-100/90 text-indigo-900 px-1 py-0.5 rounded font-mono font-bold">CA-</code>). Individual CA firms issue client welcome codes from their own portal.
+                  </div>
                 </div>
               </div>
 
-              {genTargetRole === 'CA_FIRM' && (
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">CA Firm / Practice Name (Optional)</label>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Target CA Firm / Practice Name (Optional)</label>
                   <input
                     type="text"
                     value={genFirmName}
@@ -608,7 +587,6 @@ export function WelcomeCodesPage() {
                     Pre-configures their practice workspace name upon registration.
                   </span>
                 </div>
-              )}
 
               {/* Format / Type */}
               <div>

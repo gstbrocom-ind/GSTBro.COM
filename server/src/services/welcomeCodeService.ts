@@ -6,6 +6,7 @@ export interface WelcomeCode {
   code: string;
   note: string | null;
   created_by?: string | null;
+  firm_id?: string | null;
   target_role?: 'CLIENT' | 'CA_FIRM' | null;
   firm_name?: string | null;
   used: boolean;
@@ -27,6 +28,7 @@ export interface GenerateCodesOptions {
   expiresInDays?: number | null;
   targetRole?: 'CLIENT' | 'CA_FIRM';
   firmName?: string;
+  firmId?: string | null;
 }
 
 const SETTINGS_KEY = 'welcome_codes_store';
@@ -166,6 +168,7 @@ export async function createWelcomeCodes(
       id: crypto.randomUUID(),
       code: cleanCustom,
       note: formattedNote,
+      firm_id: options.firmId || null,
       target_role: isCa ? 'CA_FIRM' : 'CLIENT',
       firm_name: firmName,
       created_by: adminId,
@@ -193,6 +196,7 @@ export async function createWelcomeCodes(
         id: crypto.randomUUID(),
         code,
         note: formattedNote,
+        firm_id: options.firmId || null,
         target_role: isCa ? 'CA_FIRM' : 'CLIENT',
         firm_name: firmName,
         created_by: adminId,
@@ -217,6 +221,8 @@ export async function createWelcomeCodes(
         code: c.code,
         note: c.note,
         created_by: c.created_by,
+        firm_id: c.firm_id || null,
+        target_role: c.target_role || 'CLIENT',
         used: c.used,
         expires_at: c.expires_at,
         created_at: c.created_at,
@@ -246,6 +252,8 @@ export async function verifyWelcomeCode(codeRaw: string): Promise<{
   error?: string;
   codeRecord?: WelcomeCode;
   isCaFirm?: boolean;
+  firmId?: string;
+  firmName?: string;
 }> {
   if (!codeRaw || typeof codeRaw !== 'string') {
     return { valid: false, error: 'A Welcome Code is required to create an account' };
@@ -299,12 +307,32 @@ export async function verifyWelcomeCode(codeRaw: string): Promise<{
     }
   }
 
+  let firmName: string | undefined;
+  if (record.firm_id) {
+    try {
+      const { data: firm } = await supabase
+        .from('firms')
+        .select('name')
+        .eq('id', record.firm_id)
+        .maybeSingle();
+      if (firm?.name) {
+        firmName = firm.name;
+      }
+    } catch {}
+  }
+
   const isCaFirm =
     record.target_role === 'CA_FIRM' ||
     record.code.startsWith('CA-') ||
     Boolean(record.note && record.note.includes('[CA_FIRM]'));
 
-  return { valid: true, codeRecord: record, isCaFirm };
+  return {
+    valid: true,
+    codeRecord: record,
+    isCaFirm,
+    firmId: record.firm_id || undefined,
+    firmName,
+  };
 }
 
 /**
@@ -464,7 +492,10 @@ export async function revokeWelcomeCode(id: string): Promise<boolean> {
 /**
  * Get comprehensive statistics for Welcome Codes
  */
-export async function getWelcomeCodesSummary(): Promise<{
+export async function getWelcomeCodesSummary(options?: {
+  firmId?: string | null;
+  targetRole?: 'CLIENT' | 'CA_FIRM';
+}): Promise<{
   total: number;
   available: number;
   used: number;
@@ -473,7 +504,18 @@ export async function getWelcomeCodesSummary(): Promise<{
   codes: WelcomeCode[];
   supportPhone?: string;
 }> {
-  const codes = await getAllWelcomeCodes();
+  let codes = await getAllWelcomeCodes();
+
+  // Filter by firmId if specified (for CA Firm Portal)
+  if (options?.firmId) {
+    codes = codes.filter((c) => c.firm_id === options.firmId);
+  } else if (options?.targetRole === 'CA_FIRM') {
+    // For Super Admin: show CA Firm codes (or legacy codes with no firm_id)
+    codes = codes.filter(
+      (c) => c.target_role === 'CA_FIRM' || c.code.startsWith('CA-') || !c.firm_id
+    );
+  }
+
   const now = Date.now();
 
   let available = 0;

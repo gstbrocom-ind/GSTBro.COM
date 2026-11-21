@@ -21,20 +21,9 @@ export function App() {
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="force-reset" element={<ForceResetPasswordPage />} />
       <Route element={<AdminLayout />}>
-        <Route index element={<DashboardPage />} />
+        <Route index element={<Navigate to="super-admin" replace />} />
         <Route path="super-admin" element={<SuperAdminPlatformPage />} />
-        <Route path="firm/drive-routing" element={<FirmDriveRoutingPage />} />
-        <Route path="dashboard/team" element={<TeamDashboardPage />} />
-        <Route path="leads" element={<LeadsPage />} />
-        <Route path="clients" element={<ClientsPage />} />
-        <Route path="clients/:id" element={<ClientWorkspacePage />} />
         <Route path="welcome-codes" element={<WelcomeCodesPage />} />
-        <Route path="messages" element={<ClientCommunicationsPage />} />
-        <Route path="activity-logs" element={<ActivityLogsPage />} />
-        <Route path="team" element={<TeamPage />} />
-        <Route path="drive" element={<DrivePage />} />
-        <Route path="due-dates" element={<DueDatesPage />} />
-        <Route path="fees" element={<FeesPage />} />
         <Route path="privacy/requests" element={<PrivacyRequestsAdminPage />} />
         <Route path="privacy/governance" element={<PrivacyGovernanceAdminPage />} />
         <Route path="privacy/retention" element={<PrivacyRetentionAdminPage />} />
@@ -43,6 +32,16 @@ export function App() {
         <Route path="settings/site" element={<SiteSettingsPage />} />
         <Route path="settings/social" element={<SocialSettingsPage />} />
         <Route path="settings/seo" element={<SeoSettingsPage />} />
+        {/* Redirect removed single-tenant operations back to super-admin */}
+        <Route path="clients" element={<Navigate to="/super-admin" replace />} />
+        <Route path="clients/*" element={<Navigate to="/super-admin" replace />} />
+        <Route path="team" element={<Navigate to="/super-admin" replace />} />
+        <Route path="messages" element={<Navigate to="/super-admin" replace />} />
+        <Route path="drive" element={<Navigate to="/super-admin" replace />} />
+        <Route path="due-dates" element={<Navigate to="/super-admin" replace />} />
+        <Route path="fees" element={<Navigate to="/super-admin" replace />} />
+        <Route path="leads" element={<Navigate to="/super-admin" replace />} />
+        <Route path="activity-logs" element={<Navigate to="/super-admin" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="." />} />
     </Routes>
