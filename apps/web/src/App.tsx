@@ -31,6 +31,7 @@ import { ContentProvider } from './context/ContentContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { BrandIntroOverlay } from './components/brand-intro/BrandIntroOverlay';
+import { CallbackBanner } from './components/CallbackBanner';
 import { initializeAnalytics, trackPageView } from './lib/analytics';
 import '../../admin/src/index.css';
 
@@ -84,6 +85,7 @@ function AppShell() {
   return (
     <>
       <BrandIntroOverlay onIntroActiveChange={setIntroActive} />
+      <CallbackBanner introActive={introActive} />
       <div
         id="main-app-container"
         className={

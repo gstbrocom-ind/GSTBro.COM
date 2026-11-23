@@ -20,6 +20,7 @@ import { revokeToken, setActiveUserSession, clearActiveUserSession } from '../se
 import { INDIAN_STATES, isValidIndianState } from '../constants/indianStates.js';
 import { verifyWelcomeCode, consumeWelcomeCode, provisionCaFirmOnRegistration } from '../services/welcomeCodeService.js';
 import { recordSignupConsents } from '../services/consentService.js';
+import { sendInstantCallbackAlert } from '../services/leadEmailService.js';
 
 import { uuidParamSchema, sanitizeText } from '../lib/security.js';
 import {
@@ -1231,6 +1232,75 @@ export async function leadsRoutes(app: FastifyInstance) {
 
     if (error) return reply.status(500).send({ error: 'Failed to submit lead' });
     return { lead: data, verified: true };
+  });
+
+  // Public endpoint: 5-second Instant Callback Banner lead submission
+  app.post('/api/leads/instant-callback', { config: { rateLimit: PUBLIC_LEADS_RATE_LIMIT } }, async (request, reply) => {
+    const bodySchema = z.object({
+      name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
+      phone: z.string().trim().regex(/^[6-9]\d{9}$/, 'Invalid Indian 10-digit mobile number'),
+      sourceUrl: z.string().trim().max(500).optional(),
+    });
+
+    const parsed = bodySchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: parsed.error.issues[0]?.message || 'Invalid lead submission parameters',
+      });
+    }
+
+    const { name, phone, sourceUrl } = parsed.data;
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const safeName = sanitizeText(name, 100);
+    const safeSource = sourceUrl ? sanitizeText(sourceUrl, 500) : 'Website';
+
+    // 1. Fetch configured destination email from site_settings (defaults to gstbro.com@gmail.com)
+    let destinationEmail = 'gstbro.com@gmail.com';
+    try {
+      const { data: settingRow } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'callback_banner_destination_email')
+        .maybeSingle();
+      if (settingRow?.value && settingRow.value.trim()) {
+        destinationEmail = settingRow.value.trim();
+      }
+    } catch (e) {
+      console.warn('Could not read callback_banner_destination_email setting, using default:', e);
+    }
+
+    // 2. Insert record into Supabase leads table
+    const { data: leadData, error: dbErr } = await supabase
+      .from('leads')
+      .insert({
+        name: safeName,
+        email: `${cleanPhone}@callback.gstbro.com`,
+        phone: `+91 ${cleanPhone}`,
+        service_type: 'GENERAL',
+        message: `[⚡ Instant CA Hotline Callback] Requested from: ${safeSource}`,
+      })
+      .select()
+      .single();
+
+    if (dbErr) {
+      console.error('[INSTANT CALLBACK] Supabase lead insertion error:', dbErr);
+    }
+
+    // 3. Dispatch urgent email alert to Super Admin via Resend
+    sendInstantCallbackAlert({
+      name: safeName,
+      phone: cleanPhone,
+      sourceUrl: safeSource,
+      destinationEmail,
+    }).catch((emailErr) => {
+      console.error('[INSTANT CALLBACK] Async email dispatch error:', emailErr);
+    });
+
+    return reply.status(200).send({
+      success: true,
+      message: 'Instant callback requested successfully',
+      leadId: leadData?.id ?? null,
+    });
   });
 
   app.get('/api/admin/leads', { preHandler: [authenticate, requireRole('ADMIN')] }, async () => {

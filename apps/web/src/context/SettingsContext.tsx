@@ -27,6 +27,16 @@ const DEFAULT_FALLBACK_SETTINGS: PublicSettings = {
     tagline: '',
     deferLoading: false,
   },
+  callbackBanner: {
+    enabled: true,
+    delaySeconds: 5,
+    destinationEmail: 'gstbro.com@gmail.com',
+    badge: '⭐ Instant CA Callback',
+    headline: 'Need Expert GST or Tax Help?',
+    description: 'Leave your number — our Senior Chartered Accountant will call you in 5 minutes.',
+    ctaText: 'Request Free Callback →',
+    successMessage: '🎉 Request Received! Our Senior CA is calling you in 5 minutes.',
+  },
   homepage: {
     heroEyebrow: 'Your Trusted Partner for GST Compliance',
     heroTitle: 'Never Worry About GST Deadlines, Penalties or Notices Again.',

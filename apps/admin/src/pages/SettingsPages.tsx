@@ -694,6 +694,14 @@ export function SiteSettingsPage() {
     home_stat_satisfaction: '',
     home_cta_title: '',
     home_cta_subtitle: '',
+    callback_banner_enabled: 'true',
+    callback_banner_delay_seconds: '5',
+    callback_banner_destination_email: 'gstbro.com@gmail.com',
+    callback_banner_badge: '⭐ Instant CA Callback',
+    callback_banner_headline: 'Need Expert GST or Tax Help?',
+    callback_banner_description: 'Leave your number — our Senior Chartered Accountant will call you in 5 minutes.',
+    callback_banner_cta_text: 'Request Free Callback →',
+    callback_banner_success_msg: '🎉 Request Received! Our Senior CA is calling you in 5 minutes.',
   });
 
   const [saved, setSaved] = useState(false);
@@ -735,6 +743,14 @@ export function SiteSettingsPage() {
           home_stat_satisfaction: d.homepage?.statSatisfaction ?? '',
           home_cta_title: d.homepage?.ctaTitle ?? '',
           home_cta_subtitle: d.homepage?.ctaSubtitle ?? '',
+          callback_banner_enabled: d.callbackBanner?.enabled ? 'true' : 'false',
+          callback_banner_delay_seconds: String(d.callbackBanner?.delaySeconds ?? 5),
+          callback_banner_destination_email: d.callbackBanner?.destinationEmail ?? 'gstbro.com@gmail.com',
+          callback_banner_badge: d.callbackBanner?.badge ?? '⭐ Instant CA Callback',
+          callback_banner_headline: d.callbackBanner?.headline ?? 'Need Expert GST or Tax Help?',
+          callback_banner_description: d.callbackBanner?.description ?? 'Leave your number — our Senior Chartered Accountant will call you in 5 minutes.',
+          callback_banner_cta_text: d.callbackBanner?.ctaText ?? 'Request Free Callback →',
+          callback_banner_success_msg: d.callbackBanner?.successMessage ?? '🎉 Request Received! Our Senior CA is calling you in 5 minutes.',
         })
       )
       .catch(() => {});
@@ -1308,6 +1324,181 @@ export function SiteSettingsPage() {
                 onChange={(e) => setSettings({ ...settings, home_cta_subtitle: e.target.value })}
                 rows={2}
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-relaxed"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 6: INSTANT HOTLINE CALLBACK BANNER & TIMING CONTROLS */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base">📞</span>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Instant Hotline Callback Banner & Timing
+                </h2>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Lead Gen Engine
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Controls the 5-second popup banner that captures client Name and Mobile number, then immediately dispatches an urgent lead email.
+              </p>
+            </div>
+
+            {/* Global Enabled Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600">Banner Active:</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    callback_banner_enabled: settings.callback_banner_enabled === 'true' ? 'false' : 'true',
+                  })
+                }
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  settings.callback_banner_enabled === 'true' ? 'bg-emerald-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    settings.callback_banner_enabled === 'true' ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Fallback / Delay seconds */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">
+                  Fallback Popup Delay (Seconds)
+                </label>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                  After Brand Intro
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Number of seconds to wait after the brand intro finishes before the banner smoothly appears.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={settings.callback_banner_delay_seconds}
+                  onChange={(e) => setSettings({ ...settings, callback_banner_delay_seconds: e.target.value })}
+                  className="w-24 px-3 py-2 text-xs rounded-xl border border-slate-300 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+                <span className="text-xs font-semibold text-slate-600">seconds</span>
+              </div>
+              {/* Quick preset buttons */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-500 font-semibold mr-1">Quick Presets:</span>
+                {['3', '5', '10', '15', '30'].map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => setSettings({ ...settings, callback_banner_delay_seconds: sec })}
+                    className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition ${
+                      settings.callback_banner_delay_seconds === sec
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    {sec}s
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Destination Email */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">
+                  Destination Alert Email
+                </label>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Instant Resend Alert
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Email address where all new hotline callback leads are delivered immediately with 1-tap call & WhatsApp links.
+              </p>
+              <input
+                type="email"
+                placeholder="gstbro.com@gmail.com"
+                value={settings.callback_banner_destination_email}
+                onChange={(e) => setSettings({ ...settings, callback_banner_destination_email: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+              <p className="text-[10px] text-slate-400">
+                Default: <code className="text-slate-600 font-semibold">gstbro.com@gmail.com</code>
+              </p>
+            </div>
+          </div>
+
+          {/* Copy Controls: Badge & Headline */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Top Badge Text</label>
+              <input
+                placeholder="⭐ Instant CA Callback"
+                value={settings.callback_banner_badge}
+                onChange={(e) => setSettings({ ...settings, callback_banner_badge: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-slate-700 mb-1">Banner Headline / Title</label>
+              <input
+                placeholder="Need Expert GST or Tax Help?"
+                value={settings.callback_banner_headline}
+                onChange={(e) => setSettings({ ...settings, callback_banner_headline: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+          </div>
+
+          {/* Copy Controls: Description (Full Textarea) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-slate-700">
+                Banner Description / Subtitle (Super Admin Editable)
+              </label>
+              <span className="text-[10px] text-slate-400">Visitor-facing persuasive copy</span>
+            </div>
+            <textarea
+              rows={2}
+              placeholder="Leave your number — our Senior Chartered Accountant will call you in 5 minutes."
+              value={settings.callback_banner_description}
+              onChange={(e) => setSettings({ ...settings, callback_banner_description: e.target.value })}
+              className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-relaxed"
+            />
+          </div>
+
+          {/* Copy Controls: CTA & Success Message */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Submit Button (CTA) Label</label>
+              <input
+                placeholder="Request Free Callback →"
+                value={settings.callback_banner_cta_text}
+                onChange={(e) => setSettings({ ...settings, callback_banner_cta_text: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-bold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Success Confirmation Message</label>
+              <input
+                placeholder="🎉 Request Received! Our Senior CA is calling you in 5 minutes."
+                value={settings.callback_banner_success_msg}
+                onChange={(e) => setSettings({ ...settings, callback_banner_success_msg: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-medium text-emerald-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
           </div>

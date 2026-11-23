@@ -15,6 +15,17 @@ export interface BrandIntroSettings {
   deferLoading?: boolean;
 }
 
+export interface CallbackBannerSettings {
+  enabled: boolean;
+  delaySeconds: number;
+  destinationEmail: string;
+  badge?: string;
+  headline?: string;
+  description?: string;
+  ctaText?: string;
+  successMessage?: string;
+}
+
 export interface PublicSettings {
   siteName: string;
   faviconUrl: string;
@@ -31,6 +42,7 @@ export interface PublicSettings {
   footerTagline?: string;
   businessHours?: string;
   brandIntro?: BrandIntroSettings;
+  callbackBanner?: CallbackBannerSettings;
   homepage: {
     heroEyebrow: string;
     heroTitle: string;

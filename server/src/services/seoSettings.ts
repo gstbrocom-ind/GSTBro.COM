@@ -28,6 +28,17 @@ export interface BrandIntroSettings {
   deferLoading?: boolean;
 }
 
+export interface CallbackBannerSettings {
+  enabled: boolean;
+  delaySeconds: number;
+  destinationEmail: string;
+  badge?: string;
+  headline?: string;
+  description?: string;
+  ctaText?: string;
+  successMessage?: string;
+}
+
 export interface PublicSettings {
   siteName: string;
   faviconUrl: string;
@@ -44,6 +55,7 @@ export interface PublicSettings {
   footerTagline?: string;
   businessHours?: string;
   brandIntro?: BrandIntroSettings;
+  callbackBanner?: CallbackBannerSettings;
   homepage: {
     heroEyebrow: string;
     heroTitle: string;
@@ -104,6 +116,16 @@ export async function getPublicSettings(): Promise<PublicSettings> {
       subtitle: map.brand_intro_subtitle || '',
       tagline: map.brand_intro_tagline || '',
       deferLoading: map.brand_intro_defer_loading === 'true',
+    },
+    callbackBanner: {
+      enabled: map.callback_banner_enabled !== 'false',
+      delaySeconds: parseInt(map.callback_banner_delay_seconds || '5', 10) || 5,
+      destinationEmail: map.callback_banner_destination_email || 'gstbro.com@gmail.com',
+      badge: map.callback_banner_badge || '⭐ Instant CA Callback',
+      headline: map.callback_banner_headline || 'Need Expert GST or Tax Help?',
+      description: map.callback_banner_description || 'Leave your number — our Senior Chartered Accountant will call you in 5 minutes.',
+      ctaText: map.callback_banner_cta_text || 'Request Free Callback →',
+      successMessage: map.callback_banner_success_msg || '🎉 Request Received! Our Senior CA is calling you in 5 minutes.',
     },
     homepage: {
       heroEyebrow: map.home_hero_eyebrow || 'Your Trusted Partner for GST Compliance',

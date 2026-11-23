@@ -56,6 +56,14 @@ const ALLOWED_SITE_KEYS = new Set([
   'brand_intro_defer_loading',
   'signup_phone_otp_enabled',
   'welcome_code_support_phone',
+  'callback_banner_enabled',
+  'callback_banner_delay_seconds',
+  'callback_banner_destination_email',
+  'callback_banner_badge',
+  'callback_banner_headline',
+  'callback_banner_description',
+  'callback_banner_cta_text',
+  'callback_banner_success_msg',
 ]);
 
 interface FaviconCache {
