@@ -175,7 +175,7 @@ export function Footer({ settings }: FooterProps) {
               </li>
               <li>
                 <a href="/login" className="text-slate-400 hover:text-white transition-colors">
-                  Client Portal Login
+                  Login
                 </a>
               </li>
               <li>
