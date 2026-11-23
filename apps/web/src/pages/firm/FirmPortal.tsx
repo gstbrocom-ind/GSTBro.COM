@@ -4,6 +4,7 @@ import { apiFetch, clearToken, getToken } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { PortalLoadingSkeleton } from '../../components/PortalLoadingSkeleton';
 import { InvoiceDashboard } from '../app/invoice/InvoiceDashboard';
+import { DayOneOnboardingModal } from './DayOneOnboardingModal';
 
 type FirmProfile = {
   id: string;
@@ -285,6 +286,7 @@ export function FirmPortal() {
 
   // Practice Client Welcome Codes State
   const [showClientCodesModal, setShowClientCodesModal] = useState(false);
+  const [showDayOneModal, setShowDayOneModal] = useState(false);
   const [firmCodesData, setFirmCodesData] = useState<{
     total: number;
     available: number;
@@ -2152,6 +2154,15 @@ export function FirmPortal() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => setShowDayOneModal(true)}
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer flex items-center gap-1.5 active:scale-95 border border-emerald-400/30"
+                    title="Paste raw WhatsApp chat or notes to generate complete 10-doc regulatory kit, invite code, and drive in 1 click"
+                  >
+                    <span className="text-sm">✨</span>
+                    <span>Day-One AI Onboarding</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => {
                       setShowClientCodesModal(true);
                       loadFirmWelcomeCodes();
@@ -3956,6 +3967,18 @@ export function FirmPortal() {
           </div>
         </div>
       )}
+
+      {/* Day-One AI Client Onboarding Suite Modal */}
+      <DayOneOnboardingModal
+        isOpen={showDayOneModal}
+        onClose={() => setShowDayOneModal(false)}
+        teamMembers={team}
+        onClientOnboarded={() => {
+          loadFirmData();
+          loadFirmWelcomeCodes();
+          showNotification('Client onboarded successfully via Day-One AI Kit!');
+        }}
+      />
 
       {/* ========================================================================= */}
       {/* MODAL: INVITE STAFF / ARTICLE                                             */}

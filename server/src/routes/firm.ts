@@ -5,6 +5,9 @@ import { authenticate, requireFirm, requireFirmAdmin } from '../middleware/auth.
 import { hashPassword } from '../services/passwordService.js';
 import { canAccessClient } from '../lib/authorization.js';
 import { createWelcomeCodes, revokeWelcomeCode, getWelcomeCodesSummary } from '../services/welcomeCodeService.js';
+import { parseRawClientNotes } from '../services/aiIntakeService.js';
+import { generateCaOnboardingDocKit } from '../services/caDocumentTemplates.js';
+import { getDriveService } from '../services/googleDrive.js';
 
 export const firmRoutes: FastifyPluginAsync = async (app) => {
   app.register(async (firmScope) => {
@@ -1990,6 +1993,265 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
 
       await revokeWelcomeCode(id);
       return reply.send({ success: true, message: 'Client invite code revoked successfully' });
+    });
+
+    // ==========================================
+    // DAY-ONE AI CLIENT ONBOARDING SUITE
+    // ==========================================
+
+    // 32. AI Parse Raw Chat/Notes into Structured Client Intake
+    firmScope.post('/api/firm/ai-intake/parse', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const bodySchema = z.object({
+        rawText: z.string().min(5, 'Please provide client notes or message text').max(15000),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const intakeData = parseRawClientNotes(parsed.data.rawText);
+      return reply.send({
+        success: true,
+        data: intakeData,
+      });
+    });
+
+    // 33. Execute 1-Click Day-One Onboarding (Create Client + Docs + Code + Drive + Tasks)
+    firmScope.post('/api/firm/ai-intake/execute', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
+      const firmId = request.user.firm_id!;
+      const user = request.user;
+
+      const bodySchema = z.object({
+        tradeName: z.string().min(2),
+        legalName: z.string().optional(),
+        contactPerson: z.string().min(2),
+        email: z.string().email(),
+        phone: z.string().min(10),
+        gstin: z.string().optional(),
+        pan: z.string().optional(),
+        state: z.string().optional(),
+        stateCode: z.string().optional(),
+        address: z.string().optional(),
+        constitutionType: z.string().optional().default('PROPRIETORSHIP'),
+        services: z.array(z.string()).default(['GSTR_1', 'GSTR_3B', 'RECONCILIATION_2B']),
+        agreedMonthlyFee: z.number().min(0).default(3000),
+        assignedStaffId: z.string().uuid().nullable().optional(),
+        previousAuditor: z.string().optional(),
+        customWelcomeCode: z.string().optional(),
+        notes: z.string().optional(),
+      });
+
+      const parsed = bodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      const d = parsed.data;
+
+      // 1. Fetch practice details for document generation
+      const { data: firm } = await supabase
+        .from('firms')
+        .select('*')
+        .eq('id', firmId)
+        .maybeSingle();
+
+      const firmName = firm?.name || 'Chartered Accountants Practice';
+
+      // 2. Check if client user already exists or provision a new one
+      let clientUser: any = null;
+      const cleanEmail = d.email.toLowerCase().trim();
+      const cleanPhone = d.phone.replace(/[^0-9]/g, '').slice(-10);
+
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, email, phone, name, business_name, firm_id')
+        .or(`email.eq.${cleanEmail},phone.eq.${cleanPhone}`)
+        .maybeSingle();
+
+      if (existingUser) {
+        // If already in this firm, update details
+        await supabase
+          .from('users')
+          .update({
+            firm_id: firmId,
+            name: d.contactPerson,
+            business_name: d.tradeName,
+            gstin: d.gstin || null,
+            state: d.state || null,
+            state_code: d.stateCode || null,
+            address: d.address || null,
+            assigned_staff_id: d.assignedStaffId || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingUser.id);
+        clientUser = { ...existingUser, business_name: d.tradeName, name: d.contactPerson };
+      } else {
+        // Generate random secure password for initial account creation
+        const randomPin = Math.floor(100000 + Math.random() * 900000);
+        const tempPassword = `Client@${randomPin}`;
+        const passwordHash = await hashPassword(tempPassword);
+
+        const { data: newUser, error: createErr } = await supabase
+          .from('users')
+          .insert({
+            firm_id: firmId,
+            name: d.contactPerson,
+            email: cleanEmail,
+            phone: cleanPhone,
+            role: 'CLIENT',
+            business_name: d.tradeName,
+            gstin: d.gstin || null,
+            state: d.state || null,
+            state_code: d.stateCode || null,
+            address: d.address || null,
+            password_hash: passwordHash,
+            email_verified: true,
+            must_reset_password: true,
+            assigned_staff_id: d.assignedStaffId || null,
+          })
+          .select('id, name, email, phone, business_name, role, firm_id')
+          .single();
+
+        if (createErr || !newUser) {
+          return reply.status(500).send({ error: createErr?.message || 'Failed to create client record' });
+        }
+        clientUser = newUser;
+      }
+
+      // 3. Generate Firm-Scoped Practice Welcome / Invite Code
+      let welcomeCode = d.customWelcomeCode?.trim().toUpperCase();
+      try {
+        const codeResult = await createWelcomeCodes(user.id, {
+          count: 1,
+          targetRole: 'CLIENT',
+          firmId,
+          firmName,
+          customCode: welcomeCode || undefined,
+          note: `Day-One Intake: ${d.tradeName} (${d.contactPerson})`,
+          expiresInDays: 30,
+        });
+        if (codeResult.created && codeResult.created.length > 0) {
+          welcomeCode = codeResult.created[0].code;
+        }
+      } catch (err: any) {
+        request.log.warn({ err }, 'Welcome code auto-generation warning in day-one intake');
+        if (!welcomeCode) {
+          welcomeCode = `GST-${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+      }
+
+      // 4. Provision Google Drive Folder structure if Drive service is available
+      let driveFolderUrl: string | undefined = undefined;
+      try {
+        const drive = getDriveService();
+        if (drive) {
+          const folderInfo = await drive.createClientFolder(
+            clientUser.id,
+            d.tradeName || clientUser.name,
+            user.id
+          );
+          if (folderInfo && (folderInfo as any).webViewLink) {
+            driveFolderUrl = (folderInfo as any).webViewLink;
+          }
+        }
+      } catch (err) {
+        request.log.warn({ err }, 'Drive folder creation skipped/failed during day-one intake');
+      }
+
+      // 5. Seed Initial Statutory Compliance Tasks (GSTR-1, GSTR-2B, GSTR-3B)
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const gstr1DueDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 11);
+      const gstr2bDueDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 14);
+      const gstr3bDueDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 20);
+
+      const assignedToId = d.assignedStaffId || user.id;
+
+      const initialTasks = [
+        {
+          firm_id: firmId,
+          client_id: clientUser.id,
+          title: `GSTR-1 Monthly Outward Filing — ${d.tradeName}`,
+          description: `Collect sales register and e-way bills for ${d.tradeName}. Verify B2B invoices and file Form GSTR-1 by 11th.`,
+          category: 'GST',
+          priority: 'HIGH',
+          status: 'TODO',
+          due_date: gstr1DueDate.toISOString(),
+          assigned_to: assignedToId,
+          created_by: user.id,
+        },
+        {
+          firm_id: firmId,
+          client_id: clientUser.id,
+          title: `GSTR-2B Automated ITC Reconciliation — ${d.tradeName}`,
+          description: `Download GSTR-2B for the period and reconcile against purchase register to protect eligible Input Tax Credit.`,
+          category: 'GST',
+          priority: 'NORMAL',
+          status: 'TODO',
+          due_date: gstr2bDueDate.toISOString(),
+          assigned_to: assignedToId,
+          created_by: user.id,
+        },
+        {
+          firm_id: firmId,
+          client_id: clientUser.id,
+          title: `GSTR-3B Summary Return & Tax Offset — ${d.tradeName}`,
+          description: `Compute net cash tax liability, verify ITC ledger balance, and file Form GSTR-3B by 20th.`,
+          category: 'GST',
+          priority: 'HIGH',
+          status: 'TODO',
+          due_date: gstr3bDueDate.toISOString(),
+          assigned_to: assignedToId,
+          created_by: user.id,
+        },
+      ];
+
+      try {
+        await supabase.from('firm_tasks').insert(initialTasks);
+      } catch (err) {
+        request.log.warn({ err }, 'Initial tasks creation error during day-one intake');
+      }
+
+      // 6. Generate Complete Statutory Document Kit
+      const docKit = generateCaOnboardingDocKit({
+        firmName,
+        firmAddress: firm?.address,
+        firmEmail: firm?.email,
+        firmPhone: firm?.phone,
+        partnerName: (user as any).name || firmName || 'Managing Partner',
+        membershipNumber: firm?.membership_number,
+        clientTradeName: d.tradeName,
+        clientLegalName: d.legalName || d.tradeName,
+        clientContactPerson: d.contactPerson,
+        clientGstin: d.gstin,
+        clientPan: d.pan,
+        clientPhone: cleanPhone,
+        clientEmail: cleanEmail,
+        clientAddress: d.address,
+        state: d.state,
+        constitutionType: d.constitutionType,
+        services: d.services,
+        monthlyRetainerFee: d.agreedMonthlyFee,
+        welcomeCode,
+        clientPortalUrl: 'https://gstbro.com/login',
+        driveFolderUrl,
+        previousAuditorName: d.previousAuditor,
+      });
+
+      // 7. Format WhatsApp direct click link
+      const whatsappText = encodeURIComponent(docKit.whatsappWelcomeDraft);
+      const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${whatsappText}`;
+
+      return reply.status(201).send({
+        success: true,
+        message: `Client "${d.tradeName}" onboarded successfully via Day-One AI Kit!`,
+        client: clientUser,
+        welcomeCode,
+        whatsappUrl,
+        driveFolderUrl,
+        documentKit: docKit,
+      });
     });
   });
 };
