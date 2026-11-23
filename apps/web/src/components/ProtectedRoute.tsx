@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { ReactNode } from 'react';
 
-type SupportedRole = 'ADMIN' | 'SUPER_ADMIN' | 'FIRM_OWNER' | 'FIRM_STAFF' | 'TEAM' | 'CLIENT';
+type SupportedRole = 'ADMIN' | 'SUPER_ADMIN' | 'FIRM_OWNER' | 'FIRM_PARTNER' | 'FIRM_STAFF' | 'TEAM' | 'CLIENT';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -14,6 +14,7 @@ const ROLE_HOME: Record<SupportedRole, string> = {
   CLIENT: '/dashboard',
   TEAM: '/team',
   FIRM_OWNER: '/firm',
+  FIRM_PARTNER: '/firm',
   FIRM_STAFF: '/firm',
   ADMIN: '/admin',
   SUPER_ADMIN: '/admin',
@@ -56,7 +57,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
   // 5. Extra guard: prevent CA Firm users from accidentally rendering /dashboard or /client
   if (
-    (user.role === 'FIRM_OWNER' || user.role === 'FIRM_STAFF') &&
+    (user.role === 'FIRM_OWNER' || user.role === 'FIRM_PARTNER' || user.role === 'FIRM_STAFF') &&
     (location.pathname === '/dashboard' || location.pathname.startsWith('/client'))
   ) {
     return <Navigate to="/firm" replace />;

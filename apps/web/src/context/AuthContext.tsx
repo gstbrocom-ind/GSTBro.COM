@@ -5,13 +5,17 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'SUPER_ADMIN' | 'FIRM_OWNER' | 'FIRM_STAFF' | 'TEAM' | 'CLIENT';
+  role: 'ADMIN' | 'SUPER_ADMIN' | 'FIRM_OWNER' | 'FIRM_PARTNER' | 'FIRM_STAFF' | 'TEAM' | 'CLIENT';
   firm_id?: string | null;
   firm_role?: string | null;
   businessName?: string | null;
   phone?: string | null;
   gstin?: string | null;
   state?: string | null;
+  icaiMembershipNo?: string | null;
+  icaiMembershipType?: 'FCA' | 'ACA' | null;
+  copNumber?: string | null;
+  partnerDesignation?: string | null;
   mustResetPassword?: boolean;
   mobileVerified?: boolean;
 }

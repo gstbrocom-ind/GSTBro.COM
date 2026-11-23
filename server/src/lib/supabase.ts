@@ -5,8 +5,8 @@ export const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-export type UserRole = 'CLIENT' | 'TEAM' | 'ADMIN' | 'SUPER_ADMIN' | 'FIRM_OWNER' | 'FIRM_STAFF';
-export type FirmRole = 'FIRM_OWNER' | 'FIRM_MANAGER' | 'FIRM_STAFF';
+export type UserRole = 'CLIENT' | 'TEAM' | 'ADMIN' | 'SUPER_ADMIN' | 'FIRM_OWNER' | 'FIRM_PARTNER' | 'FIRM_STAFF';
+export type FirmRole = 'FIRM_OWNER' | 'FIRM_PARTNER' | 'FIRM_MANAGER' | 'FIRM_STAFF';
 export type ServiceType = 'REGISTRATION' | 'RETURNS' | 'CANCELLATION' | 'GENERAL';
 export type CaseStatus = 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'ACTION_REQUIRED' | 'COMPLETED' | 'CANCELLED';
 export type DriveOwnerType = 'CLIENT' | 'TEAM';
@@ -92,6 +92,10 @@ export interface User {
   mobile_verified_at?: string | null;
   mobile_verification_method?: string | null;
   must_reset_password?: boolean;
+  icai_membership_no?: string | null;
+  icai_membership_type?: 'FCA' | 'ACA' | null;
+  cop_number?: string | null;
+  partner_designation?: string | null;
   created_at: string;
 }
 

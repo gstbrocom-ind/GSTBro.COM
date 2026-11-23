@@ -686,13 +686,13 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
 
       let teamQuery = supabase
         .from('users')
-        .select('id, name, email, phone, role, firm_role, team_group, created_at')
+        .select('id, name, email, phone, role, firm_role, team_group, icai_membership_no, icai_membership_type, cop_number, partner_designation, created_at')
         .eq('firm_id', firmId)
-        .in('role', ['TEAM', 'FIRM_STAFF', 'FIRM_OWNER', 'ADMIN']);
+        .in('role', ['TEAM', 'FIRM_STAFF', 'FIRM_PARTNER', 'FIRM_OWNER', 'ADMIN']);
 
       // If Article Clerk, they only see themselves and Practice Partners/Managers (for escalation/contact)
       if (isStaff) {
-        teamQuery = teamQuery.or(`id.eq.${request.user.id},firm_role.eq.FIRM_OWNER,firm_role.eq.FIRM_MANAGER,role.eq.FIRM_OWNER`);
+        teamQuery = teamQuery.or(`id.eq.${request.user.id},firm_role.eq.FIRM_OWNER,firm_role.eq.FIRM_PARTNER,firm_role.eq.FIRM_MANAGER,role.eq.FIRM_OWNER,role.eq.FIRM_PARTNER`);
       }
 
       const [teamRes, clientsRes] = await Promise.all([
@@ -723,16 +723,20 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ team });
     });
 
-    // 16. Invite / Add Team Member (Article / Manager)
+    // 16. Invite / Add Team Member (Partner / Article / Manager)
     firmScope.post('/api/firm/team/invite', { preHandler: [requireFirmAdmin()] }, async (request, reply) => {
       const firmId = request.user.firm_id!;
       const bodySchema = z.object({
         name: z.string().min(2),
         email: z.string().email(),
-        phone: z.string().optional(),
-        firm_role: z.enum(['FIRM_MANAGER', 'FIRM_STAFF']).default('FIRM_STAFF'),
+        phone: z.string().optional().nullable(),
+        firm_role: z.enum(['FIRM_PARTNER', 'FIRM_MANAGER', 'FIRM_STAFF']).default('FIRM_STAFF'),
         team_group: z.string().default('General'),
-        password: z.string().min(8).default('Staff@123456'),
+        password: z.string().min(8).optional(),
+        icai_membership_no: z.string().optional().nullable(),
+        icai_membership_type: z.enum(['FCA', 'ACA']).optional().nullable(),
+        cop_number: z.string().optional().nullable(),
+        partner_designation: z.string().optional().nullable(),
       });
 
       const parsed = bodySchema.safeParse(request.body);
@@ -740,7 +744,10 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(400).send({ error: parsed.error.format() });
       }
 
-      const passwordHash = await hashPassword(parsed.data.password);
+      const isPartner = parsed.data.firm_role === 'FIRM_PARTNER';
+      const role = isPartner ? 'FIRM_PARTNER' : 'FIRM_STAFF';
+      const defaultPassword = parsed.data.password || (isPartner ? 'Partner@123456' : 'Staff@123456');
+      const passwordHash = await hashPassword(defaultPassword);
 
       const { data, error } = await supabase
         .from('users')
@@ -749,14 +756,18 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
           name: parsed.data.name,
           email: parsed.data.email.toLowerCase().trim(),
           phone: parsed.data.phone || null,
-          role: 'FIRM_STAFF',
+          role: role,
           firm_role: parsed.data.firm_role,
-          team_group: parsed.data.team_group,
+          team_group: isPartner ? 'Executive Partners' : parsed.data.team_group,
+          icai_membership_no: parsed.data.icai_membership_no || null,
+          icai_membership_type: parsed.data.icai_membership_type || null,
+          cop_number: parsed.data.cop_number || null,
+          partner_designation: parsed.data.partner_designation || null,
           password_hash: passwordHash,
           email_verified: true,
           must_reset_password: true,
         })
-        .select('id, name, email, phone, role, firm_role, team_group, created_at')
+        .select('id, name, email, phone, role, firm_role, team_group, icai_membership_no, icai_membership_type, cop_number, partner_designation, created_at')
         .single();
 
       if (error) {
@@ -843,10 +854,17 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         return reply.status(404).send({ error: 'Team member not found in your firm.' });
       }
 
-      // Prevent non-owners from deleting a firm owner
-      if (member.role === 'FIRM_OWNER' || member.firm_role === 'FIRM_OWNER') {
-        if (request.user.role !== 'FIRM_OWNER' && request.user.firm_role !== 'FIRM_OWNER') {
-          return reply.status(403).send({ error: 'Only a Firm Partner can remove another Partner.' });
+      // Prevent non-partners from deleting a firm owner or partner
+      if (member.role === 'FIRM_OWNER' || member.firm_role === 'FIRM_OWNER' || member.role === 'FIRM_PARTNER' || member.firm_role === 'FIRM_PARTNER') {
+        const callerIsOwnerOrPartner = 
+          request.user.role === 'FIRM_OWNER' || 
+          request.user.firm_role === 'FIRM_OWNER' ||
+          request.user.role === 'FIRM_PARTNER' || 
+          request.user.firm_role === 'FIRM_PARTNER' ||
+          request.user.role === 'ADMIN';
+
+        if (!callerIsOwnerOrPartner) {
+          return reply.status(403).send({ error: 'Only a Firm Partner or Owner can manage partner accounts.' });
         }
       }
 
@@ -2037,6 +2055,7 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         services: z.array(z.string()).default(['GSTR_1', 'GSTR_3B', 'RECONCILIATION_2B']),
         agreedMonthlyFee: z.number().min(0).default(3000),
         assignedStaffId: z.string().uuid().nullable().optional(),
+        signingPartnerId: z.string().uuid().nullable().optional(),
         previousAuditor: z.string().optional(),
         customWelcomeCode: z.string().optional(),
         notes: z.string().optional(),
@@ -2213,14 +2232,35 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
         request.log.warn({ err }, 'Initial tasks creation error during day-one intake');
       }
 
-      // 6. Generate Complete Statutory Document Kit
+      // 6. Resolve Signing Partner for Statutory Documents
+      let signingPartner: any = null;
+      if (d.signingPartnerId) {
+        const { data: pData } = await supabase
+          .from('users')
+          .select('id, name, icai_membership_no, icai_membership_type, cop_number, partner_designation')
+          .eq('id', d.signingPartnerId)
+          .eq('firm_id', firmId)
+          .maybeSingle();
+        if (pData) signingPartner = pData;
+      }
+
+      const partnerName = signingPartner?.name || (user as any).name || firmName || 'Managing Partner';
+      const membershipNumber = signingPartner?.icai_membership_no || (user as any).icai_membership_no || firm?.membership_number;
+      const membershipType = signingPartner?.icai_membership_type || (user as any).icai_membership_type;
+      const copNumber = signingPartner?.cop_number || (user as any).cop_number;
+      const partnerDesignation = signingPartner?.partner_designation || (user as any).partner_designation;
+
+      // Generate Complete Statutory Document Kit
       const docKit = generateCaOnboardingDocKit({
         firmName,
         firmAddress: firm?.address,
         firmEmail: firm?.email,
         firmPhone: firm?.phone,
-        partnerName: (user as any).name || firmName || 'Managing Partner',
-        membershipNumber: firm?.membership_number,
+        partnerName,
+        membershipNumber,
+        membershipType,
+        copNumber,
+        partnerDesignation,
         clientTradeName: d.tradeName,
         clientLegalName: d.legalName || d.tradeName,
         clientContactPerson: d.contactPerson,

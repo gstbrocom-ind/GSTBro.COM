@@ -30,7 +30,7 @@ export function InvoiceDashboard({ clientId }: { clientId?: string }) {
   const [clients, setClients] = useState<Array<{ id: string; name: string; business_name?: string; email: string }>>([]);
   const [selectedVendorId, setSelectedVendorId] = useState<string>(clientId || user?.id || '');
 
-  const canSwitchVendor = ['ADMIN', 'SUPER_ADMIN', 'TEAM', 'FIRM_OWNER', 'FIRM_STAFF'].includes(user?.role || '');
+  const canSwitchVendor = ['ADMIN', 'SUPER_ADMIN', 'TEAM', 'FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF'].includes(user?.role || '');
 
   useEffect(() => {
     if (clientId) {
@@ -47,7 +47,7 @@ export function InvoiceDashboard({ clientId }: { clientId?: string }) {
   async function loadClients() {
     try {
       let endpoint = '/api/admin/clients';
-      if (user?.role === 'FIRM_OWNER' || user?.role === 'FIRM_STAFF') {
+      if (user?.role === 'FIRM_OWNER' || user?.role === 'FIRM_PARTNER' || user?.role === 'FIRM_STAFF') {
         endpoint = '/api/firm/clients';
       } else if (user?.role === 'TEAM') {
         endpoint = '/api/team/dashboard';
@@ -71,7 +71,7 @@ export function InvoiceDashboard({ clientId }: { clientId?: string }) {
             <span className="font-bold text-amber-400 uppercase tracking-wider">
               {user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
                 ? '👑 Super Admin Tool Mode'
-                : user?.role === 'FIRM_OWNER'
+                : user?.role === 'FIRM_OWNER' || user?.role === 'FIRM_PARTNER'
                 ? '🏛️ CA Firm Practice Tool'
                 : user?.role === 'FIRM_STAFF'
                 ? '👨‍💼 Article / Staff Workbench'

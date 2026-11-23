@@ -10,6 +10,9 @@ export interface DocumentGenerationContext {
   firmPhone?: string | null;
   partnerName: string;
   membershipNumber?: string | null;
+  membershipType?: 'FCA' | 'ACA' | string | null;
+  copNumber?: string | null;
+  partnerDesignation?: string | null;
   clientTradeName: string;
   clientLegalName?: string;
   clientContactPerson: string;
@@ -116,8 +119,8 @@ Date:
 *Chartered Accountants*  
 
 _____________________________________  
-**${partnerName}**, FCA / ACA  
-Membership No.: ${ctx.membershipNumber || '[ICAI M.No.]'}  
+**${partnerName}**, ${ctx.membershipType || 'Chartered Accountant'}${ctx.partnerDesignation ? ` (${ctx.partnerDesignation})` : ''}  
+Membership No.: ${ctx.membershipNumber || '[ICAI M.No.]'}${ctx.copNumber ? ` | COP No.: ${ctx.copNumber}` : ''}  
 `;
 
   // 2. Previous Auditor NOC Draft (Clause 8, Part I, First Schedule, CA Act 1949)
@@ -150,8 +153,8 @@ Yours faithfully,
 *Chartered Accountants*  
 
 _____________________________________  
-**${partnerName}**, Partner  
-Membership No: ${ctx.membershipNumber || '[ICAI M.No.]'}  
+**${partnerName}**, ${ctx.partnerDesignation || 'Partner'}  
+Membership No: ${ctx.membershipNumber || '[ICAI M.No.]'}${ctx.copNumber ? ` | COP No: ${ctx.copNumber}` : ''}  
 Contact: ${ctx.firmEmail || '[Practice Email]'} | ${ctx.firmPhone || '[Practice Phone]'}  
 `;
 

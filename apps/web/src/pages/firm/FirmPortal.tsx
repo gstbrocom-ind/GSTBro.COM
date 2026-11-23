@@ -77,6 +77,10 @@ type TeamMember = {
   role: string;
   firm_role: string;
   team_group?: string;
+  icai_membership_no?: string | null;
+  icai_membership_type?: 'FCA' | 'ACA' | null;
+  cop_number?: string | null;
+  partner_designation?: string | null;
   assignedClientsCount: number;
 };
 
@@ -278,6 +282,7 @@ export function FirmPortal() {
   const [showRecurringRulesModal, setShowRecurringRulesModal] = useState(false);
   const [showNewClientModal, setShowNewClientModal] = useState(false);
   const [showInviteStaffModal, setShowInviteStaffModal] = useState(false);
+  const [showInvitePartnerModal, setShowInvitePartnerModal] = useState(false);
   const [showOverrideDateModal, setShowOverrideDateModal] = useState<DueDateItem | null>(null);
   const [showNewDscModal, setShowNewDscModal] = useState(false);
   const [showHandoverModal, setShowHandoverModal] = useState(false);
@@ -343,6 +348,18 @@ export function FirmPortal() {
     phone: '',
     firm_role: 'FIRM_STAFF' as 'FIRM_MANAGER' | 'FIRM_STAFF',
     team_group: 'General',
+    password: '',
+  });
+
+  // Invite partner form state (ICAI Credentials & Co-Executive parity)
+  const [invitePartnerForm, setInvitePartnerForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    icai_membership_no: '',
+    icai_membership_type: 'FCA' as 'FCA' | 'ACA',
+    cop_number: '',
+    partner_designation: 'Partner — Indirect Tax & GST',
     password: '',
   });
 
@@ -1019,7 +1036,45 @@ export function FirmPortal() {
     }
   };
 
-  // Staff actions
+  // Partner & Staff actions
+  const handleInvitePartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await apiFetch<{ success: boolean; member: TeamMember }>('/api/firm/team/invite', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: invitePartnerForm.name.trim(),
+          email: invitePartnerForm.email.trim().toLowerCase(),
+          phone: invitePartnerForm.phone.trim() || undefined,
+          firm_role: 'FIRM_PARTNER',
+          team_group: 'Executive Partners',
+          password: invitePartnerForm.password.trim() || 'Partner@123456',
+          icai_membership_no: invitePartnerForm.icai_membership_no.trim() || undefined,
+          icai_membership_type: invitePartnerForm.icai_membership_type,
+          cop_number: invitePartnerForm.cop_number.trim() || undefined,
+          partner_designation: invitePartnerForm.partner_designation.trim() || 'Partner',
+        }),
+      });
+      if (res.success && res.member) {
+        setTeam((prev) => [...prev, { ...res.member, assignedClientsCount: 0 }]);
+        setShowInvitePartnerModal(false);
+        setInvitePartnerForm({
+          name: '',
+          email: '',
+          phone: '',
+          icai_membership_no: '',
+          icai_membership_type: 'FCA',
+          cop_number: '',
+          partner_designation: 'Partner — Indirect Tax & GST',
+          password: '',
+        });
+        showNotification('CA Partner invited with full co-ownership & statutory signing authority!');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to invite CA Partner');
+    }
+  };
+
   const handleInviteStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -1366,7 +1421,7 @@ export function FirmPortal() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-slate-300 font-medium">{user?.name}</span>
             <span className="text-slate-500">
-              ({user?.role === 'FIRM_OWNER' ? 'Partner / CA' : user?.firm_role === 'FIRM_MANAGER' ? 'Manager' : 'Article Clerk'})
+              ({user?.role === 'FIRM_OWNER' ? 'Firm Owner / Partner' : user?.role === 'FIRM_PARTNER' ? 'CA Partner (Co-Executive)' : user?.firm_role === 'FIRM_MANAGER' ? 'Manager' : 'Article Clerk'})
             </span>
           </div>
 
@@ -3050,19 +3105,34 @@ export function FirmPortal() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-white">Team & Article Workload</h2>
-                <p className="text-xs text-slate-400">Invite article clerks, reassign portfolios, and balance workloads</p>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>Partners &amp; Practice Team</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    {team.length} Members
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Manage CA Partners with equal co-ownership, article clerks, portfolios, and workload handovers.
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setShowHandoverModal(true)}
                   className="px-3.5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
                 >
                   <span>🔄 1-Click Handover / Transfer</span>
                 </button>
+                {!isStaff && (
+                  <button
+                    onClick={() => setShowInvitePartnerModal(true)}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer transition transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span>⭐ + Add CA Partner</span>
+                  </button>
+                )}
                 <button
                   onClick={() => setShowInviteStaffModal(true)}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer transition"
                 >
                   + Invite Article Clerk / Staff
                 </button>
@@ -3070,37 +3140,100 @@ export function FirmPortal() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {team.map((member) => (
-                <div key={member.id} className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-sm text-white">{member.name}</h4>
-                      <p className="text-xs text-slate-400">{member.email}</p>
-                    </div>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      {member.firm_role === 'FIRM_MANAGER' ? 'Manager' : member.role === 'FIRM_OWNER' ? 'Partner' : 'Article Clerk'}
-                    </span>
-                  </div>
+              {team.map((member) => {
+                const isMemberPartner = member.role === 'FIRM_PARTNER' || member.role === 'FIRM_OWNER' || member.firm_role === 'FIRM_OWNER' || member.firm_role === 'FIRM_PARTNER';
+                const isMemberOwner = member.role === 'FIRM_OWNER' || member.firm_role === 'FIRM_OWNER';
 
-                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Assigned Clients:</span>
-                    <div className="flex items-center gap-3">
-                      <span className="font-black text-sm text-white">{member.assignedClientsCount} Clients</span>
-                      {!isStaff && member.role !== 'FIRM_OWNER' && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTeamMember(member.id, member.name)}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-300 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 transition flex items-center gap-1 cursor-pointer shadow-xs"
-                          title="Remove Team Member from Firm"
-                        >
-                          <span>🗑️</span>
-                          <span>Remove</span>
-                        </button>
-                      )}
+                return (
+                  <div
+                    key={member.id}
+                    className={`p-5 rounded-2xl border space-y-3 transition-all ${
+                      isMemberPartner
+                        ? 'bg-gradient-to-b from-slate-900/90 to-slate-950 border-amber-500/30 shadow-lg shadow-amber-950/20'
+                        : 'bg-slate-950 border-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm text-white">{member.name}</h4>
+                          {isMemberPartner && (
+                            <span className="text-amber-400 text-xs" title="ICAI Authorized Partner">
+                              ⭐
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400">{member.email}</p>
+                        {member.phone && <p className="text-[11px] text-slate-500 font-mono">📱 {member.phone}</p>}
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                          isMemberOwner
+                            ? 'bg-amber-400/10 text-amber-300 border-amber-400/30'
+                            : isMemberPartner
+                            ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                            : member.firm_role === 'FIRM_MANAGER'
+                            ? 'bg-purple-500/10 text-purple-300 border-purple-500/20'
+                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                        }`}
+                      >
+                        {isMemberOwner
+                          ? '🏛️ Firm Owner'
+                          : isMemberPartner
+                          ? '⭐ CA Partner'
+                          : member.firm_role === 'FIRM_MANAGER'
+                          ? 'Manager'
+                          : 'Article Clerk'}
+                      </span>
+                    </div>
+
+                    {/* ICAI Partner Regulatory Credentials */}
+                    {isMemberPartner && (
+                      <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] space-y-1">
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span className="text-slate-400">Designation:</span>
+                          <span className="font-semibold text-amber-200">{member.partner_designation || 'Practice Partner'}</span>
+                        </div>
+                        {member.icai_membership_no && (
+                          <div className="flex items-center justify-between text-slate-300">
+                            <span className="text-slate-400">ICAI Membership:</span>
+                            <span className="font-mono font-bold text-white">
+                              {member.icai_membership_no} ({member.icai_membership_type || 'FCA'})
+                            </span>
+                          </div>
+                        )}
+                        {member.cop_number && (
+                          <div className="flex items-center justify-between text-slate-300">
+                            <span className="text-slate-400">COP No.:</span>
+                            <span className="font-mono text-slate-200">{member.cop_number}</span>
+                          </div>
+                        )}
+                        <div className="pt-1 border-t border-slate-800/80 flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold">
+                          <span>✓ Full Co-Ownership &amp; SA 210 Signing Parity</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                      <span className="text-xs text-slate-400">Assigned Clients:</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-black text-sm text-white">{member.assignedClientsCount} Clients</span>
+                        {!isStaff && !isMemberOwner && member.id !== user?.id && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTeamMember(member.id, member.name)}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-300 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/60 transition flex items-center gap-1 cursor-pointer shadow-xs"
+                            title={isMemberPartner ? 'Remove Partner from Firm' : 'Remove Team Member from Firm'}
+                          >
+                            <span>🗑️</span>
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -3979,6 +4112,163 @@ export function FirmPortal() {
           showNotification('Client onboarded successfully via Day-One AI Kit!');
         }}
       />
+
+      {/* ========================================================================= */}
+      {/* MODAL: INVITE CA PRACTICE PARTNER (CO-EXECUTIVE)                          */}
+      {/* ========================================================================= */}
+      {showInvitePartnerModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <form
+            onSubmit={handleInvitePartner}
+            className="w-full max-w-lg bg-slate-950 border border-amber-500/40 rounded-3xl p-6 sm:p-7 space-y-4 shadow-2xl shadow-amber-950/30 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🏛️</span>
+                <div>
+                  <h3 className="font-bold text-base text-white">Add CA Practice Partner</h3>
+                  <p className="text-[11px] text-amber-400/90 font-medium">Equal Executive Co-Ownership &amp; ICAI Regulatory Authority</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInvitePartnerModal(false)}
+                className="text-slate-400 hover:text-white text-lg p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-200/90 space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-amber-300">
+                <span>🛡️ Executive Privileges Granted:</span>
+              </p>
+              <p className="leading-relaxed">
+                Newly invited Partners hold 100% administrative parity with the Firm Owner — including all client tax files, Day-One AI onboarding, team governance, and signing authority for ICAI SA 210 Engagement Letters.
+              </p>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Partner Full Name *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CA Rajesh Kumar"
+                    required
+                    value={invitePartnerForm.name}
+                    onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, name: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Professional Email *</label>
+                  <input
+                    type="email"
+                    placeholder="rajesh@firm.com"
+                    required
+                    value={invitePartnerForm.email}
+                    onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, email: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Mobile / WhatsApp Number</label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. 9876543210"
+                    value={invitePartnerForm.phone}
+                    onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, phone: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Partner Designation</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Partner — Indirect Tax"
+                    value={invitePartnerForm.partner_designation}
+                    onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, partner_designation: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* ICAI Regulatory Credentials */}
+              <div className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3">
+                <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">
+                  ICAI Compliance &amp; Signatory Credentials
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="sm:col-span-1">
+                    <label className="block font-semibold text-slate-400 text-[11px] mb-1">Fellowship</label>
+                    <select
+                      value={invitePartnerForm.icai_membership_type}
+                      onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, icai_membership_type: e.target.value as any })}
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-2.5 py-2 text-white"
+                    >
+                      <option value="FCA">FCA (Fellow CA)</option>
+                      <option value="ACA">ACA (Associate CA)</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block font-semibold text-slate-400 text-[11px] mb-1">ICAI M.No (MRN)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 512345"
+                      value={invitePartnerForm.icai_membership_no}
+                      onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, icai_membership_no: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-2.5 py-2 text-white font-mono"
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block font-semibold text-slate-400 text-[11px] mb-1">COP Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 88491"
+                      value={invitePartnerForm.cop_number}
+                      onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, cop_number: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-2.5 py-2 text-white font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Initial Password (Force-Reset on Login)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Partner@123456"
+                  value={invitePartnerForm.password}
+                  onChange={(e) => setInvitePartnerForm({ ...invitePartnerForm, password: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white font-mono"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">Leave blank for default: Partner@123456</span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowInvitePartnerModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-slate-300 text-xs font-semibold hover:bg-slate-850"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 cursor-pointer"
+              >
+                Grant Partner Co-Ownership &rarr;
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: INVITE STAFF / ARTICLE                                             */}

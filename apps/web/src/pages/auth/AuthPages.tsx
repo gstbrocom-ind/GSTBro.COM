@@ -60,7 +60,7 @@ function LoginForm() {
       login(result.token, result.user);
       trackLoginSuccess(result.user?.role || 'CLIENT');
 
-      if (result.user.role === 'FIRM_OWNER' || result.user.role === 'FIRM_STAFF') {
+      if (result.user.role === 'FIRM_OWNER' || result.user.role === 'FIRM_PARTNER' || result.user.role === 'FIRM_STAFF') {
         navigate(result.user.mustResetPassword ? '/admin/force-reset' : '/firm');
       } else if (result.user.role === 'TEAM') {
         navigate(result.user.mustResetPassword ? '/admin/force-reset' : '/team');
@@ -508,7 +508,7 @@ function SignupForm() {
 
       trackSignUp(form.state);
       const userRole = authenticatedUser?.role;
-      if (userRole === 'FIRM_OWNER' || userRole === 'FIRM_STAFF' || accountType === 'CA_FIRM') {
+      if (userRole === 'FIRM_OWNER' || userRole === 'FIRM_PARTNER' || userRole === 'FIRM_STAFF' || accountType === 'CA_FIRM') {
         navigate('/firm');
       } else if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
         navigate('/admin');

@@ -4,7 +4,16 @@ import { apiFetch } from '../../lib/api';
 interface DayOneOnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  teamMembers: Array<{ id: string; name: string; role: string; firm_role?: string }>;
+  teamMembers: Array<{
+    id: string;
+    name: string;
+    role: string;
+    firm_role?: string;
+    icai_membership_no?: string | null;
+    icai_membership_type?: 'FCA' | 'ACA' | null;
+    cop_number?: string | null;
+    partner_designation?: string | null;
+  }>;
   onClientOnboarded: () => void;
 }
 
@@ -88,7 +97,12 @@ export function DayOneOnboardingModal({
   });
 
   const [assignedStaffId, setAssignedStaffId] = useState<string>('');
+  const [signingPartnerId, setSigningPartnerId] = useState<string>('');
   const [customWelcomeCode, setCustomWelcomeCode] = useState<string>('');
+
+  const partners = teamMembers.filter(
+    (m) => m.role === 'FIRM_OWNER' || m.role === 'FIRM_PARTNER' || m.firm_role === 'FIRM_OWNER' || m.firm_role === 'FIRM_PARTNER'
+  );
 
   // Result Launch State
   const [launchedData, setLaunchedData] = useState<{
@@ -170,6 +184,7 @@ export function DayOneOnboardingModal({
           services: form.services,
           agreedMonthlyFee: Number(form.agreedMonthlyFee) || 0,
           assignedStaffId: assignedStaffId || null,
+          signingPartnerId: signingPartnerId || null,
           previousAuditor: form.previousAuditor.trim() || undefined,
           customWelcomeCode: customWelcomeCode.trim() || undefined,
           notes: form.notes,
@@ -440,7 +455,24 @@ export function DayOneOnboardingModal({
                     <option value="">— Assign to Me (Managing Partner) —</option>
                     {teamMembers.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.name} ({m.firm_role || m.role})
+                        {m.name} ({m.firm_role === 'FIRM_PARTNER' ? 'Partner' : m.firm_role || m.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Signing Partner for ICAI SA 210 Engagement Letter & NOC */}
+                <div>
+                  <label className="font-bold text-slate-400 block mb-1">Signing Partner (ICAI SA 210 &amp; NOC)</label>
+                  <select
+                    value={signingPartnerId}
+                    onChange={(e) => setSigningPartnerId(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-amber-300 font-medium focus:border-indigo-500"
+                  >
+                    <option value="">— Primary Managing Partner / Practice Default —</option>
+                    {partners.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        CA {p.name} {p.icai_membership_no ? `(MRN: ${p.icai_membership_no})` : ''} {p.partner_designation ? `• ${p.partner_designation}` : ''}
                       </option>
                     ))}
                   </select>

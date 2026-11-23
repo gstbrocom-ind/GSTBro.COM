@@ -152,11 +152,13 @@ export function requireFirmAdmin() {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const isFirmAdmin = 
       request.user?.role === 'FIRM_OWNER' || 
+      request.user?.role === 'FIRM_PARTNER' || 
       request.user?.firm_role === 'FIRM_OWNER' || 
+      request.user?.firm_role === 'FIRM_PARTNER' || 
       request.user?.role === 'ADMIN';
 
     if (!request.user || !isFirmAdmin) {
-      return reply.status(403).send({ error: 'Forbidden: Firm Owner / Admin privileges required.' });
+      return reply.status(403).send({ error: 'Forbidden: Firm Partner or Owner privileges required.' });
     }
   };
 }

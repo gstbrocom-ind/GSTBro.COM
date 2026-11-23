@@ -185,7 +185,7 @@ function AppShell() {
             <Route
               path="/client/invoices"
               element={
-                <ProtectedRoute allowedRoles={['CLIENT', 'TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_STAFF']}>
+                <ProtectedRoute allowedRoles={['CLIENT', 'TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF']}>
                   <div className="min-h-screen bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
                       <InvoiceDashboard />
@@ -197,7 +197,7 @@ function AppShell() {
             <Route
               path="/invoices"
               element={
-                <ProtectedRoute allowedRoles={['CLIENT', 'TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_STAFF']}>
+                <ProtectedRoute allowedRoles={['CLIENT', 'TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF']}>
                   <div className="min-h-screen bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
                       <InvoiceDashboard />
@@ -209,7 +209,7 @@ function AppShell() {
             <Route
               path="/tools/invoice-generator"
               element={
-                <ProtectedRoute allowedRoles={['CLIENT', 'TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_STAFF']}>
+                <ProtectedRoute allowedRoles={['CLIENT', 'TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF']}>
                   <div className="min-h-screen bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto">
                       <InvoiceDashboard />
@@ -221,7 +221,7 @@ function AppShell() {
             <Route
               path="/firm/invoices"
               element={
-                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
+                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
                   <div className="min-h-screen bg-slate-900 py-8 px-4 sm:px-6 lg:px-8 text-white">
                     <div className="max-w-7xl mx-auto">
                       <InvoiceDashboard />
@@ -233,7 +233,7 @@ function AppShell() {
             <Route
               path="/team"
               element={
-                <ProtectedRoute allowedRoles={['TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_STAFF']}>
+                <ProtectedRoute allowedRoles={['TEAM', 'ADMIN', 'SUPER_ADMIN', 'FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF']}>
                   <TeamPortal />
                 </ProtectedRoute>
               }
@@ -241,7 +241,7 @@ function AppShell() {
             <Route
               path="/firm"
               element={
-                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
+                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
                   <FirmPortal />
                 </ProtectedRoute>
               }
@@ -249,7 +249,7 @@ function AppShell() {
             <Route
               path="/firm/*"
               element={
-                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
+                <ProtectedRoute allowedRoles={['FIRM_OWNER', 'FIRM_PARTNER', 'FIRM_STAFF', 'ADMIN', 'SUPER_ADMIN']}>
                   <FirmPortal />
                 </ProtectedRoute>
               }

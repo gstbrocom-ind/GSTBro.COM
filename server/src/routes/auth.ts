@@ -78,6 +78,8 @@ function publicUser(user: {
   email: string;
   name: string;
   role: string;
+  firm_id?: string | null;
+  firm_role?: string | null;
   business_name?: string | null;
   phone?: string | null;
   gstin?: string | null;
@@ -85,6 +87,10 @@ function publicUser(user: {
   constitution_type?: string | null;
   practice_type?: string | null;
   membership_number?: string | null;
+  icai_membership_no?: string | null;
+  icai_membership_type?: string | null;
+  cop_number?: string | null;
+  partner_designation?: string | null;
   must_reset_password?: boolean | null;
   mobile_verified?: boolean | null;
   mobile_verified_at?: string | null;
@@ -94,13 +100,19 @@ function publicUser(user: {
     email: user.email,
     name: user.name,
     role: user.role,
+    firmId: (user as any).firm_id || null,
+    firmRole: (user as any).firm_role || null,
     businessName: user.business_name,
     phone: user.phone,
     gstin: user.gstin,
     state: user.state,
     constitutionType: user.constitution_type || null,
     practiceType: user.practice_type || null,
-    membershipNumber: user.membership_number || null,
+    membershipNumber: user.membership_number || user.icai_membership_no || null,
+    icaiMembershipNo: user.icai_membership_no || null,
+    icaiMembershipType: user.icai_membership_type || null,
+    copNumber: user.cop_number || null,
+    partnerDesignation: user.partner_designation || null,
     mustResetPassword: user.must_reset_password ?? false,
     mobileVerified: Boolean(user.mobile_verified),
     mobileVerifiedAt: user.mobile_verified_at,
