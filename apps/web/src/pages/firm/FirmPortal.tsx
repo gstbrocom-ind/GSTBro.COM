@@ -1382,33 +1382,33 @@ export function FirmPortal() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* 1. TOP WHITE-LABEL BRANDING NAVBAR */}
-      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 shadow-xl">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           {firm?.logo_url ? (
             <img
               src={firm.logo_url}
               alt={firm.name}
-              className="w-10 h-10 object-contain rounded-xl bg-white/10 p-1 border border-slate-700 shadow"
+              className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-xl bg-white/10 p-1 border border-slate-700 shadow shrink-0"
             />
           ) : (
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg text-white shadow-lg"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-black text-sm sm:text-lg text-white shadow-lg shrink-0"
               style={{ backgroundColor: brandColor }}
             >
               {firm?.name ? firm.name.substring(0, 2).toUpperCase() : 'CA'}
             </div>
           )}
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-bold text-base sm:text-lg text-white tracking-tight">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h1 className="font-bold text-sm sm:text-lg text-white tracking-tight truncate max-w-[130px] xs:max-w-[200px] sm:max-w-none">
                 {firm?.name || 'Chartered Accountants Practice'}
               </h1>
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                {isStaff ? 'Article Assistant Workspace' : 'CA Firm Suite'}
+              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
+                {isStaff ? 'Article Desk' : 'CA Suite'}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400 truncate">
               {firm?.frn_number && <span>ICAI FRN: <strong className="text-slate-300">{firm.frn_number}</strong></span>}
               {firm?.frn_number && firm?.membership_number && <span>•</span>}
               {firm?.membership_number && <span>M.No: <strong className="text-slate-300">{firm.membership_number}</strong></span>}
@@ -1416,12 +1416,12 @@ export function FirmPortal() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="hidden md:flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-slate-300 font-medium">{user?.name}</span>
+            <span className="text-slate-300 font-medium truncate max-w-[120px]">{user?.name}</span>
             <span className="text-slate-500">
-              ({user?.role === 'FIRM_OWNER' ? 'Firm Owner / Partner' : user?.role === 'FIRM_PARTNER' ? 'CA Partner (Co-Executive)' : user?.firm_role === 'FIRM_MANAGER' ? 'Manager' : 'Article Clerk'})
+              ({user?.role === 'FIRM_OWNER' ? 'Firm Owner' : user?.role === 'FIRM_PARTNER' ? 'CA Partner' : user?.firm_role === 'FIRM_MANAGER' ? 'Manager' : 'Article'})
             </span>
           </div>
 
@@ -1431,7 +1431,7 @@ export function FirmPortal() {
               logout();
               navigate('/login');
             }}
-            className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition cursor-pointer"
+            className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition cursor-pointer shrink-0"
           >
             Logout
           </button>
@@ -1449,7 +1449,7 @@ export function FirmPortal() {
       )}
 
       {/* 2. SUB-NAVIGATION BAR (DYNAMIC FOR ARTICLE CLERK VS PARTNER) */}
-      <nav className="bg-slate-950/60 border-b border-slate-800 px-4 sm:px-6 overflow-x-auto scrollbar-none flex gap-1">
+      <nav className="bg-slate-950/60 border-b border-slate-800 px-2 sm:px-6 overflow-x-auto scrollbar-none flex gap-1 -webkit-overflow-scrolling-touch py-1">
         {(isStaff
           ? [
               { key: 'overview', label: '📊 My Article Desk' },
@@ -1481,7 +1481,7 @@ export function FirmPortal() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`py-3 px-3.5 text-xs font-bold transition whitespace-nowrap border-b-2 cursor-pointer ${
+              className={`py-2.5 sm:py-3 px-3 sm:px-3.5 text-xs font-bold transition whitespace-nowrap border-b-2 cursor-pointer ${
                 isActive
                   ? 'border-blue-500 text-blue-400 bg-blue-500/5'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
@@ -1494,14 +1494,14 @@ export function FirmPortal() {
       </nav>
 
       {/* 3. MAIN WORKSPACE VIEWPORT */}
-      <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto space-y-6">
+      <main className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto space-y-5 sm:space-y-6">
         {/* ========================================================================= */}
         {/* TAB 1: PRACTICE COMMAND CENTER (OVERVIEW)                                 */}
         {/* ========================================================================= */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
+          <div className="space-y-5 sm:space-y-6">
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow">
                 <p className="text-xs font-medium text-slate-400">
                   {isStaff ? 'My Assigned Clients' : 'Total Managed Clients'}
@@ -1681,11 +1681,11 @@ export function FirmPortal() {
             )}
 
             {/* Quick Actions Row */}
-            <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Quick Actions:</span>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-3.5 sm:p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider w-full sm:w-auto mb-1 sm:mb-0">Quick Actions:</span>
               <button
                 onClick={() => setShowNewTaskModal(true)}
-                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
               >
                 <span>+ Add To-Do / Task</span>
               </button>
@@ -1695,33 +1695,33 @@ export function FirmPortal() {
                   setSelectedInvoiceClientId('');
                   setActiveTab('invoices');
                 }}
-                className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
               >
-                <span>🧾 Open Invoice Generator</span>
+                <span>🧾 Open Invoices</span>
               </button>
               {!isStaff && (
                 <>
                   <button
                     onClick={() => setShowNewClientModal(true)}
-                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
                   >
-                    <span>+ Onboard New Client</span>
+                    <span>+ Onboard Client</span>
                   </button>
                   <button
                     onClick={() => setShowInviteStaffModal(true)}
-                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
                   >
-                    <span>+ Invite Article Clerk</span>
+                    <span>+ Invite Article</span>
                   </button>
                   <button
                     onClick={() => setShowHandoverModal(true)}
-                    className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
                   >
                     <span>🔄 1-Click Handover</span>
                   </button>
                   <button
                     onClick={handleTriggerMonthlyRecurring}
-                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ml-auto"
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 w-full sm:w-auto sm:ml-auto"
                   >
                     <span>⚡ Auto-Generate Monthly Tasks</span>
                   </button>
@@ -1982,8 +1982,8 @@ export function FirmPortal() {
               )}
             </div>
 
-            {/* 4 Pipeline Stages */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 4 Pipeline Stages (Touch Swipe on Mobile, Grid on Desktop) */}
+            <div className="flex overflow-x-auto pb-4 gap-3.5 snap-x -webkit-overflow-scrolling-touch sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible">
               {(
                 [
                   { key: 'DATA_COLLECTION', label: '1. Data Collection', color: 'border-amber-500/40 bg-amber-500/5' },
@@ -1997,7 +1997,7 @@ export function FirmPortal() {
                 );
 
                 return (
-                  <div key={stage.key} className={`p-4 rounded-2xl border ${stage.color} flex flex-col min-h-[450px]`}>
+                  <div key={stage.key} className={`p-4 rounded-2xl border ${stage.color} flex flex-col min-h-[450px] w-[84vw] max-w-[320px] shrink-0 sm:w-auto sm:shrink snap-center`}>
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
                       <h4 className="font-bold text-xs text-white">{stage.label}</h4>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-black">
@@ -2200,17 +2200,22 @@ export function FirmPortal() {
         {/* ========================================================================= */}
         {activeTab === 'clients' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-white">Client Directory</h2>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>Client Directory</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    {clients.length} Clients
+                  </span>
+                </h2>
                 <p className="text-xs text-slate-400">Businesses and taxpayers managed by your firm</p>
               </div>
               {!isStaff && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setShowDayOneModal(true)}
-                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer flex items-center gap-1.5 active:scale-95 border border-emerald-400/30"
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 transition cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 border border-emerald-400/30 flex-1 sm:flex-none"
                     title="Paste raw WhatsApp chat or notes to generate complete 10-doc regulatory kit, invite code, and drive in 1 click"
                   >
                     <span className="text-sm">✨</span>
@@ -2222,7 +2227,7 @@ export function FirmPortal() {
                       setShowClientCodesModal(true);
                       loadFirmWelcomeCodes();
                     }}
-                    className="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                    className="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs flex-1 sm:flex-none"
                     title="Generate unique registration codes for prospective clients"
                   >
                     <span>🎟️</span>
@@ -2230,9 +2235,9 @@ export function FirmPortal() {
                   </button>
                   <button
                     onClick={() => setShowNewClientModal(true)}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer flex items-center justify-center flex-1 sm:flex-none"
                   >
-                    + Onboard New Client
+                    + Onboard Client
                   </button>
                 </div>
               )}
@@ -2579,62 +2584,71 @@ export function FirmPortal() {
             </div>
 
             {chatScope === 'CLIENTS' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
-            {/* Left: Client List for Chat */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <h3 className="font-bold text-sm text-white">Client Inboxes</h3>
-                <span className="text-[10px] text-slate-500 font-mono">Total {filteredChatClients.length}</span>
-              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[500px]">
+                {/* Left: Client List for Chat */}
+                <div className={`p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col ${selectedChatClientId ? 'hidden lg:flex' : 'flex'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <h3 className="font-bold text-sm text-white">Client Inboxes</h3>
+                    <span className="text-[10px] text-slate-500 font-mono">Total {filteredChatClients.length}</span>
+                  </div>
 
-              <input
-                type="text"
-                placeholder="Search clients..."
-                value={chatSearch}
-                onChange={(e) => setChatSearch(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white"
-              />
+                  <input
+                    type="text"
+                    placeholder="Search clients..."
+                    value={chatSearch}
+                    onChange={(e) => setChatSearch(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white"
+                  />
 
-              <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[500px]">
-                {filteredChatClients.map((client) => {
-                  const isSelected = selectedChatClientId === client.id;
-                  return (
-                    <button
-                      key={client.id}
-                      onClick={() => setSelectedChatClientId(client.id)}
-                      className={`w-full text-left p-3 rounded-xl border transition cursor-pointer ${
-                        isSelected
-                          ? 'bg-blue-600/10 border-blue-500/50 text-white shadow'
-                          : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-900 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="font-bold text-xs truncate">{client.business_name || client.name}</div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-                        <span>{client.name}</span>
-                        <span className="text-slate-500">{client.assigned_staff?.name || 'Unassigned'}</span>
-                      </div>
-                    </button>
-                  );
-                })}
+                  <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[500px]">
+                    {filteredChatClients.map((client) => {
+                      const isSelected = selectedChatClientId === client.id;
+                      return (
+                        <button
+                          key={client.id}
+                          onClick={() => setSelectedChatClientId(client.id)}
+                          className={`w-full text-left p-3 rounded-xl border transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-600/10 border-blue-500/50 text-white shadow'
+                              : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-900 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="font-bold text-xs truncate">{client.business_name || client.name}</div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                            <span>{client.name}</span>
+                            <span className="text-slate-500">{client.assigned_staff?.name || 'Unassigned'}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
 
-                {filteredChatClients.length === 0 && (
-                  <div className="py-12 text-center text-slate-500 text-xs">No clients found</div>
-                )}
-              </div>
-            </div>
+                    {filteredChatClients.length === 0 && (
+                      <div className="py-12 text-center text-slate-500 text-xs">No clients found</div>
+                    )}
+                  </div>
+                </div>
 
-            {/* Right: Active Chat Stream */}
-            <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4">
-              {selectedClient ? (
-                <>
-                  {/* Chat Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                    <div>
-                      <h3 className="font-bold text-sm text-white">{selectedClient.business_name || selectedClient.name}</h3>
-                      <p className="text-[11px] text-slate-400 font-mono">
-                        GSTIN: {selectedClient.gstin || 'None'} • Article: {selectedClient.assigned_staff?.name || 'Unassigned'}
-                      </p>
-                    </div>
+                {/* Right: Active Chat Stream */}
+                <div className={`lg:col-span-2 p-3.5 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4 ${!selectedChatClientId ? 'hidden lg:flex' : 'flex'}`}>
+                  {selectedClient ? (
+                    <>
+                      {/* Chat Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedChatClientId('')}
+                            className="lg:hidden px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold shrink-0"
+                          >
+                            ← Back
+                          </button>
+                          <div>
+                            <h3 className="font-bold text-sm text-white">{selectedClient.business_name || selectedClient.name}</h3>
+                            <p className="text-[11px] text-slate-400 font-mono">
+                              GSTIN: {selectedClient.gstin || 'None'} • Article: {selectedClient.assigned_staff?.name || 'Unassigned'}
+                            </p>
+                          </div>
+                        </div>
 
                     {/* Dual-Thread Toggle Buttons */}
                     <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800">
@@ -2809,11 +2823,11 @@ export function FirmPortal() {
 
             {/* VIEW 2: PRACTICE CHANNELS & GROUPS */}
             {chatScope === 'GROUPS' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[500px]">
                 {/* Left: Group Channel List */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col">
+                <div className={`p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col ${selectedGroupId ? 'hidden lg:flex' : 'flex'}`}>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                    <h3 className="font-bold text-sm text-white">Firm Channels & Groups</h3>
+                    <h3 className="font-bold text-sm text-white">Firm Channels &amp; Groups</h3>
                     <span className="text-[10px] text-slate-500 font-mono">Total {chatGroups.length}</span>
                   </div>
 
@@ -2851,19 +2865,28 @@ export function FirmPortal() {
                 </div>
 
                 {/* Right: Group Chat Stream */}
-                <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4">
+                <div className={`lg:col-span-2 p-3.5 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4 ${!selectedGroupId ? 'hidden lg:flex' : 'flex'}`}>
                   {selectedGroupId ? (
                     <>
                       {/* Group Header */}
                       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                        <div>
-                          <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                            <span>#</span>
-                            <span>{chatGroups.find((g) => g.id === selectedGroupId)?.name || 'Group Channel'}</span>
-                          </h3>
-                          <p className="text-[11px] text-slate-400">
-                            {chatGroups.find((g) => g.id === selectedGroupId)?.description || 'Practice team collaboration channel'}
-                          </p>
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedGroupId('')}
+                            className="lg:hidden px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold shrink-0"
+                          >
+                            ← Back
+                          </button>
+                          <div>
+                            <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                              <span>#</span>
+                              <span>{chatGroups.find((g) => g.id === selectedGroupId)?.name || 'Group Channel'}</span>
+                            </h3>
+                            <p className="text-[11px] text-slate-400">
+                              {chatGroups.find((g) => g.id === selectedGroupId)?.description || 'Practice team collaboration channel'}
+                            </p>
+                          </div>
                         </div>
                         <span className="text-xs px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-bold">
                           Practice Channel
@@ -2962,9 +2985,9 @@ export function FirmPortal() {
 
             {/* VIEW 3: TEAM 1-ON-1 DIRECT MESSAGES */}
             {chatScope === 'DIRECT' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px]">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-h-[500px]">
                 {/* Left: Colleague Roster */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col">
+                <div className={`p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 flex flex-col ${selectedDirectUserId ? 'hidden lg:flex' : 'flex'}`}>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                     <h3 className="font-bold text-sm text-white">Team Colleagues</h3>
                     <span className="text-[10px] text-slate-500 font-mono">Total {team.length}</span>
@@ -3004,19 +3027,28 @@ export function FirmPortal() {
                 </div>
 
                 {/* Right: Direct 1-to-1 Stream */}
-                <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4">
+                <div className={`lg:col-span-2 p-3.5 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col space-y-4 ${!selectedDirectUserId ? 'hidden lg:flex' : 'flex'}`}>
                   {selectedDirectUserId ? (
                     <>
                       {/* Direct Header */}
                       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                        <div>
-                          <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                            <span>🔒</span>
-                            <span>{team.find((t) => t.id === selectedDirectUserId)?.name || 'Direct Chat'}</span>
-                          </h3>
-                          <p className="text-[11px] text-slate-400">
-                            {team.find((t) => t.id === selectedDirectUserId)?.email} • Role: {team.find((t) => t.id === selectedDirectUserId)?.firm_role || 'Article Assistant'}
-                          </p>
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDirectUserId('')}
+                            className="lg:hidden px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold shrink-0"
+                          >
+                            ← Back
+                          </button>
+                          <div>
+                            <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                              <span>🔒</span>
+                              <span>{team.find((t) => t.id === selectedDirectUserId)?.name || 'Direct Chat'}</span>
+                            </h3>
+                            <p className="text-[11px] text-slate-400">
+                              {team.find((t) => t.id === selectedDirectUserId)?.email} • Role: {team.find((t) => t.id === selectedDirectUserId)?.firm_role || 'Article Assistant'}
+                            </p>
+                          </div>
                         </div>
                         <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
                           Direct 1-on-1
@@ -3115,26 +3147,26 @@ export function FirmPortal() {
                   Manage CA Partners with equal co-ownership, article clerks, portfolios, and workload handovers.
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => setShowHandoverModal(true)}
-                  className="px-3.5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-none"
                 >
-                  <span>🔄 1-Click Handover / Transfer</span>
+                  <span>🔄 1-Click Handover</span>
                 </button>
                 {!isStaff && (
                   <button
                     onClick={() => setShowInvitePartnerModal(true)}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer transition transform hover:scale-[1.02] active:scale-[0.98]"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer transition transform hover:scale-[1.02] active:scale-[0.98] flex-1 sm:flex-none"
                   >
                     <span>⭐ + Add CA Partner</span>
                   </button>
                 )}
                 <button
                   onClick={() => setShowInviteStaffModal(true)}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer transition"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow cursor-pointer transition flex items-center justify-center flex-1 sm:flex-none"
                 >
-                  + Invite Article Clerk / Staff
+                  + Invite Staff
                 </button>
               </div>
             </div>
@@ -3585,7 +3617,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveChecklist}
-            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -3680,7 +3712,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateTask}
-            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-white">Create Practice Task / To-Do</h3>
@@ -3809,7 +3841,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateClient}
-            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-white">Onboard Client into Practice</h3>
@@ -3926,7 +3958,7 @@ export function FirmPortal() {
       {/* ========================================================================= */}
       {showClientCodesModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-start justify-between pb-3 border-b border-slate-800">
               <div>
                 <div className="flex items-center gap-2">
@@ -4277,7 +4309,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleInviteStaff}
-            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-white">Add Team Member / Article</h3>
@@ -4366,7 +4398,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleExecuteHandover}
-            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-white">1-Click Client & Task Handover</h3>
@@ -4458,7 +4490,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleSaveDueDateOverride}
-            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-white">Override Due Date</h3>
@@ -4526,7 +4558,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleAddDscToken}
-            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-white">Register DSC USB Token</h3>
@@ -4627,7 +4659,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateMilestone}
-            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="font-bold text-base text-white flex items-center gap-2">
@@ -4759,7 +4791,7 @@ export function FirmPortal() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <form
             onSubmit={handleCreateGroup}
-            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="font-bold text-base text-white flex items-center gap-2">
@@ -4867,7 +4899,7 @@ export function FirmPortal() {
       {/* MODAL: CLIENT GREETING & DELEGATION */}
       {showGreetingModal && greetingMilestone && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-950 border border-purple-500/30 rounded-3xl p-6 space-y-4 shadow-2xl">
+          <div className="w-full max-w-lg bg-slate-950 border border-purple-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🎉</span>

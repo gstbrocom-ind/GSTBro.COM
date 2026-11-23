@@ -224,37 +224,37 @@ export function DayOneOnboardingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden my-6 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-2 sm:my-6 flex flex-col max-h-[96vh] sm:max-h-[92vh]">
         {/* Modal Header */}
-        <div className="p-6 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-900/40 text-lg">
+        <div className="p-4 sm:p-6 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-900/40 text-base sm:text-lg shrink-0">
               ✨
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-white tracking-tight">Day-One AI Client Onboarding Suite</h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h2 className="text-sm sm:text-lg font-black text-white tracking-tight truncate">Day-One AI Client Onboarding</h2>
+                <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
                   ICAI SA 210 Compliant
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Paste raw WhatsApp chats or notes &rarr; Instant 10-doc regulatory kit, invite code & drive setup.
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate sm:whitespace-normal">
+                Paste raw WhatsApp chats or notes &rarr; Instant 10-doc regulatory kit, invite code &amp; drive.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition shrink-0 cursor-pointer"
           >
             ✕
           </button>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3.5 bg-rose-950/60 border border-rose-800 text-rose-300 text-xs rounded-xl flex items-center justify-between">
+          <div className="mx-4 sm:mx-6 mt-3 sm:mt-4 p-3 bg-rose-950/60 border border-rose-800 text-rose-300 text-xs rounded-xl flex items-center justify-between">
             <span>⚠️ {error}</span>
             <button type="button" onClick={() => setError(null)} className="text-rose-400 hover:text-rose-200">
               ✕
@@ -263,7 +263,7 @@ export function DayOneOnboardingModal({
         )}
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6 text-slate-200">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 sm:space-y-6 text-slate-200">
           {/* STEP 1: RAW INPUT */}
           {step === 'input' && (
             <div className="space-y-4">
@@ -626,8 +626,8 @@ export function DayOneOnboardingModal({
                   )}
                 </div>
 
-                {/* Tab Navigation */}
-                <div className="flex flex-wrap gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold">
+                {/* Tab Navigation (Touch-scrollable on mobile) */}
+                <div className="flex overflow-x-auto scrollbar-none gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold -webkit-overflow-scrolling-touch py-1.5 whitespace-nowrap">
                   {[
                     { id: 'sa210', label: '📄 ICAI SA 210 Engagement Letter' },
                     { id: 'noc', label: '⚖️ Previous Auditor NOC' },
@@ -639,7 +639,7 @@ export function DayOneOnboardingModal({
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveDocTab(tab.id as any)}
-                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer shrink-0 ${
                         activeDocTab === tab.id
                           ? 'bg-indigo-600 text-white shadow-xs'
                           : 'text-slate-400 hover:text-white'
@@ -651,7 +651,7 @@ export function DayOneOnboardingModal({
                 </div>
 
                 {/* Document Preview Box */}
-                <div className="relative rounded-2xl bg-slate-950 border border-slate-800 p-4 max-h-72 overflow-y-auto font-mono text-xs text-slate-300 whitespace-pre-wrap leading-relaxed shadow-inner">
+                <div className="relative rounded-2xl bg-slate-950 border border-slate-800 p-3 sm:p-4 max-h-60 sm:max-h-72 overflow-y-auto overflow-x-auto font-mono text-[11px] sm:text-xs text-slate-300 whitespace-pre-wrap leading-relaxed shadow-inner">
                   {activeDocTab === 'sa210' && launchedData.documentKit.sa210EngagementLetter}
                   {activeDocTab === 'noc' && launchedData.documentKit.previousAuditorNocLetter}
                   {activeDocTab === 'kyc' && launchedData.documentKit.kycChecklistDoc}

@@ -11,7 +11,7 @@ import { trackLoginSuccess, trackSignUp } from '../../lib/analytics';
 import { ArrowRight, Check, X, Smartphone, Mail, Info, ArrowLeft } from '../../components/common/AuthIcons';
 
 const inputClass =
-  'w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder-gray-400';
+  'w-full border border-gray-300 rounded-lg px-4 py-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder-gray-400';
 
 // -------------------------------------------------------------
 // 1. NORMAL LOGIN FORM (Zero OTP — Email OR Mobile + Password)
