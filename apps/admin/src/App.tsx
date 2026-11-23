@@ -40,7 +40,7 @@ export function App() {
         <Route path="drive" element={<Navigate to="/super-admin" replace />} />
         <Route path="due-dates" element={<Navigate to="/super-admin" replace />} />
         <Route path="fees" element={<Navigate to="/super-admin" replace />} />
-        <Route path="leads" element={<Navigate to="/super-admin" replace />} />
+        <Route path="leads" element={<LeadsPage />} />
         <Route path="activity-logs" element={<Navigate to="/super-admin" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="." />} />

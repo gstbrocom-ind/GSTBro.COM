@@ -224,6 +224,7 @@ const navGroups: NavGroup[] = [
     title: 'Platform Oversight',
     items: [
       { to: '/super-admin', label: 'Platform Telemetry & CAs', icon: DashboardIcon },
+      { to: '/leads', label: 'Hotline Callback Leads', icon: ChatIcon },
       { to: '/welcome-codes', label: 'CA Firm Welcome Codes', icon: WelcomeCodesIcon },
     ],
   },

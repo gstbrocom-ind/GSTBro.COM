@@ -10,6 +10,7 @@ type LeadSummary = {
   phone?: string;
   status: string;
   service_type: string;
+  message?: string;
   created_at: string;
 };
 
@@ -628,7 +629,7 @@ export function TeamDashboardPage() {
 }
 
 // -------------------------------------------------------------
-// 3. LEADS MANAGEMENT PAGE
+// 3. LEADS & INSTANT CALLBACK HOTLINE MANAGEMENT PAGE
 // -------------------------------------------------------------
 export function LeadsPage() {
   const [leads, setLeads] = useState<LeadSummary[]>([]);
@@ -637,7 +638,7 @@ export function LeadsPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    api<{ leads: LeadSummary[] }>('/api/admin/leads').then((data) => setLeads(data.leads));
+    api<{ leads: LeadSummary[] }>('/api/admin/leads').then((data) => setLeads(data.leads || []));
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
@@ -645,6 +646,8 @@ export function LeadsPage() {
     try {
       await api(`/api/admin/leads/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
       setLeads((prev) => prev.map((lead) => (lead.id === id ? { ...lead, status } : lead)));
+    } catch (err: any) {
+      alert(`Failed to update lead status: ${err?.message || 'Unknown error'}`);
     } finally {
       setUpdatingId(null);
     }
@@ -658,7 +661,8 @@ export function LeadsPage() {
         lead.name.toLowerCase().includes(q) ||
         lead.email.toLowerCase().includes(q) ||
         (lead.phone && lead.phone.toLowerCase().includes(q)) ||
-        (lead.service_type && lead.service_type.toLowerCase().includes(q));
+        (lead.service_type && lead.service_type.toLowerCase().includes(q)) ||
+        (lead.message && lead.message.toLowerCase().includes(q));
       return matchesStatus && matchesSearch;
     });
   }, [leads, statusFilter, search]);
@@ -670,41 +674,92 @@ export function LeadsPage() {
       contacted: leads.filter((l) => l.status === 'CONTACTED').length,
       converted: leads.filter((l) => l.status === 'CONVERTED').length,
       closed: leads.filter((l) => l.status === 'CLOSED').length,
+      callbackHotline: leads.filter(
+        (l) => l.email?.includes('@callback.') || l.message?.includes('Instant CA Hotline')
+      ).length,
     };
   }, [leads]);
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Inward Inquiries</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Manage and qualify inbound service requests</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📞</span>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              Hotline Leads & Callback Inquiries
+            </h1>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Live Pipeline
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Review inward inquiries from the 5-second popup banner, call prospective clients, and update their customer status.
+          </p>
         </div>
-        <div className="w-full sm:w-64">
-          <input
-            type="text"
-            placeholder="Search leads..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
-          />
+
+        {/* Search Input */}
+        <div className="w-full sm:w-72">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search by name, phone, email, notes..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white font-medium"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Inquiries</span>
+          <span className="text-xl font-extrabold text-slate-900 mt-0.5 block">{counts.all}</span>
+          <span className="text-[10px] text-blue-600 font-semibold">{counts.callbackHotline} from 5s Banner</span>
+        </div>
+        <div className="p-3.5 bg-blue-50/50 rounded-xl border border-blue-200/60 shadow-xs">
+          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">New Pending</span>
+          <span className="text-xl font-extrabold text-blue-900 mt-0.5 block">{counts.new}</span>
+          <span className="text-[10px] text-blue-700 font-medium">Awaiting first call</span>
+        </div>
+        <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-200/60 shadow-xs">
+          <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Contacted</span>
+          <span className="text-xl font-extrabold text-amber-900 mt-0.5 block">{counts.contacted}</span>
+          <span className="text-[10px] text-amber-700 font-medium">Follow-up in progress</span>
+        </div>
+        <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200/80 shadow-xs">
+          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">✓ Customers</span>
+          <span className="text-xl font-extrabold text-emerald-900 mt-0.5 block">{counts.converted}</span>
+          <span className="text-[10px] text-emerald-700 font-bold">Successfully onboarded</span>
+        </div>
+        <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 shadow-xs col-span-2 sm:col-span-1">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">✗ Not Customer</span>
+          <span className="text-xl font-extrabold text-slate-700 mt-0.5 block">{counts.closed}</span>
+          <span className="text-[10px] text-slate-500 font-medium">Closed / Not interested</span>
         </div>
       </div>
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2">
         {[
-          { key: 'ALL', label: 'All', count: counts.all },
-          { key: 'NEW', label: 'New', count: counts.new },
+          { key: 'ALL', label: 'All Inquiries', count: counts.all },
+          { key: 'NEW', label: 'New Leads', count: counts.new },
           { key: 'CONTACTED', label: 'Contacted', count: counts.contacted },
-          { key: 'CONVERTED', label: 'Converted', count: counts.converted },
-          { key: 'CLOSED', label: 'Closed', count: counts.closed },
+          { key: 'CONVERTED', label: '✓ Customers', count: counts.converted },
+          { key: 'CLOSED', label: '✗ Not Customers', count: counts.closed },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setStatusFilter(tab.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               statusFilter === tab.key
                 ? 'bg-slate-900 text-white shadow-sm'
                 : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50'
@@ -712,7 +767,7 @@ export function LeadsPage() {
           >
             <span>{tab.label}</span>
             <span
-              className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
                 statusFilter === tab.key ? 'bg-slate-800 text-blue-300' : 'bg-slate-100 text-slate-600'
               }`}
             >
@@ -722,82 +777,161 @@ export function LeadsPage() {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      {/* Leads Table */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-semibold text-[10px]">
+          <table className="w-full text-left text-xs min-w-[750px]">
+            <thead className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
               <tr>
-                <th className="py-3 px-4">Contact</th>
-                <th className="py-3 px-4">Service</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Workflow</th>
+                <th className="py-3 px-4">Contact & Mobile</th>
+                <th className="py-3 px-4">Inquiry Source & Notes</th>
+                <th className="py-3 px-4">Received On</th>
+                <th className="py-3 px-4">Customer Status</th>
+                <th className="py-3 px-4 text-right">Update Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                        {lead.name.charAt(0).toUpperCase()}
+              {filteredLeads.map((lead) => {
+                const isCallbackHotline =
+                  lead.email?.includes('@callback.') ||
+                  lead.message?.includes('Instant CA Hotline');
+                const cleanPhone = lead.phone ? lead.phone.replace(/\D/g, '').slice(-10) : '';
+
+                return (
+                  <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors">
+                    {/* Contact & Phone */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                          {lead.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-extrabold text-slate-900 text-sm">{lead.name}</p>
+                            {isCallbackHotline && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                ⚡ 5s Banner
+                              </span>
+                            )}
+                          </div>
+
+                          {lead.phone ? (
+                            <div className="flex items-center gap-2 pt-0.5">
+                              <span className="font-mono font-bold text-blue-700 text-xs">
+                                {lead.phone}
+                              </span>
+                              {cleanPhone && (
+                                <div className="flex items-center gap-1">
+                                  <a
+                                    href={`tel:+91${cleanPhone}`}
+                                    title="Call mobile directly"
+                                    className="p-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 inline-flex items-center gap-0.5"
+                                  >
+                                    📞 Call
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
+                                      `Hello ${lead.name}, this is GSTBro following up on your consultation request.`
+                                    )}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Open WhatsApp chat"
+                                    className="p-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold border border-emerald-200 inline-flex items-center gap-0.5"
+                                  >
+                                    💬 WhatsApp
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-slate-400 text-[11px]">No phone provided</p>
+                          )}
+
+                          <p className="text-slate-400 text-[11px]">
+                            {isCallbackHotline ? 'Submitted via Hotline Modal' : lead.email}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">{lead.name}</p>
-                        <p className="text-slate-400 text-[11px]">{lead.email}</p>
-                        {lead.phone && <p className="text-slate-400 text-[10px]">{lead.phone}</p>}
+                    </td>
+
+                    {/* Inquiry Source / Message */}
+                    <td className="py-3.5 px-4 max-w-xs">
+                      <div className="space-y-1">
+                        <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[10px] inline-block">
+                          {lead.service_type || 'General Consultation'}
+                        </span>
+                        {lead.message && (
+                          <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                            {lead.message}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
-                      {lead.service_type ?? 'GST Service'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-slate-500 text-[11px]">
-                    {lead.created_at
-                      ? new Date(lead.created_at).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                        })
-                      : '-'}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`inline-block font-bold text-[10px] px-2 py-0.5 rounded ${
-                        lead.status === 'NEW'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
-                          : lead.status === 'CONTACTED'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                          : lead.status === 'CONVERTED'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <select
-                      value={lead.status}
-                      disabled={updatingId === lead.id}
-                      onChange={(e) => updateStatus(lead.id, e.target.value)}
-                      className="px-2 py-1 text-xs rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      <option value="NEW">New</option>
-                      <option value="CONTACTED">Contacted</option>
-                      <option value="CONVERTED">Converted</option>
-                      <option value="CLOSED">Closed</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+
+                    {/* Date */}
+                    <td className="py-3.5 px-4 text-slate-500 text-[11px] whitespace-nowrap">
+                      {lead.created_at
+                        ? new Date(lead.created_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '-'}
+                    </td>
+
+                    {/* Current Status Badge */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center gap-1 font-extrabold text-[11px] px-2.5 py-1 rounded-full border ${
+                          lead.status === 'NEW'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : lead.status === 'CONTACTED'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : lead.status === 'CONVERTED'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        {lead.status === 'NEW' && '🔵 New Lead'}
+                        {lead.status === 'CONTACTED' && '🟡 Contacted'}
+                        {lead.status === 'CONVERTED' && '🟢 ✓ Customer'}
+                        {lead.status === 'CLOSED' && '⚪ ✗ Not Customer'}
+                      </span>
+                    </td>
+
+                    {/* Update Status Workflow Dropdown */}
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <select
+                        value={lead.status}
+                        disabled={updatingId === lead.id}
+                        onChange={(e) => updateStatus(lead.id, e.target.value)}
+                        className={`px-3 py-1.5 text-xs rounded-xl font-bold border transition focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${
+                          lead.status === 'CONVERTED'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            : lead.status === 'CLOSED'
+                            ? 'bg-slate-100 text-slate-700 border-slate-300'
+                            : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                        }`}
+                      >
+                        <option value="NEW">New Lead</option>
+                        <option value="CONTACTED">Contacted (In Talk)</option>
+                        <option value="CONVERTED">✓ Customer</option>
+                        <option value="CLOSED">✗ Not Customer</option>
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {filteredLeads.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-slate-400">
-                    No inquiries found matching criteria.
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                    <p className="text-base font-semibold">No inquiries found matching criteria.</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      New hotline callback requests from the website will appear here in real time.
+                    </p>
                   </td>
                 </tr>
               )}
