@@ -81,19 +81,22 @@ function AppShell() {
 
   const deferLoading = settings?.brandIntro?.deferLoading ?? false;
   const isPendingIntro = introActive && deferLoading;
+  const [callbackModalOpen, setCallbackModalOpen] = useState(false);
 
   return (
     <>
       <BrandIntroOverlay onIntroActiveChange={setIntroActive} />
-      <CallbackBanner introActive={introActive} />
+      <CallbackBanner introActive={introActive} onVisibilityChange={setCallbackModalOpen} />
       <div
         id="main-app-container"
         className={
           isPendingIntro
             ? 'opacity-0 pointer-events-none select-none max-h-screen overflow-hidden'
+            : callbackModalOpen
+            ? 'transition-all duration-300 filter blur-md pointer-events-none select-none opacity-90'
             : 'transition-opacity duration-500 ease-out opacity-100'
         }
-        aria-hidden={isPendingIntro}
+        aria-hidden={isPendingIntro || callbackModalOpen}
       >
         <Suspense fallback={<PortalLoadingSkeleton />}>
           <Routes>

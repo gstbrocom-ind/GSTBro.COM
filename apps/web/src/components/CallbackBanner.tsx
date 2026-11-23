@@ -2,15 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from '../context/SettingsContext';
+import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../seo/meta.config';
 
 interface CallbackBannerProps {
   introActive: boolean;
+  onVisibilityChange?: (visible: boolean) => void;
 }
 
-export function CallbackBanner({ introActive }: CallbackBannerProps) {
+export function CallbackBanner({ introActive, onVisibilityChange }: CallbackBannerProps) {
   const settings = useSettings();
   const location = useLocation();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const [visible, setVisible] = useState(false);
   const [name, setName] = useState('');
@@ -42,6 +46,11 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
     location.pathname.startsWith('/login') ||
     location.pathname.startsWith('/signup') ||
     location.pathname.startsWith('/forgot-password');
+
+  // Notify parent on visibility changes so background & header blur can sync
+  useEffect(() => {
+    onVisibilityChange?.(visible);
+  }, [visible, onVisibilityChange]);
 
   useEffect(() => {
     // Clear any pending countdown timer
@@ -111,7 +120,6 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
   };
 
   const handlePhoneChange = (val: string) => {
-    // Only accept numeric digits, maximum 10 digits
     const cleaned = val.replace(/\D/g, '').slice(0, 10);
     setPhone(cleaned);
     if (errorMessage) setErrorMessage(null);
@@ -174,9 +182,9 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
       {visible && (
         <div
           role="presentation"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
         >
-          {/* Full-Screen Backdrop: Everything behind is completely blurred & dimmed */}
+          {/* Full-Screen Backdrop: Deeply blurs everything behind including sticky Header */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -184,26 +192,42 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
             transition={{ duration: 0.3 }}
             onClick={handleDismiss}
             aria-hidden="true"
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-all cursor-pointer"
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-xl transition-all cursor-pointer"
           />
 
-          {/* Centered Modal Card: Sharp, Elevated & Fully Mobile-Friendly */}
+          {/* Centered Modal Card: Ultra-Professional, High Contrast & 100% Mobile Friendly */}
           <motion.aside
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            initial={{ opacity: 0, scale: 0.92, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 20, transition: { duration: 0.2 } }}
-            transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+            exit={{ opacity: 0, scale: 0.92, y: 15, transition: { duration: 0.2 } }}
+            transition={{ type: 'spring', damping: 28, stiffness: 340 }}
             role="dialog"
             aria-modal="true"
             aria-label="Instant CA Callback Request"
-            className="relative z-10 w-full max-w-[420px] max-h-[92vh] overflow-y-auto bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-blue-200/90 dark:border-blue-500/30 rounded-3xl shadow-2xl shadow-blue-950/50 p-5 sm:p-7 text-slate-800 dark:text-slate-100"
+            className={`relative z-10 w-full max-w-[440px] max-h-[92vh] overflow-y-auto rounded-3xl p-6 sm:p-8 transition-all ${
+              isDark
+                ? 'bg-[#0f172a] text-white border-2 border-slate-700/80 shadow-[0_25px_70px_rgba(0,0,0,0.85)]'
+                : 'bg-white text-slate-900 border-2 border-slate-200 shadow-[0_25px_70px_rgba(15,23,42,0.3)]'
+            }`}
           >
-            {/* Subtle Ambient Decorative Glow in Modal */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/15 dark:bg-blue-500/25 rounded-full blur-3xl pointer-events-none" />
+            {/* Top Brand Accent Hairline Strip */}
+            <div
+              className={`absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl ${
+                isDark
+                  ? 'bg-gradient-to-r from-blue-500 via-indigo-500 to-sky-400'
+                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500'
+              }`}
+            />
 
-            {/* Top Bar: Live Status & Prominent Close Button */}
-            <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold tracking-tight shadow-xs">
+            {/* Top Bar: Live Status Badge & Clear Close Button */}
+            <div className="flex items-center justify-between gap-3 mb-4 pt-1">
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black tracking-tight shadow-xs ${
+                  isDark
+                    ? 'bg-blue-950/90 text-blue-300 border border-blue-700/70'
+                    : 'bg-blue-50 text-blue-900 border border-blue-200'
+                }`}
+              >
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
@@ -211,12 +235,16 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
                 <span>{badge}</span>
               </div>
 
-              {/* Top-Right Dismiss Button with Large Touch Target */}
+              {/* Close Button: High Visibility & Generous Touch Target */}
               <button
                 type="button"
                 onClick={handleDismiss}
                 aria-label="Close instant callback modal"
-                className="p-2 -mr-1 -mt-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-90"
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition active:scale-90 ${
+                  isDark
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border border-slate-200'
+                }`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -229,35 +257,56 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="py-6 text-center space-y-3 relative z-10"
+                className="py-6 text-center space-y-3"
               >
-                <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl font-extrabold shadow-inner">
+                <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 flex items-center justify-center text-3xl font-black shadow-lg">
                   ✓
                 </div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                <h3
+                  className={`text-lg sm:text-xl font-black tracking-tight ${
+                    isDark ? 'text-white' : 'text-slate-950'
+                  }`}
+                >
                   Request Dispatched!
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium px-2 leading-relaxed">
+                <p
+                  className={`text-xs sm:text-sm font-semibold px-2 leading-relaxed ${
+                    isDark ? 'text-slate-300' : 'text-slate-700'
+                  }`}
+                >
                   {successMsg}
                 </p>
-                <p className="text-[11px] text-slate-400 pt-1">
+                <p className="text-[11px] text-slate-400 font-medium pt-1">
                   This window will close automatically.
                 </p>
               </motion.div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Headline & Description */}
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-snug">
+                  <h3
+                    className={`text-lg sm:text-xl font-black tracking-tight leading-snug ${
+                      isDark ? 'text-white' : 'text-slate-950'
+                    }`}
+                  >
                     {headline}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">
+                  <p
+                    className={`text-xs sm:text-sm font-medium mt-1.5 leading-relaxed ${
+                      isDark ? 'text-slate-300' : 'text-slate-600'
+                    }`}
+                  >
                     {description}
                   </p>
                 </div>
 
                 {/* Name Input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label
+                    className={`block text-xs font-black uppercase tracking-wider mb-1.5 ${
+                      isDark ? 'text-slate-200' : 'text-slate-800'
+                    }`}
+                  >
                     Your Full Name
                   </label>
                   <div className="relative">
@@ -275,18 +324,32 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
                         setName(e.target.value);
                         if (errorMessage) setErrorMessage(null);
                       }}
-                      className="w-full pl-10 pr-3.5 py-2.5 text-base sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition font-medium"
+                      className={`w-full pl-10 pr-4 py-2.5 sm:py-3 text-base sm:text-sm rounded-xl font-semibold transition focus:outline-none focus:ring-4 ${
+                        isDark
+                          ? 'bg-slate-900 border-2 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-400 focus:ring-blue-950/60'
+                          : 'bg-slate-50 border-2 border-slate-300 text-slate-950 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
                 </div>
 
                 {/* Mobile Number Input */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label
+                    className={`block text-xs font-black uppercase tracking-wider mb-1.5 ${
+                      isDark ? 'text-slate-200' : 'text-slate-800'
+                    }`}
+                  >
                     Mobile Number
                   </label>
                   <div className="relative flex rounded-xl shadow-xs">
-                    <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-bold select-none">
+                    <span
+                      className={`inline-flex items-center px-3.5 rounded-l-xl border-2 border-r-0 text-xs sm:text-sm font-black select-none ${
+                        isDark
+                          ? 'bg-slate-800 border-slate-700 text-slate-200'
+                          : 'bg-slate-200 border-slate-300 text-slate-900'
+                      }`}
+                    >
                       🇮🇳 +91
                     </span>
                     <input
@@ -296,14 +359,18 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
                       value={phone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       maxLength={10}
-                      className="w-full pl-3 pr-3.5 py-2.5 text-base sm:text-sm rounded-r-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 font-semibold tracking-wide focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+                      className={`w-full pl-3.5 pr-4 py-2.5 sm:py-3 text-base sm:text-sm rounded-r-xl font-bold tracking-wide transition focus:outline-none focus:ring-4 ${
+                        isDark
+                          ? 'bg-slate-900 border-2 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-400 focus:ring-blue-950/60'
+                          : 'bg-slate-50 border-2 border-slate-300 text-slate-950 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
                 </div>
 
                 {/* Error Alert */}
                 {errorMessage && (
-                  <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl px-3 py-1.5">
+                  <p className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 rounded-xl px-3.5 py-2">
                     ⚠️ {errorMessage}
                   </p>
                 )}
@@ -312,7 +379,7 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 px-5 rounded-2xl font-black text-sm sm:text-base text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] transition-all shadow-xl shadow-blue-600/30 dark:shadow-blue-900/50 border border-blue-400/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                  className="w-full py-3.5 px-6 rounded-2xl font-black text-sm sm:text-base text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all shadow-xl shadow-blue-600/30 dark:shadow-blue-950/80 border border-blue-400/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
                   {loading ? (
                     <>
@@ -323,13 +390,19 @@ export function CallbackBanner({ introActive }: CallbackBannerProps) {
                       <span>Connecting Senior CA...</span>
                     </>
                   ) : (
-                    <span>{ctaText}</span>
+                    <>
+                      <span>{ctaText}</span>
+                    </>
                   )}
                 </button>
 
-                {/* Security & Privacy Microcopy */}
-                <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 pt-0.5">
-                  🔒 100% Confidential • ICAI Compliant • Zero Spam
+                {/* Security & Confidentiality Guarantee */}
+                <p
+                  className={`text-[11px] text-center font-bold pt-1 ${
+                    isDark ? 'text-slate-400' : 'text-slate-600'
+                  }`}
+                >
+                  🛡️ ICAI Compliant • 100% Confidential • Zero Spam
                 </p>
               </form>
             )}
