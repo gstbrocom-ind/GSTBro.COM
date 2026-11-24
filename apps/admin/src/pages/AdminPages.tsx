@@ -655,7 +655,22 @@ export function LeadsPage() {
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      const matchesStatus = statusFilter === 'ALL' || lead.status === statusFilter;
+      const isCallbackHotline = Boolean(
+        lead.email?.includes('@callback.') || lead.message?.includes('Instant CA Hotline')
+      );
+      const isStrategyCall = Boolean(
+        lead.email?.includes('@strategy.') || lead.message?.includes('15-Min CA Strategy Call')
+      );
+
+      let matchesStatus = true;
+      if (statusFilter === 'STRATEGY') {
+        matchesStatus = isStrategyCall;
+      } else if (statusFilter === 'HOTLINE') {
+        matchesStatus = isCallbackHotline;
+      } else if (statusFilter !== 'ALL') {
+        matchesStatus = lead.status === statusFilter;
+      }
+
       const q = search.toLowerCase();
       const matchesSearch =
         lead.name.toLowerCase().includes(q) ||
@@ -676,6 +691,9 @@ export function LeadsPage() {
       closed: leads.filter((l) => l.status === 'CLOSED').length,
       callbackHotline: leads.filter(
         (l) => l.email?.includes('@callback.') || l.message?.includes('Instant CA Hotline')
+      ).length,
+      strategyCalls: leads.filter(
+        (l) => l.email?.includes('@strategy.') || l.message?.includes('15-Min CA Strategy Call')
       ).length,
     };
   }, [leads]);
@@ -752,6 +770,8 @@ export function LeadsPage() {
         {[
           { key: 'ALL', label: 'All Inquiries', count: counts.all },
           { key: 'NEW', label: 'New Leads', count: counts.new },
+          { key: 'STRATEGY', label: '🎯 Strategy Calls', count: counts.strategyCalls },
+          { key: 'HOTLINE', label: '⚡ 5s Banner Leads', count: counts.callbackHotline },
           { key: 'CONTACTED', label: 'Contacted', count: counts.contacted },
           { key: 'CONVERTED', label: '✓ Customers', count: counts.converted },
           { key: 'CLOSED', label: '✗ Not Customers', count: counts.closed },
@@ -795,7 +815,17 @@ export function LeadsPage() {
                 const isCallbackHotline =
                   lead.email?.includes('@callback.') ||
                   lead.message?.includes('Instant CA Hotline');
+                const isStrategyCall =
+                  lead.email?.includes('@strategy.') ||
+                  lead.message?.includes('15-Min CA Strategy Call');
                 const cleanPhone = lead.phone ? lead.phone.replace(/\D/g, '').slice(-10) : '';
+
+                // Extract language and call time metadata from lead message
+                const langMatch = lead.message?.match(/• Language:\s*([^\n\r]+)/i);
+                const timeMatch = lead.message?.match(/• Call Time:\s*([^\n\r]+)/i);
+                const extractedLang = langMatch ? langMatch[1]?.trim() : null;
+                const extractedTime = timeMatch ? timeMatch[1]?.trim() : null;
+                const isUrgentNow = extractedTime ? /now|instant/i.test(extractedTime) : false;
 
                 return (
                   <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors">
@@ -805,12 +835,33 @@ export function LeadsPage() {
                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">
                           {lead.name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="font-extrabold text-slate-900 text-sm">{lead.name}</p>
-                            {isCallbackHotline && (
+                            {isStrategyCall && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                🎯 15-Min CA Call
+                              </span>
+                            )}
+                            {isCallbackHotline && !isStrategyCall && (
                               <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                                 ⚡ 5s Banner
+                              </span>
+                            )}
+                            {extractedLang && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                                🗣️ {extractedLang}
+                              </span>
+                            )}
+                            {extractedTime && (
+                              <span
+                                className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                                  isUrgentNow
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-300 animate-pulse'
+                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                }`}
+                              >
+                                {isUrgentNow ? '⚡ CALL NOW' : `📅 ${extractedTime}`}
                               </span>
                             )}
                           </div>
@@ -831,7 +882,7 @@ export function LeadsPage() {
                                   </a>
                                   <a
                                     href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
-                                      `Hello ${lead.name}, this is GSTBro following up on your consultation request.`
+                                      `Hello ${lead.name}, this is GSTBro Senior CA team following up on your 15-minute strategy call request.`
                                     )}`}
                                     target="_blank"
                                     rel="noreferrer"
@@ -848,7 +899,11 @@ export function LeadsPage() {
                           )}
 
                           <p className="text-slate-400 text-[11px]">
-                            {isCallbackHotline ? 'Submitted via Hotline Modal' : lead.email}
+                            {isStrategyCall
+                              ? 'Submitted via 15-Min CA Strategy Modal'
+                              : isCallbackHotline
+                              ? 'Submitted via Hotline Modal'
+                              : lead.email}
                           </p>
                         </div>
                       </div>

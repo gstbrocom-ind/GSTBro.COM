@@ -32,6 +32,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { BrandIntroOverlay } from './components/brand-intro/BrandIntroOverlay';
 import { CallbackBanner } from './components/CallbackBanner';
+import { StrategyCallModal } from './components/StrategyCallModal';
 import { initializeAnalytics, trackPageView } from './lib/analytics';
 import '../../admin/src/index.css';
 
@@ -82,21 +83,24 @@ function AppShell() {
   const deferLoading = settings?.brandIntro?.deferLoading ?? false;
   const isPendingIntro = introActive && deferLoading;
   const [callbackModalOpen, setCallbackModalOpen] = useState(false);
+  const [strategyModalOpen, setStrategyModalOpen] = useState(false);
+  const isAnyModalOpen = callbackModalOpen || strategyModalOpen;
 
   return (
     <>
       <BrandIntroOverlay onIntroActiveChange={setIntroActive} />
       <CallbackBanner introActive={introActive} onVisibilityChange={setCallbackModalOpen} />
+      <StrategyCallModal onVisibilityChange={setStrategyModalOpen} />
       <div
         id="main-app-container"
         className={
           isPendingIntro
             ? 'opacity-0 pointer-events-none select-none max-h-screen overflow-hidden'
-            : callbackModalOpen
+            : isAnyModalOpen
             ? 'transition-all duration-300 filter blur-md pointer-events-none select-none opacity-90'
             : 'transition-opacity duration-500 ease-out opacity-100'
         }
-        aria-hidden={isPendingIntro || callbackModalOpen}
+        aria-hidden={isPendingIntro || isAnyModalOpen}
       >
         <Suspense fallback={<PortalLoadingSkeleton />}>
           <Routes>

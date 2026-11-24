@@ -5,6 +5,7 @@ import { homeMeta } from '../../seo/pages/home.meta';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { trackGstRegistrationClick, trackPhoneClick } from '../../lib/analytics';
+import { openStrategyCallModal } from '../../components/StrategyCallModal';
 import {
   fadeUpVariants,
   fadeInVariants,
@@ -115,17 +116,20 @@ export default function HomePage() {
                 variants={fadeUpVariants}
                 className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2"
               >
-                <motion.a
+                <motion.button
+                  type="button"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   transition={transitions.fast}
-                  href="/contact"
-                  onClick={() => trackGstRegistrationClick('hero_cta_primary')}
+                  onClick={() => {
+                    trackGstRegistrationClick('hero_cta_primary');
+                    openStrategyCallModal({ topic: 'Hero CTA Strategy Call' });
+                  }}
                   className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-xl shadow-blue-600/30 cursor-pointer border border-blue-400/30"
                 >
                   <span>{settings?.homepage?.heroCtaPrimary || 'Book Free 15-Min CA Strategy Call'}</span>
                   <span className="text-sm font-normal">&rarr;</span>
-                </motion.a>
+                </motion.button>
                 <motion.a
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
@@ -1655,13 +1659,14 @@ export default function HomePage() {
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="/contact"
+            <button
+              type="button"
+              onClick={() => openStrategyCallModal({ topic: 'Footer Compliance Review Call' })}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-extrabold text-sm text-white bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-600/30 transition-all cursor-pointer"
             >
               <span>Book Free 15-Min CA Compliance Review</span>
               <span>➔</span>
-            </a>
+            </button>
             <a
               href="/pricing"
               className={`w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 rounded-xl font-bold text-sm border transition-all text-center ${
