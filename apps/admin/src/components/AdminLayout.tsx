@@ -331,16 +331,25 @@ export function AdminLayout() {
       <aside className={`admin-sidebar ${mobileMenuOpen ? 'admin-sidebar-open' : ''}`}>
         {/* Brand Header */}
         <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-black tracking-tight text-lg select-none">
-                GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-400/20">
-                Console
-              </span>
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-blue-500 via-cyan-400 to-blue-600 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/40 flex items-center justify-center shrink-0">
+              <img
+                src="/brand/gstbro-logo.jpg"
+                alt="GSTBro"
+                className="w-full h-full object-cover rounded-full"
+              />
             </div>
-            <p className="text-[10px] text-slate-400 font-medium">Compliance Practice OS</p>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-white font-black tracking-tight text-base select-none">
+                  GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
+                </span>
+                <span className="text-[8px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-400/20">
+                  Console
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium">GST Tax Advisory OS</p>
+            </div>
           </div>
           <button
             onClick={() => setMobileMenuOpen(false)}

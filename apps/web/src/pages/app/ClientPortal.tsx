@@ -586,10 +586,22 @@ export function ClientPortal() {
     <div className={`client-portal min-h-screen font-sans transition-colors duration-150 ${dark ? 'portal-dark bg-[#0b1329] text-[#e2e8f0]' : 'bg-[#f5f8fc] text-[#16243a]'}`}>
       {/* Executive Dark Left Sidebar */}
       <aside className="portal-sidebar">
-        <div className="portal-brand">
-          <span className="text-2xl font-black tracking-tight text-white select-none leading-none">
-            GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
-          </span>
+        <div className="portal-brand flex items-center gap-2.5">
+          <div className="relative w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-blue-500 via-cyan-400 to-blue-600 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/40 flex items-center justify-center shrink-0">
+            <img
+              src="/brand/gstbro-logo.jpg"
+              alt="GSTBro"
+              className="w-full h-full object-cover rounded-full"
+            />
+          </div>
+          <div>
+            <span className="text-xl font-black tracking-tight text-white select-none leading-none block">
+              GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
+            </span>
+            <span className="text-[8px] font-semibold uppercase tracking-widest text-slate-400 block mt-0.5">
+              GST Tax Advisory
+            </span>
+          </div>
         </div>
 
         <div className="workspace-switcher">
@@ -638,6 +650,13 @@ export function ClientPortal() {
               </svg>
             </button>
             <div className="flex items-center gap-2">
+              <div className="relative w-6 h-6 rounded-full p-[1px] bg-gradient-to-tr from-blue-500 via-cyan-400 to-blue-600 shadow-xs flex items-center justify-center shrink-0">
+                <img
+                  src="/brand/gstbro-logo.jpg"
+                  alt="GSTBro"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </div>
               <span className="font-black text-base tracking-tight text-white select-none">
                 GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
               </span>

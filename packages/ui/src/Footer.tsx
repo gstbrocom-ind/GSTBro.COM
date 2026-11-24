@@ -68,19 +68,19 @@ export function Footer({ settings }: FooterProps) {
           {/* Brand & Corporate Overview (Span 4) */}
           <div className="lg:col-span-4 space-y-4">
             <a href="/" className="inline-flex items-center gap-2.5 group focus:outline-hidden">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-md shadow-blue-500/20 flex items-center justify-center">
-                <div className="w-full h-full rounded-[6px] bg-slate-950 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
+              <div className="relative w-8 h-8 rounded-full p-[2px] bg-gradient-to-tr from-blue-500 via-cyan-400 to-blue-600 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/40 flex items-center justify-center shrink-0">
+                <img
+                  src="/brand/gstbro-logo.jpg"
+                  alt="GSTBro"
+                  className="w-full h-full object-cover rounded-full"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl sm:text-2xl font-black tracking-tight text-white select-none leading-none">
                   GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
                 </span>
                 <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mt-0.5">
-                  Chartered Tax Advisory
+                  GST Tax Advisory
                 </span>
               </div>
             </a>
