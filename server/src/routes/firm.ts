@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase.js';
 import { authenticate, requireFirm, requireFirmAdmin } from '../middleware/auth.js';
 import { hashPassword } from '../services/passwordService.js';
 import { canAccessClient } from '../lib/authorization.js';
-import { createWelcomeCodes, revokeWelcomeCode, getWelcomeCodesSummary } from '../services/welcomeCodeService.js';
+import { createWelcomeCodes, revokeWelcomeCode, getWelcomeCodesSummary, getAllWelcomeCodes } from '../services/welcomeCodeService.js';
 import { parseRawClientNotes } from '../services/aiIntakeService.js';
 import { generateCaOnboardingDocKit } from '../services/caDocumentTemplates.js';
 import { getDriveService } from '../services/googleDrive.js';
@@ -1998,12 +1998,9 @@ export const firmRoutes: FastifyPluginAsync = async (app) => {
       const firmId = request.user.firm_id!;
       const { id } = request.params as { id: string };
 
-      // Ensure code belongs to caller's firm
-      const { data: code } = await supabase
-        .from('welcome_codes')
-        .select('id, firm_id')
-        .eq('id', id)
-        .maybeSingle();
+      // Ensure code belongs to caller's firm (works with both column and note metadata)
+      const allCodes = await getAllWelcomeCodes();
+      const code = allCodes.find((c) => c.id === id);
 
       if (!code || code.firm_id !== firmId) {
         return reply.status(404).send({ error: 'Invite code not found in your firm' });
