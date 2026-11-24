@@ -426,7 +426,7 @@ export async function authRoutes(app: FastifyInstance) {
     const now = new Date().toISOString();
     const isCaFirmRequested = body.signupData.accountType === 'CA_FIRM' || codeCheck.isCaFirm;
 
-    const insertPayload: Record<string, unknown> = {
+    const basePayload = {
       email,
       name: body.signupData.name,
       phone,
@@ -434,52 +434,92 @@ export async function authRoutes(app: FastifyInstance) {
       gstin: body.signupData.gstin || null,
       state: body.signupData.state,
       address: body.signupData.address,
-      constitution_type: body.signupData.constitutionType || null,
-      practice_type: body.signupData.practiceType || null,
-      membership_number: body.signupData.membershipNumber || null,
       password_hash: passwordHash,
       email_verified: false,
-      role: isCaFirmRequested ? 'FIRM_OWNER' : 'CLIENT',
-      firm_role: isCaFirmRequested ? 'FIRM_OWNER' : null,
     };
 
-    // Try inserting with mobile_verified fields; fallback if migration not yet applied
     let createdUser: Record<string, unknown> | null = null;
-    try {
-      const { data: user, error } = await supabase
+    let insertError: any = null;
+
+    // Tier 1: mobile_verified + FIRM_OWNER + extended columns
+    const { data: u1, error: e1 } = await supabase
+      .from('users')
+      .insert({
+        ...basePayload,
+        mobile_verified: true,
+        mobile_verified_at: now,
+        mobile_verification_method: '2FACTOR',
+        role: isCaFirmRequested ? 'FIRM_OWNER' : 'CLIENT',
+        constitution_type: body.signupData.constitutionType || null,
+        practice_type: body.signupData.practiceType || null,
+        membership_number: body.signupData.membershipNumber || null,
+      })
+      .select('*')
+      .single();
+
+    if (!e1 && u1) {
+      createdUser = u1;
+    } else {
+      // Tier 2: mobile_verified + CLIENT role (if enum or columns missing)
+      const { data: u2, error: e2 } = await supabase
         .from('users')
         .insert({
-          ...insertPayload,
+          ...basePayload,
           mobile_verified: true,
           mobile_verified_at: now,
           mobile_verification_method: '2FACTOR',
+          role: 'CLIENT',
         })
         .select('*')
         .single();
 
-      if (!error && user) {
-        createdUser = user;
+      if (!e2 && u2) {
+        createdUser = u2;
+      } else {
+        // Tier 3: base schema columns (mobile_verified fallback)
+        const { data: u3, error: e3 } = await supabase
+          .from('users')
+          .insert({
+            ...basePayload,
+            role: 'CLIENT',
+          })
+          .select('*')
+          .single();
+
+        if (!e3 && u3) {
+          createdUser = u3;
+        } else {
+          // Tier 4: Check if unverified row exists and update it
+          if (e3?.code === '23505' || e3?.message?.includes('duplicate key')) {
+            const { data: u4, error: e4 } = await supabase
+              .from('users')
+              .update({
+                ...basePayload,
+                mobile_verified: true,
+                mobile_verified_at: now,
+                mobile_verification_method: '2FACTOR',
+                role: 'CLIENT',
+                updated_at: now,
+              })
+              .ilike('email', email)
+              .select('*')
+              .single();
+
+            if (!e4 && u4) {
+              createdUser = u4;
+            } else {
+              insertError = e4 || e3;
+            }
+          } else {
+            insertError = e3 || e2 || e1;
+          }
+        }
       }
-    } catch {
-      // Migration fallback
     }
 
     if (!createdUser) {
-      const { data: userFallback, error: fallbackError } = await supabase
-        .from('users')
-        .insert(insertPayload)
-        .select('*')
-        .single();
-
-      if (fallbackError || !userFallback) {
-        request.log.error({ fallbackError }, 'Signup insert error');
-        return reply.status(500).send({ error: 'Failed to create account. Please try again.' });
-      }
-      createdUser = userFallback;
-    }
-
-    if (!createdUser) {
-      return reply.status(500).send({ error: 'Failed to create account. Please try again.' });
+      request.log.error({ insertError }, 'Signup insert error');
+      return reply.status(500).send({ error: insertError?.message || 'Failed to create account. Please try again.' });
     }
 
     // Mark Welcome Code as consumed/registered
@@ -617,7 +657,7 @@ export async function authRoutes(app: FastifyInstance) {
     const passwordHash = await hashPassword(body.password);
     const isCaFirmRequested = body.accountType === 'CA_FIRM' || codeCheck.isCaFirm;
 
-    const { error } = await supabase.from('users').insert({
+    const basePayload = {
       email,
       name: body.name,
       phone,
@@ -625,18 +665,84 @@ export async function authRoutes(app: FastifyInstance) {
       gstin: body.gstin || null,
       state: body.state,
       address: body.address,
-      constitution_type: body.constitutionType || null,
-      practice_type: body.practiceType || null,
-      membership_number: body.membershipNumber || null,
       password_hash: passwordHash,
       email_verified: false,
       mobile_verified: false,
-      role: isCaFirmRequested ? 'FIRM_OWNER' : 'CLIENT',
-      firm_role: isCaFirmRequested ? 'FIRM_OWNER' : null,
-    });
+    };
 
-    if (error) {
-      return reply.status(500).send({ error: 'Failed to create account' });
+    let userCreated: any = null;
+    let insertError: any = null;
+
+    // Tier 1: Try full schema (FIRM_OWNER + extended columns)
+    const { data: u1, error: e1 } = await supabase
+      .from('users')
+      .insert({
+        ...basePayload,
+        role: isCaFirmRequested ? 'FIRM_OWNER' : 'CLIENT',
+        constitution_type: body.constitutionType || null,
+        practice_type: body.practiceType || null,
+        membership_number: body.membershipNumber || null,
+      })
+      .select('*')
+      .single();
+
+    if (!e1 && u1) {
+      userCreated = u1;
+    } else {
+      // Tier 2: Try FIRM_OWNER with base columns
+      const { data: u2, error: e2 } = await supabase
+        .from('users')
+        .insert({
+          ...basePayload,
+          role: isCaFirmRequested ? 'FIRM_OWNER' : 'CLIENT',
+        })
+        .select('*')
+        .single();
+
+      if (!e2 && u2) {
+        userCreated = u2;
+      } else {
+        // Tier 3: Standard base schema columns with CLIENT role
+        const { data: u3, error: e3 } = await supabase
+          .from('users')
+          .insert({
+            ...basePayload,
+            role: 'CLIENT',
+          })
+          .select('*')
+          .single();
+
+        if (!e3 && u3) {
+          userCreated = u3;
+        } else {
+          // Tier 4: If an unverified record already exists with this email, overwrite/update it!
+          if (e3?.code === '23505' || e3?.message?.includes('duplicate key')) {
+            const { data: u4, error: e4 } = await supabase
+              .from('users')
+              .update({
+                ...basePayload,
+                role: 'CLIENT',
+                updated_at: new Date().toISOString(),
+              })
+              .ilike('email', email)
+              .select('*')
+              .single();
+
+            if (!e4 && u4) {
+              userCreated = u4;
+            } else {
+              insertError = e4 || e3;
+            }
+          } else {
+            insertError = e3 || e2 || e1;
+          }
+        }
+      }
+    }
+
+    if (!userCreated) {
+      request.log.error({ insertError }, 'Failed to insert user in signup');
+      return reply.status(500).send({ error: insertError?.message || 'Failed to create account. Please try again.' });
     }
 
     const otpResult = await sendOtp(email, 'SIGNUP', request.ip);
@@ -659,14 +765,14 @@ export async function authRoutes(app: FastifyInstance) {
       .strict()
       .parse(request.body);
 
-    const email = body.email.toLowerCase();
+    const email = body.email.trim().toLowerCase();
     const otpResult = await verifyOtp(email, body.code, 'SIGNUP', request.ip);
     if (!otpResult.valid) return reply.status(401).send({ error: otpResult.message });
 
     const { data: user, error } = await supabase
       .from('users')
-      .update({ email_verified: true, mobile_verified: true })
-      .eq('email', email)
+      .update({ email_verified: true, mobile_verified: true, updated_at: new Date().toISOString() })
+      .ilike('email', email)
       .select('*')
       .single();
 
