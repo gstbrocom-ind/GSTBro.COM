@@ -13,6 +13,94 @@ import { formatGstDateDisplay } from '../../lib/pdfReturnParser';
 import { InvoiceDashboard } from './invoice/InvoiceDashboard';
 import { PortalLoadingSkeleton } from '../../components/PortalLoadingSkeleton';
 
+// Crisp SVG Vector Icons for Team & Article Clerk Workspace
+function OverviewTabIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+
+function ReturnsTabIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7h10v10" />
+      <path d="M7 17 17 7" />
+    </svg>
+  );
+}
+
+function MisChartIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  );
+}
+
+function ChatDeskIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function FolderVaultIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </svg>
+  );
+}
+
+function CalendarClockIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <circle cx="12" cy="15" r="1.5" />
+    </svg>
+  );
+}
+
+function InvoicingIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+    </svg>
+  );
+}
+
+function ConvertBoltIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+function BankBuildingIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="21" x2="21" y2="21" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <polyline points="3 10 12 3 21 10" />
+      <line x1="6" y1="10" x2="6" y2="21" />
+      <line x1="10" y1="10" x2="10" y2="21" />
+      <line x1="14" y1="10" x2="14" y2="21" />
+      <line x1="18" y1="10" x2="18" y2="21" />
+    </svg>
+  );
+}
+
 type TeamClient = {
   id: string;
   name: string;
@@ -821,49 +909,56 @@ export function TeamPortal() {
                 onClick={() => { setActiveTab('overview'); setMobileMenuOpen(false); }}
                 className={`p-2.5 rounded-xl text-left flex items-center gap-2 ${activeTab === 'overview' ? (dark ? 'bg-blue-900/60 text-blue-300 font-bold' : 'bg-blue-50 text-blue-700 font-bold') : (dark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}
               >
-                <span>⌂</span> Overview
+                <OverviewTabIcon className="w-4 h-4 shrink-0" />
+                <span>Overview</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('returns'); setMobileMenuOpen(false); }}
                 className={`p-2.5 rounded-xl text-left flex items-center gap-2 ${activeTab === 'returns' ? (dark ? 'bg-blue-900/60 text-blue-300 font-bold' : 'bg-blue-50 text-blue-700 font-bold') : (dark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}
               >
-                <span>↗</span> Returns
+                <ReturnsTabIcon className="w-4 h-4 shrink-0" />
+                <span>Returns</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('mis'); setMobileMenuOpen(false); }}
                 className={`p-2.5 rounded-xl text-left flex items-center gap-2 ${activeTab === 'mis' ? (dark ? 'bg-blue-900/60 text-blue-300 font-bold' : 'bg-blue-50 text-blue-700 font-bold') : (dark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}
               >
-                <span>📊</span> MIS Reports
+                <MisChartIcon className="w-4 h-4 shrink-0" />
+                <span>MIS Reports</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('chat'); setMobileMenuOpen(false); }}
                 className={`p-2.5 rounded-xl text-left flex items-center gap-2 ${activeTab === 'chat' ? (dark ? 'bg-blue-900/60 text-blue-300 font-bold' : 'bg-blue-50 text-blue-700 font-bold') : (dark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}
               >
-                <span>💬</span> Chat ({messages.length})
+                <ChatDeskIcon className="w-4 h-4 shrink-0" />
+                <span>Chat ({messages.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('documents'); setMobileMenuOpen(false); }}
                 className={`p-2.5 rounded-xl text-left flex items-center gap-2 ${activeTab === 'documents' ? (dark ? 'bg-blue-900/60 text-blue-300 font-bold' : 'bg-blue-50 text-blue-700 font-bold') : (dark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}
               >
-                <span>📁</span> Client Files
+                <FolderVaultIcon className="w-4 h-4 shrink-0" />
+                <span>Client Files</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('calendar'); setMobileMenuOpen(false); }}
                 className={`p-2.5 rounded-xl text-left flex items-center gap-2 ${activeTab === 'calendar' ? (dark ? 'bg-blue-900/60 text-blue-300 font-bold' : 'bg-blue-50 text-blue-700 font-bold') : (dark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}
               >
-                <span>📅</span> Due Dates
+                <CalendarClockIcon className="w-4 h-4 shrink-0" />
+                <span>Due Dates</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('invoicing'); setMobileMenuOpen(false); }}
                 className={`p-2.5 rounded-xl text-left flex items-center gap-2 ${activeTab === 'invoicing' ? (dark ? 'bg-blue-900/60 text-blue-300 font-bold' : 'bg-blue-50 text-blue-700 font-bold') : (dark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}
               >
-                <span>🧾</span> GST Invoices
+                <InvoicingIcon className="w-4 h-4 shrink-0" />
+                <span>GST Invoices</span>
               </button>
             </div>
 
@@ -951,37 +1046,41 @@ export function TeamPortal() {
                 type="button"
                 onClick={() => setConverterOpen(true)}
                 disabled={!selectedId}
-                className="min-h-[44px] px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="min-h-[44px] px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 touch-target"
               >
-                <span>⚡</span> Convert Return
+                <ConvertBoltIcon className="w-4 h-4 shrink-0" />
+                <span>Convert Return</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOpeningItcModalOpen(true)}
                 disabled={!selectedId}
-                className="min-h-[44px] px-3.5 py-2.5 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="min-h-[44px] px-3.5 py-2.5 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 touch-target"
                 title="Enter the opening balance of ITC for the start of the financial year"
               >
-                <span>🏦</span> Opening ITC Balance
+                <BankBuildingIcon className="w-4 h-4 shrink-0" />
+                <span>Opening ITC Balance</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFinancialModalOpen(true)}
                 disabled={!selectedId}
-                className="min-h-[44px] px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="min-h-[44px] px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 touch-target"
               >
-                <span>📊</span> Publish MIS
+                <MisChartIcon className="w-4 h-4 shrink-0" />
+                <span>Publish MIS</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('chat')}
                 disabled={!selectedId}
-                className="min-h-[44px] px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="min-h-[44px] px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 touch-target"
               >
-                <span>💬</span> Chat ({messages.length})
+                <ChatDeskIcon className="w-4 h-4 shrink-0" />
+                <span>Chat ({messages.length})</span>
               </button>
 
               {driveFolderUrl && (
@@ -989,13 +1088,14 @@ export function TeamPortal() {
                   href={driveFolderUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`col-span-2 sm:col-span-1 min-h-[44px] px-3.5 py-2.5 border active:scale-95 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 ${
+                  className={`col-span-2 sm:col-span-1 min-h-[44px] px-3.5 py-2.5 border active:scale-95 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5 touch-target ${
                     dark 
                       ? 'border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white' 
                       : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <span>📁</span> Drive Vault ↗
+                  <FolderVaultIcon className="w-4 h-4 shrink-0" />
+                  <span>Drive Vault ↗</span>
                 </a>
               )}
             </div>
@@ -1122,28 +1222,33 @@ export function TeamPortal() {
         </div>
 
         {/* Tab Navigation */}
-        <div className={`flex border-b overflow-x-auto gap-1 ${dark ? 'border-slate-800' : 'border-slate-200'}`}>
+        <div className={`flex border-b overflow-x-auto gap-1 scrollbar-none py-1 ${dark ? 'border-slate-800' : 'border-slate-200'}`}>
           {[
-            { id: 'overview', icon: '⌂', label: 'Overview & Upload' },
-            { id: 'returns', icon: '↗', label: `Returns & ITC Ledger (${gstData.length})` },
-            { id: 'mis', icon: '📊', label: 'MIS Reports & P&L' },
-            { id: 'chat', icon: '💬', label: `Client Chat Desk (${messages.length})` },
-            { id: 'documents', icon: '📁', label: `Document Vault (${documents.length})` },
-            { id: 'calendar', icon: '◷', label: `Compliance Deadlines (${dueDates.length})` },
-            { id: 'invoicing', icon: '🧾', label: 'GST Invoices' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`py-3 px-4 text-xs font-bold border-b-2 whitespace-nowrap transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === tab.id
-                  ? (dark ? 'border-blue-400 text-blue-400 font-extrabold' : 'border-blue-600 text-blue-600 font-extrabold')
-                  : (dark ? 'border-transparent text-slate-400 hover:text-slate-200' : 'border-transparent text-slate-500 hover:text-slate-800')
-              }`}
-            >
-              <span>{tab.icon}</span> {tab.label}
-            </button>
-          ))}
+            { id: 'overview', icon: OverviewTabIcon, label: 'Overview & Upload' },
+            { id: 'returns', icon: ReturnsTabIcon, label: `Returns & ITC Ledger (${gstData.length})` },
+            { id: 'mis', icon: MisChartIcon, label: 'MIS Reports & P&L' },
+            { id: 'chat', icon: ChatDeskIcon, label: `Client Chat Desk (${messages.length})` },
+            { id: 'documents', icon: FolderVaultIcon, label: `Document Vault (${documents.length})` },
+            { id: 'calendar', icon: CalendarClockIcon, label: `Compliance Deadlines (${dueDates.length})` },
+            { id: 'invoicing', icon: InvoicingIcon, label: 'GST Invoices' },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`py-2 px-3.5 text-xs font-semibold rounded-xl whitespace-nowrap transition flex items-center gap-2 cursor-pointer touch-target ${
+                  isActive
+                    ? (dark ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 font-bold' : 'bg-blue-50 text-blue-700 border border-blue-200 font-bold')
+                    : (dark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent')
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* TAB 1: OVERVIEW & DOCUMENT UPLOAD */}

@@ -176,6 +176,132 @@ type FirmChatGroup = {
   members?: Array<{ user_id: string; role: string }>;
 };
 
+// Crisp SVG Vector Icons for CA Practice Management
+function OverviewSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="7" height="9" x="3" y="3" rx="1" />
+      <rect width="7" height="5" x="14" y="3" rx="1" />
+      <rect width="7" height="9" x="14" y="12" rx="1" />
+      <rect width="7" height="5" x="3" y="16" rx="1" />
+    </svg>
+  );
+}
+
+function PipelineSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3h6v18H3zM15 3h6v10h-6zM15 17h6v4h-6z" />
+    </svg>
+  );
+}
+
+function TasksCheckSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m9 11 3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  );
+}
+
+function UsersGroupSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function ReceiptTaxSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+      <path d="M12 6v2m0 8v2" />
+    </svg>
+  );
+}
+
+function AwardRibbonSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="6" />
+      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+    </svg>
+  );
+}
+
+function ChatDotsSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function UserTeamSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function CalendarAlertSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <circle cx="12" cy="15" r="1.5" />
+    </svg>
+  );
+}
+
+function VaultLockSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+function FolderCloudSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </svg>
+  );
+}
+
+function SettingsSliderSvg({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+function MoreMenuDotsSvg({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" />
+      <circle cx="5" cy="12" r="1.5" />
+    </svg>
+  );
+}
+
 export function FirmPortal() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -185,6 +311,8 @@ export function FirmPortal() {
     'overview' | 'pipeline' | 'tasks' | 'clients' | 'invoices' | 'milestones' | 'messages' | 'team' | 'due-dates' | 'dsc' | 'drive' | 'settings'
   >('overview');
   const [selectedInvoiceClientId, setSelectedInvoiceClientId] = useState<string>('');
+  const [mobileMoreDrawerOpen, setMobileMoreDrawerOpen] = useState(false);
+  const [mobilePipelineStage, setMobilePipelineStage] = useState<'DATA_COLLECTION' | 'RECON_IN_PROGRESS' | 'CA_REVIEW' | 'FILED'>('DATA_COLLECTION');
 
   // Client Milestones CRM state (Birthdays, Incorporation Days, GST Milestones)
   const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
@@ -1448,53 +1576,62 @@ export function FirmPortal() {
         </div>
       )}
 
-      {/* 2. SUB-NAVIGATION BAR (DYNAMIC FOR ARTICLE CLERK VS PARTNER) */}
-      <nav className="bg-slate-950/60 border-b border-slate-800 px-2 sm:px-6 overflow-x-auto scrollbar-none flex gap-1 -webkit-overflow-scrolling-touch py-1">
+      {/* 2. SUB-NAVIGATION BAR (INSTITUTIONAL DESKTOP TABS & MOBILE BOTTOM BAR) */}
+      <nav className="bg-slate-950/80 border-b border-slate-800 px-3 sm:px-6 overflow-x-auto scrollbar-none flex gap-1 -webkit-overflow-scrolling-touch py-1.5">
         {(isStaff
           ? [
-              { key: 'overview', label: '📊 My Article Desk' },
-              { key: 'pipeline', label: '📋 My GST Filing Pipeline' },
-              { key: 'tasks', label: `✅ My Tasks (${tasks.length})` },
-              { key: 'clients', label: `👥 My Assigned Clients (${clients.length})` },
-              { key: 'invoices', label: '🧾 Invoice Generator' },
-              { key: 'milestones', label: `🎂 Client Milestones ${todayCelebrations.length > 0 ? `(${todayCelebrations.length} Today!)` : ''}` },
-              { key: 'messages', label: '💬 Messages & Groups' },
-              { key: 'due-dates', label: '📅 Statutory Deadlines' },
+              { key: 'overview', label: 'My Desk', icon: OverviewSvg },
+              { key: 'pipeline', label: 'GST Pipeline', icon: PipelineSvg },
+              { key: 'tasks', label: 'My Tasks', icon: TasksCheckSvg, badge: tasks.length ? `${tasks.length}` : undefined },
+              { key: 'clients', label: 'My Clients', icon: UsersGroupSvg, badge: `${clients.length}` },
+              { key: 'invoices', label: 'Invoices', icon: ReceiptTaxSvg },
+              { key: 'milestones', label: 'Milestones', icon: AwardRibbonSvg, badge: todayCelebrations.length > 0 ? `${todayCelebrations.length}` : undefined },
+              { key: 'messages', label: 'Messages', icon: ChatDotsSvg },
+              { key: 'due-dates', label: 'Deadlines', icon: CalendarAlertSvg },
             ]
           : [
-              { key: 'overview', label: '📊 Practice Command Center' },
-              { key: 'pipeline', label: '📋 GST Compliance Pipeline' },
-              { key: 'tasks', label: '✅ To-Do & Tasks' },
-              { key: 'clients', label: `👥 Client Roster (${clients.length})` },
-              { key: 'invoices', label: '🧾 Invoice Generator' },
-              { key: 'milestones', label: `🎂 Milestones & Celebrations ${todayCelebrations.length > 0 ? `(${todayCelebrations.length} Today!)` : ''}` },
-              { key: 'messages', label: `💬 Messaging & Groups (${chatGroups.length})` },
-              { key: 'team', label: `🧑‍🤝‍🧑 Team / Articles (${team.length})` },
-              { key: 'due-dates', label: '📅 Due Dates & Overrides' },
-              { key: 'dsc', label: `🔏 DSC Vault ${expiringDscCount > 0 ? `(${expiringDscCount} Expiring)` : ''}` },
-              { key: 'drive', label: '📁 BYOD Google Drive' },
-              { key: 'settings', label: '⚙️ Firm Branding & Permissions' },
+              { key: 'overview', label: 'Command Center', icon: OverviewSvg },
+              { key: 'pipeline', label: 'GST Pipeline', icon: PipelineSvg },
+              { key: 'tasks', label: 'Tasks', icon: TasksCheckSvg, badge: tasks.length ? `${tasks.length}` : undefined },
+              { key: 'clients', label: 'Client Roster', icon: UsersGroupSvg, badge: `${clients.length}` },
+              { key: 'invoices', label: 'Invoices', icon: ReceiptTaxSvg },
+              { key: 'milestones', label: 'Milestones', icon: AwardRibbonSvg, badge: todayCelebrations.length > 0 ? `${todayCelebrations.length}` : undefined },
+              { key: 'messages', label: 'Messages', icon: ChatDotsSvg, badge: chatGroups.length ? `${chatGroups.length}` : undefined },
+              { key: 'team', label: 'Team / Articles', icon: UserTeamSvg, badge: `${team.length}` },
+              { key: 'due-dates', label: 'Deadlines', icon: CalendarAlertSvg },
+              { key: 'dsc', label: 'DSC Vault', icon: VaultLockSvg, badge: expiringDscCount > 0 ? `${expiringDscCount}` : undefined },
+              { key: 'drive', label: 'Drive Sync', icon: FolderCloudSvg },
+              { key: 'settings', label: 'Branding & Roles', icon: SettingsSliderSvg },
             ]
         ).map((tab) => {
           const isActive = activeTab === tab.key;
+          const Icon = tab.icon;
           return (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`py-2.5 sm:py-3 px-3 sm:px-3.5 text-xs font-bold transition whitespace-nowrap border-b-2 cursor-pointer ${
+              className={`py-2 px-3 text-xs font-semibold rounded-xl transition whitespace-nowrap flex items-center gap-2 cursor-pointer touch-target ${
                 isActive
-                  ? 'border-blue-500 text-blue-400 bg-blue-500/5'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
               }`}
             >
-              {tab.label}
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{tab.label}</span>
+              {tab.badge && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  isActive ? 'bg-blue-500/30 text-blue-300' : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
             </button>
           );
         })}
       </nav>
 
       {/* 3. MAIN WORKSPACE VIEWPORT */}
-      <main className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto space-y-5 sm:space-y-6">
+      <main className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto space-y-5 sm:space-y-6 pb-24 md:pb-8">
         {/* ========================================================================= */}
         {/* TAB 1: PRACTICE COMMAND CENTER (OVERVIEW)                                 */}
         {/* ========================================================================= */}
@@ -1982,8 +2119,41 @@ export function FirmPortal() {
               )}
             </div>
 
-            {/* 4 Pipeline Stages (Touch Swipe on Mobile, Grid on Desktop) */}
-            <div className="flex overflow-x-auto pb-4 gap-3.5 snap-x -webkit-overflow-scrolling-touch sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible">
+            {/* Mobile Segmented Control for 4 Stages */}
+            <div className="sm:hidden flex items-center gap-1.5 p-1 bg-slate-950 border border-slate-800 rounded-2xl overflow-x-auto scrollbar-none">
+              {(
+                [
+                  { key: 'DATA_COLLECTION', label: '1. Data Collection' },
+                  { key: 'RECON_IN_PROGRESS', label: '2. ITC Recon' },
+                  { key: 'CA_REVIEW', label: '3. CA Review' },
+                  { key: 'FILED', label: '4. Filed' },
+                ] as const
+              ).map((s) => {
+                const count = clients.filter((c) => (c.filing_stage || 'DATA_COLLECTION') === s.key).length;
+                const isSelected = mobilePipelineStage === s.key;
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => setMobilePipelineStage(s.key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 touch-target ${
+                      isSelected
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>{s.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isSelected ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 4 Pipeline Stages (Mobile Filtered Stack / Desktop 4-Column Grid) */}
+            <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-3.5">
               {(
                 [
                   { key: 'DATA_COLLECTION', label: '1. Data Collection', color: 'border-amber-500/40 bg-amber-500/5' },
@@ -1995,9 +2165,15 @@ export function FirmPortal() {
                 const stageClients = clients.filter(
                   (c) => (c.filing_stage || 'DATA_COLLECTION') === stage.key
                 );
+                const isVisibleOnMobile = mobilePipelineStage === stage.key;
 
                 return (
-                  <div key={stage.key} className={`p-4 rounded-2xl border ${stage.color} flex flex-col min-h-[450px] w-[84vw] max-w-[320px] shrink-0 sm:w-auto sm:shrink snap-center`}>
+                  <div
+                    key={stage.key}
+                    className={`p-4 rounded-2xl border ${stage.color} flex-col min-h-[400px] sm:min-h-[450px] ${
+                      isVisibleOnMobile ? 'flex' : 'hidden sm:flex'
+                    }`}
+                  >
                     <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
                       <h4 className="font-bold text-xs text-white">{stage.label}</h4>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-black">
@@ -3609,6 +3785,131 @@ export function FirmPortal() {
           </div>
         )}
       </main>
+
+      {/* 4. MOBILE BOTTOM NAVIGATION BAR (FIXED FOR QUICK THUMB NAVIGATION) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 px-3 py-2 flex items-center justify-around shadow-2xl safe-area-pb">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition cursor-pointer touch-target ${
+            activeTab === 'overview' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <OverviewSvg className="w-5 h-5" />
+          <span className="text-[10px]">Overview</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('pipeline')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition cursor-pointer touch-target ${
+            activeTab === 'pipeline' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <PipelineSvg className="w-5 h-5" />
+          <span className="text-[10px]">Pipeline</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('clients')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition relative cursor-pointer touch-target ${
+            activeTab === 'clients' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <UsersGroupSvg className="w-5 h-5" />
+          <span className="text-[10px]">Clients</span>
+          {clients.length > 0 && (
+            <span className="absolute top-0 right-2 w-2 h-2 rounded-full bg-blue-500" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('messages')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition relative cursor-pointer touch-target ${
+            activeTab === 'messages' ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <ChatDotsSvg className="w-5 h-5" />
+          <span className="text-[10px]">Messages</span>
+          {chatGroups.length > 0 && (
+            <span className="absolute top-0 right-2 w-2 h-2 rounded-full bg-indigo-500" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setMobileMoreDrawerOpen(true)}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition cursor-pointer touch-target ${
+            !['overview', 'pipeline', 'clients', 'messages'].includes(activeTab)
+              ? 'text-blue-400 font-bold'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <MoreMenuDotsSvg className="w-5 h-5" />
+          <span className="text-[10px]">More</span>
+        </button>
+      </nav>
+
+      {/* 5. MOBILE "MORE" SLIDE-UP DRAWER */}
+      {mobileMoreDrawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            onClick={() => setMobileMoreDrawerOpen(false)}
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
+          />
+          <div className="relative z-10 bg-slate-950 border-t border-slate-800 rounded-t-3xl p-5 space-y-4 max-h-[82vh] overflow-y-auto shadow-2xl animate-fadeIn">
+            <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto" />
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-sm text-white">Practice Features & Workspaces</h3>
+              <button
+                onClick={() => setMobileMoreDrawerOpen(false)}
+                className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800"
+              >
+                Done
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              {[
+                { key: 'tasks', label: 'Tasks & To-Do', icon: TasksCheckSvg, desc: `${tasks.length} Active` },
+                { key: 'invoices', label: 'Invoices', icon: ReceiptTaxSvg, desc: 'Billing Tool' },
+                { key: 'milestones', label: 'Milestones', icon: AwardRibbonSvg, desc: 'Client CRM' },
+                ...(!isStaff ? [
+                  { key: 'team', label: 'Team & Articles', icon: UserTeamSvg, desc: `${team.length} Members` },
+                ] : []),
+                { key: 'due-dates', label: 'Due Dates', icon: CalendarAlertSvg, desc: 'Statutory Deadlines' },
+                ...(!isStaff ? [
+                  { key: 'dsc', label: 'DSC Vault', icon: VaultLockSvg, desc: 'Token Registry' },
+                  { key: 'drive', label: 'Google Drive', icon: FolderCloudSvg, desc: 'BYOD Storage' },
+                  { key: 'settings', label: 'Branding & Roles', icon: SettingsSliderSvg, desc: 'Practice Settings' },
+                ] : []),
+              ].map((item) => {
+                const Icon = item.icon;
+                const isSelected = activeTab === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => {
+                      setActiveTab(item.key as any);
+                      setMobileMoreDrawerOpen(false);
+                    }}
+                    className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition cursor-pointer touch-target ${
+                      isSelected
+                        ? 'bg-blue-600/20 border-blue-500 text-white'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold">{item.label}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{item.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: PRE-FILING 5-POINT SIGN-OFF CHECKLIST                              */}

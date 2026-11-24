@@ -1617,8 +1617,8 @@ export function ClientPortal() {
                 </div>
               ) : (
                 <>
-              {/* Returns Table */}
-              <div className="overflow-x-auto">
+              {/* Returns Table (Desktop View) */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
                     <tr>
@@ -1815,6 +1815,89 @@ export function ClientPortal() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile View: Responsive Stacked Cards */}
+              <div className="md:hidden space-y-3 pt-1">
+                {rows.map((row) => {
+                  const g1 = (row.gstr1 || {}) as Record<string, unknown>;
+                  const g3b = (row.gstr3b || {}) as Record<string, unknown>;
+                  const salesObj = (row.sales || {}) as Record<string, unknown>;
+                  const itcObj = (row.itc || {}) as Record<string, unknown>;
+
+                  const g1Sales = Number(g1.taxableSales ?? g1.taxableValue ?? salesObj.taxableSales ?? 0);
+                  const g1Tax = Number(g1.totalTax ?? salesObj.outputTax ?? 0);
+                  const g1Arn = String(g1.arn || (Object.keys(g1).length > 0 ? 'ARN-VERIFIED' : ''));
+
+                  const g3bSales = Number(g3b.outwardTaxable ?? salesObj.taxableSales ?? 0);
+                  const g3bItc = Number(g3b.itcAvailable ?? itcObj.totalItc ?? (itcObj.inwardItc as any)?.total ?? 0);
+                  const g3bCash = Number(g3b.cashPaid ?? salesObj.cashTaxPaid ?? 0);
+                  const g3bArn = String(g3b.arn || (Object.keys(g3b).length > 0 ? 'ARN-VERIFIED' : ''));
+
+                  const hasG1 = Object.keys(g1).length > 0 || Boolean(g1Arn);
+                  const hasG3b = Object.keys(g3b).length > 0 || Boolean(g3bArn);
+
+                  return (
+                    <div key={row.period} className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div>
+                          <span className="font-bold text-slate-900 text-sm">Period: {row.period}</span>
+                        </div>
+                        <div>
+                          {hasG1 && hasG3b ? (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                              ✓ 1 &amp; 3B Filed
+                            </span>
+                          ) : hasG1 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                              GSTR-1 Filed
+                            </span>
+                          ) : hasG3b ? (
+                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
+                              GSTR-3B Filed
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">
+                              Pending
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                          <span className="text-[10px] text-slate-500 font-semibold uppercase block">Sales</span>
+                          <strong className="text-slate-900 font-mono">₹{(g1Sales || g3bSales).toLocaleString('en-IN')}</strong>
+                        </div>
+                        <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                          <span className="text-[10px] text-slate-500 font-semibold uppercase block">ITC Available</span>
+                          <strong className="text-emerald-700 font-mono">₹{g3bItc.toLocaleString('en-IN')}</strong>
+                        </div>
+                        <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                          <span className="text-[10px] text-slate-500 font-semibold uppercase block">Tax Paid (Bank)</span>
+                          <strong className="text-blue-700 font-mono">₹{g3bCash.toLocaleString('en-IN')}</strong>
+                        </div>
+                        <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                          <span className="text-[10px] text-slate-500 font-semibold uppercase block">Output GST</span>
+                          <strong className="text-amber-700 font-mono">₹{g1Tax.toLocaleString('en-IN')}</strong>
+                        </div>
+                      </div>
+
+                      {hasG1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedGstr1Row(row);
+                            setGstr1ModalOpen(true);
+                          }}
+                          className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-blue-700 text-center transition cursor-pointer touch-target"
+                        >
+                          View Official GSTR-1 Breakdown ↗
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* SECTION: Electronic Credit Ledger (ITC Balance & Utilization) */}
