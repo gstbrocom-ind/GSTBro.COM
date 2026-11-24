@@ -587,13 +587,11 @@ export function ClientPortal() {
       {/* Executive Dark Left Sidebar */}
       <aside className="portal-sidebar">
         <div className="portal-brand flex items-center gap-2.5">
-          <div className="relative w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-blue-500 via-cyan-400 to-blue-600 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/40 flex items-center justify-center shrink-0">
-            <img
-              src="/brand/gstbro-logo.jpg"
-              alt="GSTBro"
-              className="w-full h-full object-cover rounded-full"
-            />
-          </div>
+          <img
+            src="/brand/gstbro-logo.png"
+            alt="GSTBro"
+            className="w-8 h-8 rounded-full object-contain shrink-0"
+          />
           <div>
             <span className="text-xl font-black tracking-tight text-white select-none leading-none block">
               GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
@@ -650,13 +648,11 @@ export function ClientPortal() {
               </svg>
             </button>
             <div className="flex items-center gap-2">
-              <div className="relative w-6 h-6 rounded-full p-[1px] bg-gradient-to-tr from-blue-500 via-cyan-400 to-blue-600 shadow-xs flex items-center justify-center shrink-0">
-                <img
-                  src="/brand/gstbro-logo.jpg"
-                  alt="GSTBro"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
+              <img
+                src="/brand/gstbro-logo.png"
+                alt="GSTBro"
+                className="w-6 h-6 rounded-full object-contain shrink-0"
+              />
               <span className="font-black text-base tracking-tight text-white select-none">
                 GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
               </span>

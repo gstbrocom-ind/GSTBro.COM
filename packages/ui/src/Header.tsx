@@ -195,13 +195,11 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-4">
         {/* Brand Name & Institutional Emblem */}
         <a href="/" className="flex items-center gap-2.5 group focus:outline-hidden shrink-0">
-          <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full p-[2px] bg-gradient-to-tr from-blue-600 via-cyan-400 to-blue-500 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/40 group-hover:scale-105 transition-transform flex items-center justify-center shrink-0">
-            <img
-              src="/brand/gstbro-logo.jpg"
-              alt="GSTBro"
-              className="w-full h-full object-cover rounded-full"
-            />
-          </div>
+          <img
+            src="/brand/gstbro-logo.png"
+            alt="GSTBro"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-contain shrink-0 group-hover:scale-105 transition-transform"
+          />
           <div className="flex flex-col">
             <span
               className={`text-xl sm:text-2xl font-black tracking-tight select-none leading-none ${

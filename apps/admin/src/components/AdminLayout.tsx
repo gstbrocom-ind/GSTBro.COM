@@ -332,13 +332,11 @@ export function AdminLayout() {
         {/* Brand Header */}
         <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-blue-500 via-cyan-400 to-blue-600 shadow-md shadow-blue-500/25 ring-1 ring-blue-400/40 flex items-center justify-center shrink-0">
-              <img
-                src="/brand/gstbro-logo.jpg"
-                alt="GSTBro"
-                className="w-full h-full object-cover rounded-full"
-              />
-            </div>
+            <img
+              src="/brand/gstbro-logo.png"
+              alt="GSTBro"
+              className="w-8 h-8 rounded-full object-contain shrink-0"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-white font-black tracking-tight text-base select-none">
