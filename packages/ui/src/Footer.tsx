@@ -34,13 +34,18 @@ export function Footer({ settings }: FooterProps) {
             </div>
 
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto shrink-0">
-              <a
-                href="/contact"
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('gstbro:open-strategy-call'));
+                  }
+                }}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
               >
                 <span>Book Free CA Consultation</span>
                 <span className="text-sm font-normal">&rarr;</span>
-              </a>
+              </button>
               {contactPhone && (
                 <a
                   href={`tel:${contactPhone}`}
@@ -62,10 +67,22 @@ export function Footer({ settings }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 mb-10">
           {/* Brand & Corporate Overview (Span 4) */}
           <div className="lg:col-span-4 space-y-4">
-            <a href="/" className="inline-flex items-center">
-              <span className="text-2xl sm:text-[26px] font-black tracking-tight text-white select-none">
-                GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 font-black">Bro</span>
-              </span>
+            <a href="/" className="inline-flex items-center gap-2.5 group focus:outline-hidden">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-md shadow-blue-500/20 flex items-center justify-center">
+                <div className="w-full h-full rounded-[6px] bg-slate-950 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl sm:text-2xl font-black tracking-tight text-white select-none leading-none">
+                  GST<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Bro</span>
+                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mt-0.5">
+                  Chartered Tax Advisory
+                </span>
+              </div>
             </a>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
@@ -74,13 +91,17 @@ export function Footer({ settings }: FooterProps) {
 
             <div className="space-y-2 pt-1 text-xs">
               <div className="flex items-center gap-2.5">
-                <span className="text-blue-400 font-bold">✉</span>
+                <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
                 <a href={`mailto:${contactEmail}`} className="text-slate-300 hover:text-white transition-colors font-medium">
                   {contactEmail}
                 </a>
               </div>
               <div className="flex items-center gap-2.5">
-                <span className="text-emerald-400 font-bold">🕒</span>
+                <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <span className="text-slate-400">Mon – Sat: 9:00 AM – 7:00 PM IST</span>
               </div>
             </div>
@@ -219,9 +240,13 @@ export function Footer({ settings }: FooterProps) {
               </a>
             </div>
 
-            <p className="text-[11px] text-slate-300 leading-snug">
-              📍 {officeAddress}
-            </p>
+            <div className="flex items-start gap-2 text-[11px] text-slate-300 leading-snug">
+              <svg className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>{officeAddress}</span>
+            </div>
 
             {/* Embedded Google Maps Widget */}
             <div className="w-full h-36 rounded-xl overflow-hidden border border-slate-800 bg-slate-950 relative shadow-inner">
@@ -240,16 +265,28 @@ export function Footer({ settings }: FooterProps) {
         <div className="py-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-400 text-[11px]">
             <span className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>ICAI-Compliant CA Supervision</span>
+              <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>ICAI Code of Ethics Adherent</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span>
+              <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>DPDP Act 2023 Compliant</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
               <span>256-Bit TLS 1.3 Bank-Grade Security</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>100% Zero-Penalty SLA Warranty</span>
+              <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Zero-Penalty Filing Warranty</span>
             </span>
           </div>
 
@@ -260,11 +297,14 @@ export function Footer({ settings }: FooterProps) {
         </div>
 
         {/* 4. COPYRIGHT & REGULATORY DISCLAIMER */}
-        <div className="pt-4 border-t border-slate-900 text-[11px] text-slate-500 space-y-2">
+        <div className="pt-4 border-t border-slate-900 text-[11px] text-slate-500 space-y-1.5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
             <p>&copy; {year} {siteName} Technologies Private Limited. All rights reserved.</p>
-            <p>Administered under lawful taxpayer authorization on official government portals.</p>
+            <p className="text-slate-500">ICAI Firm Registration &amp; Tax Representative Governance.</p>
           </div>
+          <p className="text-[10px] text-slate-600 leading-relaxed">
+            Disclaimer: GSTBro operates as an independent enterprise compliance technology and Chartered Accountancy advisory platform. All return filings, tax audits, and notice representations are executed by duly qualified Chartered Accountants in accordance with the Chartered Accountants Act, 1949 and applicable GST statutes.
+          </p>
         </div>
       </div>
     </footer>

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PublicLayout } from '../../components/PublicLayout';
 import { Breadcrumbs } from '../../components/seo/Breadcrumbs';
 import { servicesMeta } from '../../seo/pages/services.meta';
+import { useTheme } from '../../context/ThemeContext';
+import { openStrategyCallModal } from '../../components/StrategyCallModal';
 import { fadeUpVariants, staggerContainer, transitions } from '../../lib/animations';
 
 interface ServiceItem {
@@ -199,9 +201,11 @@ export function ServicesHubPage() {
     { id: 'licensing', label: 'Licenses & Entity Setup', count: services.filter((s) => s.category === 'licensing').length },
   ];
 
+  const { isLight } = useTheme();
+
   return (
     <PublicLayout meta={servicesMeta}>
-      <div className="bg-slate-50 min-h-screen">
+      <div className={`min-h-screen transition-colors duration-300 ${isLight ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-white'}`}>
         {/* Breadcrumb Header */}
         <div className="max-w-7xl mx-auto px-4 pt-6 sm:px-6 lg:px-8">
           <Breadcrumbs items={[{ name: 'Practice Areas & Services', path: '/services' }]} />
@@ -211,37 +215,49 @@ export function ServicesHubPage() {
         <section className="relative overflow-hidden pt-8 pb-14 lg:pb-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto space-y-4">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold uppercase tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+              <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                isLight ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-blue-950 border-blue-800 text-blue-400'
+              }`}>
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
                 Comprehensive Indirect Tax &amp; Regulatory Infrastructure
               </span>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-                Institutional-Grade <span className="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-800 bg-clip-text text-transparent">GST &amp; Tax Advisory</span>
+              <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight ${
+                isLight ? 'text-slate-900' : 'text-white'
+              }`}>
+                Institutional-Grade <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-400 bg-clip-text text-transparent">GST &amp; Tax Advisory</span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
+              <p className={`text-base sm:text-lg leading-relaxed max-w-2xl mx-auto ${
+                isLight ? 'text-slate-600' : 'text-slate-300'
+              }`}>
                 End-to-end indirect tax compliance, automated Rule 88A ITC reconciliation, expedited refunds, and senior CA scrutiny defense engineered for enterprises and SMEs across India.
               </p>
 
               {/* Search & Discovery Bar */}
               <div className="pt-4 max-w-xl mx-auto">
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-base">
-                    🔍
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                   </span>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search practice areas (e.g. Return filing, Refunds, GSTR-1, Notice defense, FSSAI)..."
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-300 rounded-2xl text-xs sm:text-sm shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-hidden transition"
+                    className={`w-full pl-10 pr-4 py-3 rounded-2xl text-xs sm:text-sm shadow-xs focus:ring-2 focus:ring-blue-500 outline-hidden transition border ${
+                      isLight
+                        ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400'
+                        : 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-500'
+                    }`}
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold"
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
                     >
                       Clear
                     </button>
@@ -251,21 +267,29 @@ export function ServicesHubPage() {
 
               {/* Key Trust Stats */}
               <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl mx-auto">
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                  <strong className="block text-2xl font-black text-slate-900 font-mono">99.9%</strong>
-                  <span className="text-[11px] font-semibold text-slate-500">On-Time Filing SLA</span>
+                <div className={`p-3.5 rounded-xl border shadow-2xs ${
+                  isLight ? 'bg-white border-slate-200/80 text-slate-900' : 'bg-slate-900/90 border-slate-800 text-white'
+                }`}>
+                  <strong className="block text-2xl font-black font-mono">99.9%</strong>
+                  <span className={`text-[11px] font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>On-Time Filing SLA</span>
                 </div>
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                  <strong className="block text-2xl font-black text-emerald-600 font-mono">₹42 Cr+</strong>
-                  <span className="text-[11px] font-semibold text-slate-500">Capital Recovered</span>
+                <div className={`p-3.5 rounded-xl border shadow-2xs ${
+                  isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900/90 border-slate-800'
+                }`}>
+                  <strong className="block text-2xl font-black text-emerald-500 font-mono">₹42 Cr+</strong>
+                  <span className={`text-[11px] font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Capital Recovered</span>
                 </div>
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                  <strong className="block text-2xl font-black text-blue-600 font-mono">100%</strong>
-                  <span className="text-[11px] font-semibold text-slate-500">Notice Resolution</span>
+                <div className={`p-3.5 rounded-xl border shadow-2xs ${
+                  isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900/90 border-slate-800'
+                }`}>
+                  <strong className="block text-2xl font-black text-blue-500 font-mono">100%</strong>
+                  <span className={`text-[11px] font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Notice Resolution</span>
                 </div>
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                  <strong className="block text-2xl font-black text-amber-600 font-mono">3–5 Days</strong>
-                  <span className="text-[11px] font-semibold text-slate-500">Turnaround Average</span>
+                <div className={`p-3.5 rounded-xl border shadow-2xs ${
+                  isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900/90 border-slate-800'
+                }`}>
+                  <strong className="block text-2xl font-black text-amber-500 font-mono">3–5 Days</strong>
+                  <span className={`text-[11px] font-semibold ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Turnaround Average</span>
                 </div>
               </div>
             </div>
@@ -284,11 +308,19 @@ export function ServicesHubPage() {
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer flex items-center gap-2 select-none active:scale-[0.98] min-h-[44px] ${
                   selectedCategory === cat.id
                     ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400'
-                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    : isLight
+                    ? 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
                 }`}
               >
                 <span className="whitespace-nowrap">{cat.label}</span>
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono shrink-0 ${selectedCategory === cat.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono shrink-0 ${
+                  selectedCategory === cat.id
+                    ? 'bg-white/20 text-white'
+                    : isLight
+                    ? 'bg-slate-100 text-slate-500'
+                    : 'bg-slate-800 text-slate-400'
+                }`}>
                   {cat.count}
                 </span>
               </button>
@@ -297,8 +329,8 @@ export function ServicesHubPage() {
 
           {/* Results Summary if searched */}
           {searchQuery && (
-            <div className="mb-6 text-xs text-slate-500 text-center font-medium">
-              Showing <strong className="text-slate-800">{filteredServices.length}</strong> service results for &quot;<span className="text-blue-600">{searchQuery}</span>&quot;
+            <div className={`mb-6 text-xs text-center font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              Showing <strong className={isLight ? 'text-slate-800' : 'text-white'}>{filteredServices.length}</strong> service results for &quot;<span className="text-blue-500">{searchQuery}</span>&quot;
             </div>
           )}
 
@@ -316,7 +348,11 @@ export function ServicesHubPage() {
                 key={srv.id}
                 variants={fadeUpVariants}
                 whileHover={{ y: -4, transition: transitions.fast }}
-                className="bg-white rounded-3xl border border-slate-200/90 hover:border-blue-400 p-6 sm:p-7 shadow-xs hover:shadow-xl transition-all flex flex-col justify-between group"
+                className={`rounded-3xl border p-6 sm:p-7 shadow-xs hover:shadow-xl transition-all flex flex-col justify-between group ${
+                  isLight
+                    ? 'bg-white border-slate-200/90 hover:border-blue-400'
+                    : 'bg-slate-900/90 border-slate-800 hover:border-blue-500'
+                }`}
               >
                 <div className="space-y-4">
                   {/* Card Header Tags */}
@@ -333,23 +369,29 @@ export function ServicesHubPage() {
 
                   {/* Title & Description */}
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors tracking-tight leading-snug">
+                    <h2 className={`text-lg font-bold transition-colors tracking-tight leading-snug ${
+                      isLight ? 'text-slate-900 group-hover:text-blue-600' : 'text-white group-hover:text-blue-400'
+                    }`}>
                       {srv.title}
                     </h2>
-                    <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    <p className={`mt-2 text-xs sm:text-sm leading-relaxed ${
+                      isLight ? 'text-slate-600' : 'text-slate-400'
+                    }`}>
                       {srv.desc}
                     </p>
                   </div>
 
                   {/* Deliverables Checklist */}
-                  <div className="pt-2 border-t border-slate-100 space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  <div className={`pt-2 border-t space-y-2 ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                      isLight ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
                       Scope &amp; Deliverables
                     </span>
-                    <ul className="space-y-1.5 text-xs text-slate-700">
+                    <ul className={`space-y-1.5 text-xs ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                       {srv.deliverables.map((deliv, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
+                          <span className="text-emerald-500 font-bold shrink-0 mt-0.5">✓</span>
                           <span className="leading-tight">{deliv}</span>
                         </li>
                       ))}
@@ -358,14 +400,20 @@ export function ServicesHubPage() {
                 </div>
 
                 {/* Card Action Link */}
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div className={`mt-6 pt-4 border-t flex items-center justify-between ${
+                  isLight ? 'border-slate-100' : 'border-slate-800'
+                }`}>
                   <Link
                     to={srv.href}
-                    className="text-xs font-bold text-blue-600 group-hover:text-blue-700 flex items-center gap-1.5 transition-transform group-hover:translate-x-1"
+                    className={`text-xs font-bold flex items-center gap-1.5 transition-transform group-hover:translate-x-1 ${
+                      isLight ? 'text-blue-600 group-hover:text-blue-700' : 'text-blue-400 group-hover:text-blue-300'
+                    }`}
                   >
                     <span>{srv.actionText}</span>
                   </Link>
-                  <span className="text-slate-300 group-hover:text-blue-400 transition-colors text-sm">
+                  <span className={`transition-colors text-sm ${
+                    isLight ? 'text-slate-300 group-hover:text-blue-600' : 'text-slate-600 group-hover:text-blue-400'
+                  }`}>
                     ➔
                   </span>
                 </div>
@@ -375,9 +423,11 @@ export function ServicesHubPage() {
 
           {!filteredServices.length && (
             <div className="py-16 text-center space-y-3">
-              <span className="text-3xl block">🔍</span>
-              <h3 className="text-base font-bold text-slate-800">No matching practice areas found</h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
+              <svg className="w-10 h-10 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <h3 className={`text-base font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>No matching practice areas found</h3>
+              <p className={`text-xs max-w-md mx-auto ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 We could not find any services matching &quot;{searchQuery}&quot;. Please try a different search keyword or explore all practice areas.
               </p>
               <button
@@ -386,7 +436,7 @@ export function ServicesHubPage() {
                   setSelectedCategory('all');
                   setSearchQuery('');
                 }}
-                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
+                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold cursor-pointer"
               >
                 Reset All Filters
               </button>
@@ -395,57 +445,77 @@ export function ServicesHubPage() {
         </section>
 
         {/* The GSTBro Managed Framework (4 Pillars) */}
-        <section className="py-16 bg-white border-y border-slate-200">
+        <section className={`py-16 border-y transition-colors ${
+          isLight ? 'bg-white border-slate-200' : 'bg-slate-900/40 border-slate-800'
+        }`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+              <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${
+                isLight ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-blue-400 bg-blue-950 border-blue-800'
+              }`}>
                 Managed Service Guarantee
               </span>
-              <h2 className="mt-3 text-3xl font-black text-slate-900 tracking-tight">
+              <h2 className={`mt-3 text-3xl font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
                 What Every GSTBro Client Receives
               </h2>
-              <p className="mt-2 text-slate-600 text-sm">
+              <p className={`mt-2 text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 Every service engagement is supported by our institutional-grade infrastructure.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                <span className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-lg">
-                  👤
-                </span>
-                <strong className="text-sm font-bold text-slate-900 block">Dedicated CA Lead</strong>
-                <p className="text-xs text-slate-600 leading-relaxed">
+              <div className={`p-6 rounded-2xl border space-y-3 ${
+                isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900/80 border-slate-800'
+              }`}>
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 font-bold flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <strong className={`text-sm font-bold block ${isLight ? 'text-slate-900' : 'text-white'}`}>Dedicated CA Lead</strong>
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Direct 1-on-1 access to your assigned indirect tax specialist. No anonymous ticketing queues or rotating call center staff.
                 </p>
               </div>
 
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                <span className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-lg">
-                  🛡️
-                </span>
-                <strong className="text-sm font-bold text-slate-900 block">Zero-Penalty Shield</strong>
-                <p className="text-xs text-slate-600 leading-relaxed">
+              <div className={`p-6 rounded-2xl border space-y-3 ${
+                isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900/80 border-slate-800'
+              }`}>
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <strong className={`text-sm font-bold block ${isLight ? 'text-slate-900' : 'text-white'}`}>Zero-Penalty Shield</strong>
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   We guarantee statutory on-time filing. In the rare event of a late submission caused by our team, we reimburse 100% of penalties.
                 </p>
               </div>
 
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-lg">
-                  📊
-                </span>
-                <strong className="text-sm font-bold text-slate-900 block">Dual Client Dashboard</strong>
-                <p className="text-xs text-slate-600 leading-relaxed">
+              <div className={`p-6 rounded-2xl border space-y-3 ${
+                isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900/80 border-slate-800'
+              }`}>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-bold flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <strong className={`text-sm font-bold block ${isLight ? 'text-slate-900' : 'text-white'}`}>Dual Client Dashboard</strong>
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Tailored experience: Simple Mode (jargon-free sales &amp; tax saved) for business founders, or Tax Professional Mode for accounting teams.
                 </p>
               </div>
 
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                <span className="w-10 h-10 rounded-xl bg-purple-100 text-purple-800 font-bold flex items-center justify-center text-lg">
-                  📁
-                </span>
-                <strong className="text-sm font-bold text-slate-900 block">Google Drive Cloud Vault</strong>
-                <p className="text-xs text-slate-600 leading-relaxed">
+              <div className={`p-6 rounded-2xl border space-y-3 ${
+                isLight ? 'bg-slate-50 border-slate-200/80' : 'bg-slate-900/80 border-slate-800'
+              }`}>
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 font-bold flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+                </div>
+                <strong className={`text-sm font-bold block ${isLight ? 'text-slate-900' : 'text-white'}`}>Google Drive Cloud Vault</strong>
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Private, 256-bit encrypted cloud vault storing your filed returns, challan proofs, and purchase registers for 6-year statutory audit readiness.
                 </p>
               </div>
@@ -456,28 +526,36 @@ export function ServicesHubPage() {
         {/* Corporate Engagement Tiers */}
         <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+            <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${
+              isLight ? 'text-indigo-700 bg-indigo-50 border-indigo-200' : 'text-indigo-400 bg-indigo-950 border-indigo-800'
+            }`}>
               Engagement Models
             </span>
-            <h2 className="mt-3 text-3xl font-black text-slate-900 tracking-tight">
+            <h2 className={`mt-3 text-3xl font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
               Flexible Compliance Engagements
             </h2>
-            <p className="mt-2 text-slate-600 text-sm">
+            <p className={`mt-2 text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               Select an engagement model tailored to your business structure and invoice volume.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <div className="bg-white rounded-3xl p-7 border border-slate-200 shadow-xs flex flex-col justify-between space-y-5">
+            <div className={`rounded-3xl p-7 border shadow-xs flex flex-col justify-between space-y-5 ${
+              isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800'
+            }`}>
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full inline-block">
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block border ${
+                  isLight ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-blue-300 bg-blue-950 border-blue-800'
+                }`}>
                   Proprietors &amp; LLPs
                 </span>
-                <h3 className="text-lg font-bold text-slate-900">Startup &amp; Growing Business</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className={`text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Startup &amp; Growing Business</h3>
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Essential monthly filing and compliance protection for growing businesses with regular B2B or B2C turnover.
                 </p>
-                <ul className="text-xs text-slate-700 space-y-2 pt-2 border-t border-slate-100">
+                <ul className={`text-xs space-y-2 pt-2 border-t ${
+                  isLight ? 'text-slate-700 border-slate-100' : 'text-slate-300 border-slate-800'
+                }`}>
                   <li className="flex items-center gap-2">✓ Monthly GSTR-1 &amp; GSTR-3B filings</li>
                   <li className="flex items-center gap-2">✓ Rule 88A monthly purchase ITC reconciliation</li>
                   <li className="flex items-center gap-2">✓ Direct PMT-06 challan generation</li>
@@ -486,25 +564,33 @@ export function ServicesHubPage() {
               </div>
               <Link
                 to="/pricing"
-                className="w-full py-2.5 text-center bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition"
+                className={`w-full py-2.5 text-center rounded-xl text-xs font-bold transition ${
+                  isLight ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-white hover:bg-slate-100 text-slate-900'
+                }`}
               >
                 View Plans &amp; Pricing ➔
               </Link>
             </div>
 
-            <div className="bg-white rounded-3xl p-7 border-2 border-blue-600 shadow-md flex flex-col justify-between space-y-5 relative">
+            <div className={`rounded-3xl p-7 border-2 border-blue-600 shadow-md flex flex-col justify-between space-y-5 relative ${
+              isLight ? 'bg-white' : 'bg-slate-900'
+            }`}>
               <span className="absolute -top-3 right-6 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs">
                 Most Popular
               </span>
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-block">
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block border ${
+                  isLight ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-emerald-300 bg-emerald-950 border-emerald-800'
+                }`}>
                   Private Ltd &amp; Multi-State
                 </span>
-                <h3 className="text-lg font-bold text-slate-900">Enterprise Managed Retainer</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className={`text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Enterprise Managed Retainer</h3>
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   High-volume automated reconciliation, vendor compliance follow-ups, and dedicated senior tax partner advisory.
                 </p>
-                <ul className="text-xs text-slate-700 space-y-2 pt-2 border-t border-slate-100">
+                <ul className={`text-xs space-y-2 pt-2 border-t ${
+                  isLight ? 'text-slate-700 border-slate-100' : 'text-slate-300 border-slate-800'
+                }`}>
                   <li className="flex items-center gap-2">✓ Multi-GSTIN consolidated filing &amp; ledgers</li>
                   <li className="flex items-center gap-2">✓ Continuous GSTR-2B vendor matching &amp; alerts</li>
                   <li className="flex items-center gap-2">✓ Reverse charge (RCM) audit &amp; compliance</li>
@@ -512,59 +598,74 @@ export function ServicesHubPage() {
                   <li className="flex items-center gap-2">✓ Department notice defense included</li>
                 </ul>
               </div>
-              <Link
-                to="/contact"
-                className="w-full py-2.5 text-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-xs transition"
+              <button
+                type="button"
+                onClick={() => openStrategyCallModal({ topic: 'Enterprise Managed Retainer' })}
+                className="w-full py-2.5 text-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
               >
                 Request Enterprise Quote ➔
-              </Link>
+              </button>
             </div>
 
-            <div className="bg-white rounded-3xl p-7 border border-slate-200 shadow-xs flex flex-col justify-between space-y-5">
+            <div className={`rounded-3xl p-7 border shadow-xs flex flex-col justify-between space-y-5 ${
+              isLight ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800'
+            }`}>
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full inline-block">
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-block border ${
+                  isLight ? 'text-purple-700 bg-purple-50 border-blue-200' : 'text-purple-300 bg-purple-950 border-purple-800'
+                }`}>
                   Ad-Hoc &amp; Legal
                 </span>
-                <h3 className="text-lg font-bold text-slate-900">Audits, Scrutiny &amp; Refunds</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className={`text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Audits, Scrutiny &amp; Refunds</h3>
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Targeted engagements for export refunds, ASMT-10 notice defense, DRC-01 demand disputes, and annual true-ups.
                 </p>
-                <ul className="text-xs text-slate-700 space-y-2 pt-2 border-t border-slate-100">
+                <ul className={`text-xs space-y-2 pt-2 border-t ${
+                  isLight ? 'text-slate-700 border-slate-100' : 'text-slate-300 border-slate-800'
+                }`}>
                   <li className="flex items-center gap-2">✓ LUT Export &amp; Inverted Duty refunds (RFD-01)</li>
                   <li className="flex items-center gap-2">✓ ASMT-10 scrutiny notice legal reply drafting</li>
                   <li className="flex items-center gap-2">✓ Senior CA personal hearing representation</li>
                   <li className="flex items-center gap-2">✓ GSTIN voluntary cancellation / revocation</li>
                 </ul>
               </div>
-              <Link
-                to="/contact"
-                className="w-full py-2.5 text-center bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition"
+              <button
+                type="button"
+                onClick={() => openStrategyCallModal({ topic: 'Legal & Scrutiny Consultation' })}
+                className={`w-full py-2.5 text-center rounded-xl text-xs font-bold transition cursor-pointer ${
+                  isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-800' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                }`}
               >
                 Consult Legal Team ➔
-              </Link>
+              </button>
             </div>
           </div>
         </section>
 
         {/* High-Impact Conversion CTA */}
-        <section className="py-20 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white text-center">
+        <section className={`py-20 text-center transition-colors ${
+          isLight
+            ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white'
+            : 'bg-slate-900 border-t border-slate-800 text-white'
+        }`}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <span className="px-3 py-1 rounded-full bg-white/15 text-white text-xs font-bold uppercase tracking-wider backdrop-blur-xs">
               Personalized Tax Consultation
             </span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
               Unsure Which Practice Area Fits Your Business?
             </h2>
             <p className="text-blue-100 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
               Speak directly with an indirect tax specialist. We will audit your current filing status, review eligible Input Tax Credits, and recommend the optimal compliance setup.
             </p>
             <div className="pt-2 flex flex-wrap justify-center gap-4">
-              <Link
-                to="/contact"
-                className="px-8 py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-base shadow-lg transition-all transform hover:-translate-y-0.5"
+              <button
+                type="button"
+                onClick={() => openStrategyCallModal({ topic: 'Services Hub Inquiry' })}
+                className="px-8 py-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-base shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
               >
                 Schedule Free Consultation ➔
-              </Link>
+              </button>
               <Link
                 to="/how-it-works"
                 className="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl text-base transition-all"

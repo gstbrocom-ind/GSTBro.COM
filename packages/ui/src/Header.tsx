@@ -9,48 +9,96 @@ interface HeaderProps {
   onToggleTheme?: () => void;
 }
 
+function ReturnsIcon({ className = 'w-5 h-5 text-blue-500' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+}
+
+function ReconciliationIcon({ className = 'w-5 h-5 text-emerald-500' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  );
+}
+
+function NoticeShieldIcon({ className = 'w-5 h-5 text-indigo-500' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  );
+}
+
+function RegistrationIcon({ className = 'w-5 h-5 text-amber-500' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  );
+}
+
+function AuditIcon({ className = 'w-5 h-5 text-purple-500' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+    </svg>
+  );
+}
+
+function RefundIcon({ className = 'w-5 h-5 text-teal-500' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
 const serviceDropdownItems = [
   {
     title: 'Monthly Return Filing (GSTR-1 & 3B)',
     desc: 'Systematic monthly filings with Rule 88A tax offset optimization & zero late fees',
     href: '/services/gst-returns',
     badge: '99.9% SLA',
-    icon: '📊',
+    Icon: ReturnsIcon,
   },
   {
     title: 'Dynamic 2B ITC Reconciliation',
     desc: 'Continuous purchase ledger audit & automated vendor default recovery',
     href: '/services/gst-compliance',
     badge: 'Max Credit',
-    icon: '🔄',
+    Icon: ReconciliationIcon,
   },
   {
     title: 'Department Notice & Scrutiny Defense',
     desc: 'Senior Chartered Accountant representation for ASMT-10, DRC-01 & SCNs',
     href: '/services/gst-advisory',
     badge: '100% Resolved',
-    icon: '🛡️',
+    Icon: NoticeShieldIcon,
   },
   {
     title: 'Statutory GST Registration',
     desc: 'Fast-track GSTIN setup with zero rejection guarantee & document vetting',
     href: '/services/gst-registration',
     badge: '3–5 Days',
-    icon: '⚡',
+    Icon: RegistrationIcon,
   },
   {
     title: 'Annual Statutory Audit (9 & 9C)',
     desc: 'Comprehensive true-up of audited books with certified CA sign-off',
     href: '/services/gst-audit',
     badge: 'CA Certified',
-    icon: '📑',
+    Icon: AuditIcon,
   },
   {
     title: 'Expedited GST Refunds (LUT Export)',
     desc: 'Inverted duty & export refund recovery credited directly to bank account',
     href: '/services/gst-refund',
     badge: '₹42Cr+ Disbursed',
-    icon: '💰',
+    Icon: RefundIcon,
   },
 ];
 
@@ -145,24 +193,36 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
     >
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-4">
-        {/* Brand Name */}
-        <a href="/" className="flex items-center group focus:outline-hidden shrink-0">
-          <span
-            className={`text-2xl sm:text-[28px] font-black tracking-tight select-none leading-none group-hover:opacity-95 transition-opacity ${
-              isLight ? 'text-slate-900' : 'text-white'
-            }`}
-          >
-            GST
+        {/* Brand Name & Institutional Emblem */}
+        <a href="/" className="flex items-center gap-2.5 group focus:outline-hidden shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 p-0.5 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+            <div className={`w-full h-full rounded-[10px] flex items-center justify-center ${isLight ? 'bg-white' : 'bg-slate-950'}`}>
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex flex-col">
             <span
-              className={`text-transparent bg-clip-text ${
-                isLight
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
-                  : 'bg-gradient-to-r from-blue-400 to-cyan-300'
+              className={`text-xl sm:text-2xl font-black tracking-tight select-none leading-none ${
+                isLight ? 'text-slate-900' : 'text-white'
               }`}
             >
-              Bro
+              GST
+              <span
+                className={`text-transparent bg-clip-text ${
+                  isLight
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
+                    : 'bg-gradient-to-r from-blue-400 to-cyan-300'
+                }`}
+              >
+                Bro
+              </span>
             </span>
-          </span>
+            <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-400 mt-0.5">
+              Chartered Tax Advisory
+            </span>
+          </div>
         </a>
 
         {/* Desktop Navigation */}
@@ -259,8 +319,8 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-base group-hover:scale-110 transition-transform duration-200">
-                            {item.icon}
+                          <span className="p-1 rounded-lg bg-blue-50 dark:bg-blue-950/70 border border-blue-200/50 dark:border-blue-800/50 group-hover:scale-105 transition-transform duration-200">
+                            <item.Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           </span>
                           <strong
                             className={`block text-xs font-bold transition-colors line-clamp-1 ${
@@ -433,15 +493,20 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
             <span>Login</span>
           </a>
 
-          <a
-            href="/contact"
-            className="hidden sm:inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap shrink-0 border border-blue-400/30"
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('gstbro:open-strategy-call'));
+              }
+            }}
+            className="hidden sm:inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap shrink-0 border border-blue-400/30"
           >
             <svg className="w-4 h-4 text-blue-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <span>Talk to CA</span>
-          </a>
+          </button>
 
           {/* Mobile Menu Toggle Button (Three Dashes) */}
           <button
@@ -522,7 +587,9 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span>📑</span>
+                <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
                 <span>Services Hub (All Practice Areas)</span>
               </div>
               <span className="text-blue-500 font-mono text-xs">&rarr;</span>
@@ -537,7 +604,9 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span>💎</span>
+                <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <span>Pricing &amp; Retainer Plans</span>
               </div>
               <span className="text-blue-500 font-mono text-xs">&rarr;</span>
@@ -552,7 +621,9 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span>⚡</span>
+                <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
                 <span>How It Works (Filing Workflow)</span>
               </div>
               <span className="text-blue-500 font-mono text-xs">&rarr;</span>
@@ -567,7 +638,9 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span>🧮</span>
+                <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
                 <span>GST Calculators &amp; Guides</span>
               </div>
               <span className="text-blue-500 font-mono text-xs">&rarr;</span>
@@ -582,7 +655,9 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span>🏢</span>
+                <svg className="w-4 h-4 text-sky-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
                 <span>About Us (Chartered CA Practice)</span>
               </div>
               <span className="text-blue-500 font-mono text-xs">&rarr;</span>
@@ -597,7 +672,9 @@ export function Header({ settings, children, theme: propTheme, onToggleTheme }: 
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span>📞</span>
+                <svg className="w-4 h-4 text-cyan-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
                 <span>Contact Chartered Accountant Desk</span>
               </div>
               <span className="text-blue-500 font-mono text-xs">&rarr;</span>

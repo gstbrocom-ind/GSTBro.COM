@@ -621,16 +621,18 @@ export default function HomePage() {
       </section>
 
       {/* 3. THE 4 PRACTICE PILLARS (CLEAN & BENEFIT-DRIVEN) */}
-      <section className="py-16 sm:py-24 bg-slate-50 border-b border-slate-200">
+      <section className={`py-16 sm:py-24 border-b transition-colors ${isLight ? "bg-slate-50 border-slate-200" : "bg-slate-950 border-slate-900"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full inline-block mb-2">
+            <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-2 border ${
+              isLight ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-blue-400 bg-blue-950 border-blue-800'
+            }`}>
               Core Practice Pillars
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className={`text-2xl sm:text-4xl font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
               Complete Indirect Tax Protection
             </h2>
-            <p className="text-slate-600 mt-2 text-sm sm:text-base leading-relaxed">
+            <p className={`mt-2 text-sm sm:text-base leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               Engineered to eliminate compliance friction, maximize Input Tax Credit, and ensure complete audit readiness.
             </p>
           </div>
@@ -646,46 +648,60 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-white rounded-3xl border border-slate-200/90 p-7 shadow-xs hover:shadow-xl hover:border-blue-400 transition-all flex flex-col justify-between group"
+              className={`rounded-3xl border p-7 transition-all flex flex-col justify-between group ${
+                isLight
+                  ? 'bg-white border-slate-200/90 shadow-xs hover:shadow-xl hover:border-blue-400'
+                  : 'bg-slate-900/90 border-slate-800 shadow-lg hover:shadow-2xl hover:border-blue-500'
+              }`}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold group-hover:scale-105 transition-transform">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold group-hover:scale-105 transition-transform border ${
+                    isLight ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-blue-950/70 border-blue-800/80 text-blue-400'
+                  }`}>
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-mono">
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full font-mono border ${
+                    isLight ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-blue-950 text-blue-300 border-blue-800'
+                  }`}>
                     99.9% On-Time SLA
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                <h3 className={`text-lg font-bold transition-colors ${
+                  isLight ? 'text-slate-900 group-hover:text-blue-600' : 'text-white group-hover:text-blue-400'
+                }`}>
                   Monthly Returns (GSTR-1 &amp; 3B)
                 </h3>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Form GSTR-1 &amp; GSTR-3B preparation with Rule 88A offset optimization, RCM Sec 9(3) verification, and official ARN generation.
                 </p>
 
-                <ul className="space-y-1.5 text-xs text-slate-700 pt-2 border-t border-slate-100">
+                <ul className={`space-y-1.5 text-xs pt-2 border-t ${
+                  isLight ? 'text-slate-700 border-slate-100' : 'text-slate-300 border-slate-800/80'
+                }`}>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Tables 4–12 &amp; HSN Table 12</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Dual-Tier CA Review</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Zero Late-Fee Warranty</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <a href="/services/gst-returns" className="text-xs font-bold text-blue-600 group-hover:text-blue-700 flex items-center justify-between">
+              <div className={`mt-6 pt-4 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <a href="/services/gst-returns" className={`text-xs font-bold flex items-center justify-between ${
+                  isLight ? 'text-blue-600 hover:text-blue-700' : 'text-blue-400 hover:text-blue-300'
+                }`}>
                   <span>Explore Return Filing</span>
                   <span>➔</span>
                 </a>
@@ -696,46 +712,60 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-white rounded-3xl border border-slate-200/90 p-7 shadow-xs hover:shadow-xl hover:border-emerald-400 transition-all flex flex-col justify-between group"
+              className={`rounded-3xl border p-7 transition-all flex flex-col justify-between group ${
+                isLight
+                  ? 'bg-white border-slate-200/90 shadow-xs hover:shadow-xl hover:border-emerald-400'
+                  : 'bg-slate-900/90 border-slate-800 shadow-lg hover:shadow-2xl hover:border-emerald-500'
+              }`}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 font-bold group-hover:scale-105 transition-transform">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold group-hover:scale-105 transition-transform border ${
+                    isLight ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-emerald-950/70 border-emerald-800/80 text-emerald-400'
+                  }`}>
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full font-mono border ${
+                    isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                  }`}>
                     Avg 8% Tax Saved
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                <h3 className={`text-lg font-bold transition-colors ${
+                  isLight ? 'text-slate-900 group-hover:text-emerald-600' : 'text-white group-hover:text-emerald-400'
+                }`}>
                   Dynamic 2B ITC Recovery
                 </h3>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Continuous invoice-by-invoice reconciliation against auto-drafted 2B ledgers to catch non-compliant vendors and prevent expired credits.
                 </p>
 
-                <ul className="space-y-1.5 text-xs text-slate-700 pt-2 border-t border-slate-100">
+                <ul className={`space-y-1.5 text-xs pt-2 border-t ${
+                  isLight ? 'text-slate-700 border-slate-100' : 'text-slate-300 border-slate-800/80'
+                }`}>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Multi-Point Invoice Matching</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Vendor Delinquency Chasing</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Sec 16(4) Expiration Shield</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <a href="/services/gst-compliance" className="text-xs font-bold text-emerald-600 group-hover:text-emerald-700 flex items-center justify-between">
+              <div className={`mt-6 pt-4 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <a href="/services/gst-compliance" className={`text-xs font-bold flex items-center justify-between ${
+                  isLight ? 'text-emerald-600 hover:text-emerald-700' : 'text-emerald-400 hover:text-emerald-300'
+                }`}>
                   <span>Explore ITC Recovery</span>
                   <span>➔</span>
                 </a>
@@ -746,46 +776,60 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-white rounded-3xl border border-slate-200/90 p-7 shadow-xs hover:shadow-xl hover:border-red-400 transition-all flex flex-col justify-between group"
+              className={`rounded-3xl border p-7 transition-all flex flex-col justify-between group ${
+                isLight
+                  ? 'bg-white border-slate-200/90 shadow-xs hover:shadow-xl hover:border-rose-400'
+                  : 'bg-slate-900/90 border-slate-800 shadow-lg hover:shadow-2xl hover:border-rose-500'
+              }`}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 font-bold group-hover:scale-105 transition-transform">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold group-hover:scale-105 transition-transform border ${
+                    isLight ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-rose-950/70 border-rose-800/80 text-rose-400'
+                  }`}>
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                     </svg>
                   </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 font-mono">
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full font-mono border ${
+                    isLight ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-rose-950 text-rose-300 border-rose-800'
+                  }`}>
                     Senior CA Defense
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                <h3 className={`text-lg font-bold transition-colors ${
+                  isLight ? 'text-slate-900 group-hover:text-rose-600' : 'text-white group-hover:text-rose-400'
+                }`}>
                   Department Notice Defense
                 </h3>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Legal drafting of rigorous replies to Form ASMT-10, SCNs, and DRC-01 demand notices with senior CA personal hearing representation.
                 </p>
 
-                <ul className="space-y-1.5 text-xs text-slate-700 pt-2 border-t border-slate-100">
+                <ul className={`space-y-1.5 text-xs pt-2 border-t ${
+                  isLight ? 'text-slate-700 border-slate-100' : 'text-slate-300 border-slate-800/80'
+                }`}>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>ASMT-10 Discrepancy Defense</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Sec 73 &amp; 74 Penalty Mitigation</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Appellate Representation</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <a href="/services/gst-advisory" className="text-xs font-bold text-red-600 group-hover:text-red-700 flex items-center justify-between">
+              <div className={`mt-6 pt-4 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <a href="/services/gst-advisory" className={`text-xs font-bold flex items-center justify-between ${
+                  isLight ? 'text-rose-600 hover:text-rose-700' : 'text-rose-400 hover:text-rose-300'
+                }`}>
                   <span>Explore Notice Defense</span>
                   <span>➔</span>
                 </a>
@@ -796,46 +840,60 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-white rounded-3xl border border-slate-200/90 p-7 shadow-xs hover:shadow-xl hover:border-purple-400 transition-all flex flex-col justify-between group"
+              className={`rounded-3xl border p-7 transition-all flex flex-col justify-between group ${
+                isLight
+                  ? 'bg-white border-slate-200/90 shadow-xs hover:shadow-xl hover:border-purple-400'
+                  : 'bg-slate-900/90 border-slate-800 shadow-lg hover:shadow-2xl hover:border-purple-500'
+              }`}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 font-bold group-hover:scale-105 transition-transform">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold group-hover:scale-105 transition-transform border ${
+                    isLight ? 'bg-purple-50 border-purple-100 text-purple-600' : 'bg-purple-950/70 border-purple-800/80 text-purple-400'
+                  }`}>
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-mono">
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full font-mono border ${
+                    isLight ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-purple-950 text-purple-300 border-purple-800'
+                  }`}>
                     Certified Audit
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
+                <h3 className={`text-lg font-bold transition-colors ${
+                  isLight ? 'text-slate-900 group-hover:text-purple-600' : 'text-white group-hover:text-purple-400'
+                }`}>
                   Annual Audit &amp; Setup
                 </h3>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                   Turnkey GST registration (3–5 days), statutory Form GSTR-9 annual return true-up, and certified Form GSTR-9C reconciliation statements.
                 </p>
 
-                <ul className="space-y-1.5 text-xs text-slate-700 pt-2 border-t border-slate-100">
+                <ul className={`space-y-1.5 text-xs pt-2 border-t ${
+                  isLight ? 'text-slate-700 border-slate-100' : 'text-slate-300 border-slate-800/80'
+                }`}>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>GSTR-9 &amp; 9C CA Certification</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Entity Registration (3–5 Days)</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span className="text-emerald-500 font-bold">✓</span>
                     <span>Sec 36 Audit-Proof Vault</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <a href="/services/gst-audit" className="text-xs font-bold text-purple-600 group-hover:text-purple-700 flex items-center justify-between">
+              <div className={`mt-6 pt-4 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <a href="/services/gst-audit" className={`text-xs font-bold flex items-center justify-between ${
+                  isLight ? 'text-purple-600 hover:text-purple-700' : 'text-purple-400 hover:text-purple-300'
+                }`}>
                   <span>Explore Audit &amp; Setup</span>
                   <span>➔</span>
                 </a>
@@ -846,38 +904,46 @@ export default function HomePage() {
           <div className="mt-12 text-center space-y-4">
             <a
               href="/services"
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 bg-white border border-slate-300 shadow-xs px-6 py-3.5 rounded-2xl hover:border-blue-500 hover:shadow-md transition-all"
+              className={`inline-flex items-center gap-2 text-xs sm:text-sm font-bold shadow-xs px-6 py-3.5 rounded-2xl transition-all border ${
+                isLight
+                  ? 'text-blue-600 hover:text-blue-700 bg-white border-slate-300 hover:border-blue-500 hover:shadow-md'
+                  : 'text-blue-400 hover:text-blue-300 bg-slate-900 border-slate-800 hover:border-blue-600 hover:shadow-lg'
+              }`}
             >
               <span>Need Export Refunds, TDS/TCS or Business Licensing? Explore All Practice Areas on Services Hub</span>
               <span>➔</span>
             </a>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs text-slate-600">
-              <span className="font-semibold text-slate-400">Popular:</span>
-              <a href="/services/gst-registration" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">GST Registration</a>
-              <a href="/services/gst-returns" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Return Filing</a>
-              <a href="/services/gst-refund" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Export Refunds</a>
-              <a href="/services/gst-tds-tcs" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">TDS &amp; TCS</a>
-              <a href="/services/gst-cancellation" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">GST Cancellation</a>
-              <a href="/services/business-licenses" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Business Licenses</a>
-              <a href="/services/business-licenses/udyam" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">Udyam MSME</a>
-              <a href="/services/business-licenses/fssai" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">FSSAI License</a>
-              <a href="/services/business-licenses/iec" className="px-3 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 transition">IEC Code</a>
+            <div className={`flex flex-wrap items-center justify-center gap-2 pt-2 text-xs ${
+              isLight ? 'text-slate-600' : 'text-slate-400'
+            }`}>
+              <span className={`font-semibold ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Popular:</span>
+              <a href="/services/gst-registration" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>GST Registration</a>
+              <a href="/services/gst-returns" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>Return Filing</a>
+              <a href="/services/gst-refund" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>Export Refunds</a>
+              <a href="/services/gst-tds-tcs" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>TDS &amp; TCS</a>
+              <a href="/services/gst-cancellation" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>GST Cancellation</a>
+              <a href="/services/business-licenses" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>Business Licenses</a>
+              <a href="/services/business-licenses/udyam" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>Udyam MSME</a>
+              <a href="/services/business-licenses/fssai" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>FSSAI License</a>
+              <a href="/services/business-licenses/iec" className={`px-3 py-1 rounded-full transition ${isLight ? 'bg-slate-100 hover:bg-blue-50 hover:text-blue-700' : 'bg-slate-900 hover:bg-slate-800 hover:text-blue-400 border border-slate-800'}`}>IEC Code</a>
             </div>
           </div>
         </div>
       </section>
 
       {/* 4. WHY CHOOSE GSTBRO (POWERFUL COMPARISON) */}
-      <section className="py-16 sm:py-24 bg-white border-b border-slate-200">
+      <section className={`py-16 sm:py-24 border-b transition-colors ${isLight ? "bg-white border-slate-200" : "bg-slate-900/40 border-slate-800"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full inline-block mb-2">
+            <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-2 border ${
+              isLight ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-emerald-400 bg-emerald-950 border-emerald-800'
+            }`}>
               The GSTBro Advantage
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className={`text-2xl sm:text-4xl font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
               Why 2,500+ Indian Companies Trust GSTBro
             </h2>
-            <p className="text-slate-600 mt-2 text-sm sm:text-base leading-relaxed">
+            <p className={`mt-2 text-sm sm:text-base leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               See how our institutional Chartered Accountant infrastructure outperforms traditional local accountants and generic DIY software.
             </p>
           </div>
@@ -890,38 +956,56 @@ export default function HomePage() {
             className="grid md:grid-cols-3 gap-6"
           >
             {/* Traditional Accountant */}
-            <motion.div variants={fadeUpVariants} className="bg-slate-50 rounded-3xl border border-slate-200 p-6 sm:p-7 space-y-4">
+            <motion.div
+              variants={fadeUpVariants}
+              className={`rounded-3xl border p-6 sm:p-7 space-y-4 transition-all ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-slate-900">Traditional Local Accountant</h3>
-                <span className="text-xs font-bold text-red-600 bg-red-100/80 px-2.5 py-0.5 rounded-md">High Risk</span>
+                <h3 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+                  Traditional Local Accountant
+                </h3>
+                <span className="text-xs font-bold text-rose-600 bg-rose-100/80 dark:bg-rose-950/80 dark:text-rose-400 px-2.5 py-0.5 rounded-md border border-rose-200 dark:border-rose-900">
+                  High Risk
+                </span>
               </div>
-              <ul className="space-y-3 text-xs text-slate-600">
+              <ul className={`space-y-3 text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-bold">✕</span>
                   <span>Manual Excel entry prone to transposition errors</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-bold">✕</span>
                   <span>Missed 2B reconciliation causing lost input credit</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-bold">✕</span>
                   <span>Last-minute rush leading to late fees &amp; interest</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-bold">✕</span>
                   <span>Unprepared for ASMT-10 scrutiny demand notices</span>
                 </li>
               </ul>
             </motion.div>
 
             {/* Generic DIY Software */}
-            <motion.div variants={fadeUpVariants} className="bg-slate-50 rounded-3xl border border-slate-200 p-6 sm:p-7 space-y-4">
+            <motion.div
+              variants={fadeUpVariants}
+              className={`rounded-3xl border p-6 sm:p-7 space-y-4 transition-all ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-slate-900">Generic DIY Software</h3>
-                <span className="text-xs font-bold text-amber-600 bg-amber-100/80 px-2.5 py-0.5 rounded-md">No CA Oversight</span>
+                <h3 className={`text-base font-bold ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+                  Generic DIY Software
+                </h3>
+                <span className="text-xs font-bold text-amber-600 bg-amber-100/80 dark:bg-amber-950/80 dark:text-amber-400 px-2.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-900">
+                  No CA Oversight
+                </span>
               </div>
-              <ul className="space-y-3 text-xs text-slate-600">
+              <ul className={`space-y-3 text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 <li className="flex items-start gap-2">
                   <span className="text-amber-500 font-bold">✕</span>
                   <span>You still do all the filing and classification work</span>
@@ -1410,16 +1494,18 @@ export default function HomePage() {
       </section>
 
       {/* 7. 3-STEP COMPLIANCE WORKFLOW (CLEAN & EFFORTLESS) */}
-      <section className="py-16 sm:py-24 bg-white border-b border-slate-200">
+      <section className={`py-16 sm:py-24 border-b transition-colors ${isLight ? "bg-white border-slate-200" : "bg-slate-900/40 border-slate-800"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full inline-block mb-2">
+            <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-2 border ${
+              isLight ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-blue-400 bg-blue-950 border-blue-800'
+            }`}>
               Execution Methodology
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className={`text-2xl sm:text-4xl font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
               Filing in 3 Effortless Steps
             </h2>
-            <p className="text-slate-600 mt-2 text-sm sm:text-base leading-relaxed">
+            <p className={`mt-2 text-sm sm:text-base leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               We handle the complex statutory ledger audits, multi-tier cross-utilization, and portal filings. You stay 100% compliant in minutes.
             </p>
           </div>
@@ -1434,11 +1520,17 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-slate-50 border border-slate-200/90 rounded-3xl p-8 hover:border-blue-400 transition-all shadow-xs"
+              className={`rounded-3xl p-8 transition-all shadow-xs border ${
+                isLight
+                  ? 'bg-slate-50 border-slate-200/90 hover:border-blue-400'
+                  : 'bg-slate-900/80 border-slate-800 hover:border-blue-500'
+              }`}
             >
-              <span className="text-3xl font-black text-blue-600 font-mono block mb-3">01</span>
-              <h3 className="text-base font-bold text-slate-900 mb-2">Sync Inward &amp; Outward Books</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <span className="text-3xl font-black text-blue-500 font-mono block mb-3">01</span>
+              <h3 className={`text-base font-bold mb-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                Sync Inward &amp; Outward Books
+              </h3>
+              <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 Connect your accounting software (Tally, Zoho Books, Busy, SAP) or upload clean Excel records via our 256-bit encrypted client portal.
               </p>
             </motion.div>
@@ -1446,11 +1538,17 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-slate-50 border border-slate-200/90 rounded-3xl p-8 hover:border-blue-400 transition-all shadow-xs"
+              className={`rounded-3xl p-8 transition-all shadow-xs border ${
+                isLight
+                  ? 'bg-slate-50 border-slate-200/90 hover:border-blue-400'
+                  : 'bg-slate-900/80 border-slate-800 hover:border-blue-500'
+              }`}
             >
-              <span className="text-3xl font-black text-blue-600 font-mono block mb-3">02</span>
-              <h3 className="text-base font-bold text-slate-900 mb-2">Dual-Tier CA Audit &amp; 2B Matching</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <span className="text-3xl font-black text-blue-500 font-mono block mb-3">02</span>
+              <h3 className={`text-base font-bold mb-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                Dual-Tier CA Audit &amp; 2B Matching
+              </h3>
+              <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 Our Chartered Accountants cross-reference your purchase register with government 2B ledgers, audit RCM liabilities, and compute optimal Rule 88A offsets.
               </p>
             </motion.div>
@@ -1458,11 +1556,17 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-slate-50 border border-slate-200/90 rounded-3xl p-8 hover:border-blue-400 transition-all shadow-xs"
+              className={`rounded-3xl p-8 transition-all shadow-xs border ${
+                isLight
+                  ? 'bg-slate-50 border-slate-200/90 hover:border-blue-400'
+                  : 'bg-slate-900/80 border-slate-800 hover:border-blue-500'
+              }`}
             >
-              <span className="text-3xl font-black text-blue-600 font-mono block mb-3">03</span>
-              <h3 className="text-base font-bold text-slate-900 mb-2">1-Click Sign-off &amp; ARN Delivery</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <span className="text-3xl font-black text-blue-500 font-mono block mb-3">03</span>
+              <h3 className={`text-base font-bold mb-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                1-Click Sign-off &amp; ARN Delivery
+              </h3>
+              <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                 Review your computed tax summary and approve with 1 click. We file on the official GSTN portal and archive your signed filing receipt and ARN certificate.
               </p>
             </motion.div>
@@ -1471,16 +1575,18 @@ export default function HomePage() {
       </section>
 
       {/* 8. VERIFIED CLIENT TESTIMONIALS */}
-      <section className="py-16 sm:py-24 bg-slate-50 border-b border-slate-200">
+      <section className={`py-16 sm:py-24 border-b transition-colors ${isLight ? "bg-slate-50 border-slate-200" : "bg-slate-950 border-slate-900"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full inline-block mb-2">
+            <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-2 border ${
+              isLight ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-blue-400 bg-blue-950 border-blue-800'
+            }`}>
               Client Track Record
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className={`text-2xl sm:text-4xl font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
               Trusted Across India
             </h2>
-            <p className="text-slate-600 mt-2 text-sm sm:text-base">
+            <p className={`mt-2 text-sm sm:text-base ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
               Real statutory results, tangible working capital saved, and zero late-fees guaranteed.
             </p>
           </div>
@@ -1495,69 +1601,93 @@ export default function HomePage() {
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-white border border-slate-200/90 rounded-3xl p-7 flex flex-col justify-between shadow-xs hover:shadow-md transition-all"
+              className={`rounded-3xl p-7 flex flex-col justify-between transition-all border ${
+                isLight
+                  ? 'bg-white border-slate-200/90 shadow-xs hover:shadow-md'
+                  : 'bg-slate-900/90 border-slate-800 shadow-xl hover:shadow-2xl'
+              }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-mono">
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full font-mono border ${
+                    isLight
+                      ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                      : 'text-emerald-300 bg-emerald-950/80 border-emerald-800'
+                  }`}>
                     ₹8.4L ITC Salvaged
                   </span>
                   <span className="text-amber-400 text-xs font-bold">★★★★★</span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed mb-6 italic">
+                <p className={`text-xs sm:text-sm leading-relaxed mb-6 italic ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                   &quot;GSTBro uncovered ₹8.4 Lakhs in uncredited ITC across 40+ non-compliant vendors in our very first quarter. Their CA team handled every vendor follow-up.&quot;
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-900">Rajesh Varma</p>
-                <p className="text-[11px] text-slate-500 font-medium">Varma Heavy Fabworks, Pune</p>
-                <span className="text-[10px] text-blue-600 font-semibold block mt-0.5">Engineering &amp; Manufacturing</span>
+              <div className={`pt-4 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <p className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Rajesh Varma</p>
+                <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Varma Heavy Fabworks, Pune</p>
+                <span className="text-[10px] text-blue-500 font-semibold block mt-0.5">Engineering &amp; Manufacturing</span>
               </div>
             </motion.div>
 
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-white border border-slate-200/90 rounded-3xl p-7 flex flex-col justify-between shadow-xs hover:shadow-md transition-all"
+              className={`rounded-3xl p-7 flex flex-col justify-between transition-all border ${
+                isLight
+                  ? 'bg-white border-slate-200/90 shadow-xs hover:shadow-md'
+                  : 'bg-slate-900/90 border-slate-800 shadow-xl hover:shadow-2xl'
+              }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-mono">
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full font-mono border ${
+                    isLight
+                      ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                      : 'text-emerald-300 bg-emerald-950/80 border-emerald-800'
+                  }`}>
                     Notice Dropped (Zero Fine)
                   </span>
                   <span className="text-amber-400 text-xs font-bold">★★★★★</span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed mb-6 italic">
+                <p className={`text-xs sm:text-sm leading-relaxed mb-6 italic ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                   &quot;We received an ASMT-10 notice proposing ₹18 Lakhs penalty for an ITC difference. The senior CAs at GSTBro drafted a water-tight reply and got the notice dropped in 12 days.&quot;
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-900">Priya Narayanan</p>
-                <p className="text-[11px] text-slate-500 font-medium">Elysian Retail Brands, Chennai</p>
-                <span className="text-[10px] text-blue-600 font-semibold block mt-0.5">Omnichannel D2C</span>
+              <div className={`pt-4 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <p className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Priya Narayanan</p>
+                <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Elysian Retail Brands, Chennai</p>
+                <span className="text-[10px] text-blue-500 font-semibold block mt-0.5">Omnichannel D2C</span>
               </div>
             </motion.div>
 
             <motion.div
               variants={fadeUpVariants}
               whileHover={{ y: -4, transition: transitions.fast }}
-              className="bg-white border border-slate-200/90 rounded-3xl p-7 flex flex-col justify-between shadow-xs hover:shadow-md transition-all"
+              className={`rounded-3xl p-7 flex flex-col justify-between transition-all border ${
+                isLight
+                  ? 'bg-white border-slate-200/90 shadow-xs hover:shadow-md'
+                  : 'bg-slate-900/90 border-slate-800 shadow-xl hover:shadow-2xl'
+              }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-mono">
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full font-mono border ${
+                    isLight
+                      ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                      : 'text-emerald-300 bg-emerald-950/80 border-emerald-800'
+                  }`}>
                     100% On-Time Record
                   </span>
                   <span className="text-amber-400 text-xs font-bold">★★★★★</span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed mb-6 italic">
+                <p className={`text-xs sm:text-sm leading-relaxed mb-6 italic ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                   &quot;Handling GSTR-1, 3B, and TCS compliance for our e-commerce marketplace was a constant headache. With GSTBro, our filings are 100% on-time without a single reminder.&quot;
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-900">Aditya Mehta</p>
-                <p className="text-[11px] text-slate-500 font-medium">CartSphere Technologies, Bengaluru</p>
-                <span className="text-[10px] text-blue-600 font-semibold block mt-0.5">E-Commerce Marketplace</span>
+              <div className={`pt-4 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <p className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Aditya Mehta</p>
+                <p className={`text-[11px] font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>CartSphere Technologies, Bengaluru</p>
+                <span className="text-[10px] text-blue-500 font-semibold block mt-0.5">E-Commerce Marketplace</span>
               </div>
             </motion.div>
           </motion.div>
@@ -1565,7 +1695,7 @@ export default function HomePage() {
       </section>
 
       {/* 9. EXECUTIVE OFFICE & LOCATION SIDE SECTION */}
-      <section className="py-16 sm:py-20 bg-white border-b border-slate-200">
+      <section className={`py-16 sm:py-20 border-b transition-colors ${isLight ? "bg-white border-slate-200" : "bg-slate-900/40 border-slate-800"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-8 items-center bg-slate-900 text-white rounded-3xl p-8 sm:p-12 border border-slate-800 shadow-2xl">
             {/* Left: Office Details & Direct CA Contact */}
@@ -1575,7 +1705,7 @@ export default function HomePage() {
                 Physical Headquarters &amp; CA Desk
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                 Visit Our Advisory Office Or Consult Online
               </h2>
 
@@ -1585,7 +1715,10 @@ export default function HomePage() {
 
               <div className="space-y-3 pt-2 text-xs">
                 <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-                  <span className="text-base">📍</span>
+                  <svg className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
                   <div>
                     <strong className="block text-slate-200 font-bold">Office Address:</strong>
                     <span className="text-slate-400 leading-relaxed">{officeAddress}</span>
@@ -1593,7 +1726,9 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-                  <span className="text-base">📞</span>
+                  <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
                   <div>
                     <strong className="block text-slate-200 font-bold">Direct Helpline:</strong>
                     <a
@@ -1608,12 +1743,13 @@ export default function HomePage() {
               </div>
 
               <div className="pt-2 flex flex-wrap gap-3">
-                <a
-                  href="/contact"
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-md"
+                <button
+                  type="button"
+                  onClick={() => openStrategyCallModal({ topic: 'Office Consultation Desk' })}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-md cursor-pointer"
                 >
                   <span>Book Consultation &rarr;</span>
-                </a>
+                </button>
                 <a
                   href={googleMapsUrl}
                   target="_blank"
