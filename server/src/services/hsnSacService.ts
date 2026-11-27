@@ -1,5 +1,91 @@
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase.js';
+import { redisClient } from '../lib/rateLimiter.js';
+
+const HSN_CACHE_TTL_SECONDS = 600; // 10 minutes
+const HSN_CACHE_TTL_MS = HSN_CACHE_TTL_SECONDS * 1000;
+const MAX_MEMORY_CACHE_ENTRIES = 500;
+const VERSION_KEY = 'hsn_sac:cache_version';
+
+let localCacheVersion = 1;
+const memoryCache = new Map<string, { value: unknown; expiresAt: number }>();
+
+async function getCacheVersion(): Promise<number> {
+  if (redisClient) {
+    try {
+      const v = await redisClient.get(VERSION_KEY);
+      if (v) {
+        const parsed = Number(v);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+      }
+    } catch {
+      // Fallback to local version
+    }
+  }
+  return localCacheVersion;
+}
+
+async function getCached<T>(key: string): Promise<T | null> {
+  const version = await getCacheVersion();
+  const fullKey = `hsn_sac:v${version}:${key}`;
+
+  const mem = memoryCache.get(fullKey);
+  if (mem) {
+    if (mem.expiresAt > Date.now()) {
+      return mem.value as T;
+    }
+    memoryCache.delete(fullKey);
+  }
+
+  if (redisClient) {
+    try {
+      const raw = await redisClient.get(fullKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as T;
+        setMemoryEntry(fullKey, parsed);
+        return parsed;
+      }
+    } catch {
+      // Ignore Redis read errors
+    }
+  }
+
+  return null;
+}
+
+function setMemoryEntry(fullKey: string, value: unknown) {
+  if (memoryCache.size >= MAX_MEMORY_CACHE_ENTRIES) {
+    const oldestKey = memoryCache.keys().next().value;
+    if (oldestKey !== undefined) memoryCache.delete(oldestKey);
+  }
+  memoryCache.set(fullKey, { value, expiresAt: Date.now() + HSN_CACHE_TTL_MS });
+}
+
+async function setCached(key: string, value: unknown): Promise<void> {
+  const version = await getCacheVersion();
+  const fullKey = `hsn_sac:v${version}:${key}`;
+  setMemoryEntry(fullKey, value);
+
+  if (redisClient) {
+    try {
+      await redisClient.set(fullKey, JSON.stringify(value), 'EX', HSN_CACHE_TTL_SECONDS);
+    } catch {
+      // Ignore Redis write errors
+    }
+  }
+}
+
+export async function invalidateHsnSacCache(): Promise<void> {
+  localCacheVersion += 1;
+  memoryCache.clear();
+  if (redisClient) {
+    try {
+      await redisClient.incr(VERSION_KEY);
+    } catch {
+      // Ignore Redis errors
+    }
+  }
+}
 
 export type HsnSacType = 'HSN' | 'SAC';
 export type HsnSacSource = 'portal_upload' | 'curated' | 'admin_override';
@@ -294,10 +380,23 @@ export async function importHsnSacRows(
     else sacCount++;
   }
 
+  await invalidateHsnSacCache();
+
   return { totalProcessed: rows.length, hsnCount, sacCount };
 }
 
 export async function getHsnSacStats() {
+  const cached = await getCached<Awaited<ReturnType<typeof fetchHsnSacStatsFromDb>>>('stats');
+  if (cached) return cached;
+
+  const fresh = await fetchHsnSacStatsFromDb();
+  if (fresh.totalCount > 0) {
+    await setCached('stats', fresh);
+  }
+  return fresh;
+}
+
+async function fetchHsnSacStatsFromDb() {
   const [totalRes, hsnRes, sacRes, ratedRes, settingsRes] = await Promise.all([
     supabase.from('hsn_sac_codes').select('id', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('hsn_sac_codes').select('id', { count: 'exact', head: true }).eq('is_active', true).eq('type', 'HSN'),
@@ -356,6 +455,17 @@ export async function searchHsnSacCodes(params: SearchHsnSacParams) {
     };
   }
 
+  const cacheKey = `search:${q.toLowerCase()}|${type || 'ALL'}|${rate === null ? 'ALL' : rate}|${page}|${limit}`;
+  const cached = await getCached<{
+    items: unknown[];
+    totalMatches: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    requireFilter: boolean;
+  }>(cacheKey);
+  if (cached) return cached;
+
   let query = supabase
     .from('hsn_sac_codes')
     .select('code, type, description, category, gst_rate, keywords, note, source', { count: 'exact' })
@@ -386,7 +496,7 @@ export async function searchHsnSacCodes(params: SearchHsnSacParams) {
   }
 
   const totalMatches = count ?? 0;
-  return {
+  const result = {
     items: (data || []).map((row) => ({
       code: row.code,
       type: row.type as HsnSacType,
@@ -403,4 +513,9 @@ export async function searchHsnSacCodes(params: SearchHsnSacParams) {
     totalPages: Math.ceil(totalMatches / limit),
     requireFilter: false,
   };
+
+  if (totalMatches > 0) {
+    await setCached(cacheKey, result);
+  }
+  return result;
 }

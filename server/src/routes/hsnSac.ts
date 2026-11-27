@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase.js';
 import {
   getHsnSacStats,
   importHsnSacRows,
+  invalidateHsnSacCache,
   parseHsnSacWorkbook,
   searchHsnSacCodes,
 } from '../services/hsnSacService.js';
@@ -155,6 +156,7 @@ export const hsnSacRoutes: FastifyPluginAsync = async (app) => {
       if (error) {
         return reply.status(500).send({ error: error.message });
       }
+      await invalidateHsnSacCache();
       return reply.send({ ok: true });
     });
   });
