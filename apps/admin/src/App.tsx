@@ -1,13 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AdminLayout } from './components/AdminLayout';
-import { LoginPage, ForgotPasswordPage, ForceResetPasswordPage } from './pages/LoginPage';
-import { DashboardPage, LeadsPage, ClientsPage, TeamPage, DrivePage, DueDatesPage, TeamDashboardPage, ClientWorkspacePage, FeesPage, ClientCommunicationsPage, ActivityLogsPage } from './pages/AdminPages';
+import { ForgotPasswordPage, ForceResetPasswordPage } from './pages/LoginPage';
+import { LeadsPage } from './pages/AdminPages';
 import { SocialSettingsPage, SeoSettingsPage, SiteSettingsPage } from './pages/SettingsPages';
 import { BrandIntroSettingsPage } from './pages/BrandIntroSettingsPage';
 import { ContentEditorPage } from './pages/ContentEditorPage';
 import { WelcomeCodesPage } from './pages/WelcomeCodesPage';
 import { SuperAdminPlatformPage } from './pages/SuperAdminPlatformPage';
-import { FirmDriveRoutingPage } from './pages/FirmDriveRoutingPage';
 import {
   PrivacyRequestsAdminPage,
   PrivacyGovernanceAdminPage,

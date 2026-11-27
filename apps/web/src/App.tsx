@@ -4,7 +4,6 @@ import { notifySettingsUpdated } from '@gst/ui';
 import HomePage from './pages/public/HomePage';
 import {
   ServicesHubPage,
-  ServiceDetailPage,
   RegistrationServicePage,
   ReturnsServicePage,
   CancellationServicePage,

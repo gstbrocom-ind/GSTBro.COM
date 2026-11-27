@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, clearToken, getToken } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { RegisterUploadPanel } from './RegisterUploadPanel';
 import { AccountPanel } from './AccountPanel';
 import { GstPortalsLaunchpad } from './GstPortalsLaunchpad';
 import { MonthlyFinancialReport } from './MonthlyFinancialReport';

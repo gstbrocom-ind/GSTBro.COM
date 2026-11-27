@@ -2527,22 +2527,4 @@ export function StartupIndiaPage() {
   );
 }
 
-// Backward compatibility export for ServiceDetailPage & SimplePage
-export function ServiceDetailPage({ type }: { type: 'registration' | 'returns' | 'cancellation' }) {
-  if (type === 'registration') return <RegistrationServicePage />;
-  if (type === 'returns') return <ReturnsServicePage />;
-  return <CancellationServicePage />;
-}
-
-export function SimplePage({ meta, title, children }: { meta: typeof servicesMeta; title: string; children?: ReactNode }) {
-  return (
-    <PublicLayout meta={meta}>
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-6">{title}</h1>
-        {children}
-      </div>
-    </PublicLayout>
-  );
-}
-
 export { ServicesHubPage } from './ServicesHubPage';
