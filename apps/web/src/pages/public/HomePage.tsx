@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PublicLayout } from '../../components/PublicLayout';
 import { homeMeta } from '../../seo/pages/home.meta';
+import { faqSchema } from '../../seo/schema/faq';
 import { useSettings } from '../../context/SettingsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { trackGstRegistrationClick, trackPhoneClick } from '../../lib/analytics';
@@ -15,6 +16,34 @@ import {
   transitions,
 } from '../../lib/animations';
 
+const homeFaqs = [
+  {
+    question: 'What GST services does GSTBro provide across India?',
+    answer:
+      'GSTBro provides end-to-end Chartered Accountant-supervised GST services across all Indian states, including online GST registration, monthly and quarterly GSTR-1 & GSTR-3B return filing, GSTR-2B Input Tax Credit (ITC) reconciliation, GST annual audit (GSTR-9/9C), GST refund claims (RFD-01), and DRC-01 / ASMT-10 notice defense.',
+  },
+  {
+    question: 'How long does online GST registration take with GSTBro?',
+    answer:
+      'Once your KYC and business address documents are verified by our CA desk, your GST application (REG-01) is filed the same business day. Standard GSTIN approval typically takes 3 to 7 working days subject to Aadhaar authentication and department verification.',
+  },
+  {
+    question: 'How does GSTBro prevent GST late fees and Input Tax Credit (ITC) loss?',
+    answer:
+      'Our team runs automated purchase register vs. GSTR-2B reconciliation before every GSTR-3B filing, flags non-compliant vendors early, applies Rule 88A offset optimization, and backs timely document submissions with a 100% Zero-Penalty SLA.',
+  },
+  {
+    question: 'Can GSTBro help if I already received a GST notice (ASMT-10 or DRC-01)?',
+    answer:
+      'Yes. Senior practicing Chartered Accountants at GSTBro review your notice, reconcile portal mismatches (GSTR-1 vs 3B or 2B vs 3B), draft statutory replies with judicial precedents, and represent your case until closure.',
+  },
+  {
+    question: 'Is GSTBro suitable for startups, MSMEs, and e-commerce sellers?',
+    answer:
+      'Yes. We support proprietorships, partnerships, LLPs, private limited companies, D2C brands, Amazon/Flipkart e-commerce sellers (TCS/TDS), exporters (LUT & IGST refunds), and multi-state GSTINs.',
+  },
+];
+
 export default function HomePage() {
   const settings = useSettings();
   const { isLight } = useTheme();
@@ -22,10 +51,11 @@ export default function HomePage() {
   const [calculatorTurnover, setCalculatorTurnover] = useState<number>(30000000); // 3 Cr
   const [billingCycle, setBillingCycle] = useState<'annual' | 'quarterly'>('annual');
 
-  const contactPhone = settings?.contactPhone || '+91 800 123 4567';
-  const officeAddress = settings?.officeAddress || 'Plot No. 42, Cyber Towers Area, Hitech City, Madhapur, Hyderabad, Telangana 500081';
-  const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.google.com/?q=Cyber+Towers+Hitech+City+Hyderabad';
-  const mapEmbedUrl = settings?.mapEmbedUrl || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.314644503792!2d78.38084667595462!3d17.444634201150495!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb93dc8c5d69df%3A0x19688ebb557861c!2sCyber%20Towers!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin';
+  const contactPhone = settings?.contactPhone || '+91 8106004254';
+  const officeAddress = settings?.officeAddress || '5-50B, SPR Street, Oldpet, Palamaner, Chittoor, Andhra Pradesh 517408';
+  const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/MYt3A1sexYqBWmRq9';
+  const rawMapEmbedUrl = settings?.mapEmbedUrl || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d242.7767754239692!2d78.74511490606444!3d13.198398540559271!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bad7eaa422555ff%3A0xe0973a28f5397f55!2sPalamaner%2C%20Andhra%20Pradesh%20517408!5e0!3m2!1sen!2sin!4v1795283495474!5m2!1sen!2sin';
+  const mapEmbedUrl = rawMapEmbedUrl.split('"')[0].trim();
 
   // Dynamic ROI calculation
   const estimatedPurchases = calculatorTurnover * 0.65;
@@ -33,7 +63,7 @@ export default function HomePage() {
   const averageItcLeakageAverted = Math.round(estimatedInputTax * 0.032);
 
   return (
-    <PublicLayout meta={homeMeta}>
+    <PublicLayout meta={homeMeta} jsonLd={faqSchema(homeFaqs)}>
       {/* 1. HERO SECTION WITH FINANCIAL GRID & ACCENT GLOWS */}
       <section
         className={`relative pt-12 pb-16 sm:pt-20 sm:pb-24 overflow-hidden border-b transition-colors duration-300 ${
@@ -1773,6 +1803,66 @@ export default function HomePage() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 9B. GST COMPLIANCE FAQ SECTION (SEO + RICH RESULTS) */}
+      <section
+        id="gst-faq"
+        className={`py-16 sm:py-20 border-b transition-colors ${
+          isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/50 border-slate-900'
+        }`}
+      >
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              GST Questions Answered by Practicing CAs
+            </p>
+            <h2
+              className={`mt-2 text-2xl sm:text-4xl font-black tracking-tight ${
+                isLight ? 'text-slate-900' : 'text-white'
+              }`}
+            >
+              Frequently Asked Questions on GST Services
+            </h2>
+          </div>
+          <div className="space-y-4">
+            {homeFaqs.map((faq, i) => (
+              <details
+                key={faq.question}
+                className={`group rounded-2xl border p-5 transition-all duration-200 ${
+                  isLight
+                    ? 'bg-white border-slate-200/90 shadow-xs open:border-blue-400 open:shadow-md'
+                    : 'bg-slate-900 border-slate-800 open:border-blue-500/60'
+                }`}
+              >
+                <summary
+                  className={`flex items-center justify-between font-bold cursor-pointer text-base select-none list-none ${
+                    isLight ? 'text-slate-900' : 'text-white'
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-700 text-xs font-black flex items-center justify-center shrink-0">
+                      Q{i + 1}
+                    </span>
+                    <span className="text-left leading-snug">{faq.question}</span>
+                  </span>
+                  <span className="ml-4 shrink-0 text-slate-400 group-open:rotate-180 transition-transform duration-200">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </summary>
+                <p
+                  className={`mt-4 pt-3 border-t text-sm leading-relaxed pl-9 text-left ${
+                    isLight ? 'border-slate-100 text-slate-600' : 'border-slate-800 text-slate-300'
+                  }`}
+                >
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
           </div>
         </div>
       </section>

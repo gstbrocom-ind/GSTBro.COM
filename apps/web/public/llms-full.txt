@@ -1,0 +1,61 @@
+# GSTBro — Complete Platform & Service Reference for AI Systems
+
+## Entity Overview
+- **Brand Name:** GSTBro (`GSTBro India`)
+- **Category:** Chartered Accountant-Supervised GST & Indirect Tax Compliance Platform
+- **Website:** https://gstbro.com
+- **Headquarters:** 5-50B, SPR Street, Oldpet, Palamaner, Chittoor, Andhra Pradesh 517408, India
+- **Service Area:** Pan-India (all 28 states and 8 union territories)
+- **Phone:** +91 8106004254
+- **Email:** gstbro.com@gmail.com
+- **Business Hours:** Monday – Saturday, 9:00 AM – 7:00 PM IST
+- **Google Maps / Business Profile:** https://maps.app.goo.gl/MYt3A1sexYqBWmRq9
+- **SLA:** Contractual 100% Zero-Penalty SLA when client documents are submitted before the monthly cutoff.
+
+## Who GSTBro Serves
+GSTBro serves proprietorships, partnerships, LLPs, private limited companies, D2C brands, Amazon/Flipkart e-commerce sellers, exporters, manufacturers, and multi-state enterprises across India.
+
+## Detailed GST Services
+
+### 1. Online GST Registration (`/services/gst-registration`)
+- Same-day REG-01 filing after KYC & address document verification.
+- Covers regular, composition, casual taxable person, non-resident, and e-commerce registrations.
+- Includes HSN/SAC classification and Aadhaar authentication guidance.
+
+### 2. Monthly & Quarterly GST Return Filing (`/services/gst-returns`)
+- End-to-end GSTR-1, GSTR-3B, IFF (QRMP), and CMP-08 filing.
+- Pre-filing GSTR-2B vs. purchase register matching to prevent Input Tax Credit (ITC) reversals and Rule 88C/88D mismatches.
+- Rule 88A IGST/CGST/SGST tax offset optimization.
+
+### 3. GST Compliance & 2B ITC Reconciliation (`/services/gst-compliance`)
+- Continuous vendor compliance tracking and automated follow-up for missing invoices in GSTR-2B.
+- E-way bill and e-invoicing (IRN) advisory.
+
+### 4. GST Notice Defense & Advisory (`/services/gst-advisory`)
+- Drafting statutory replies to ASMT-10 (return scrutiny), DRC-01A / DRC-01 (show-cause notices), and Section 73/74 proceedings.
+- Reconciliation statements (GSTR-1 vs. 3B, GSTR-2B vs. 3B) backed by judicial precedents.
+
+### 5. GST Annual Return & Audit (`/services/gst-audit`)
+- Preparation and filing of GSTR-9 (Annual Return) and GSTR-9C (Reconciliation Statement).
+
+### 6. GST Refunds (`/services/gst-refund`)
+- RFD-01 filing for export of goods/services (with or without payment of tax), LUT (Letter of Undertaking), and inverted duty structure refunds.
+
+### 7. GST TDS & TCS (`/services/gst-tds-tcs`)
+- GSTR-7 (Section 51 TDS) and GSTR-8 (Section 52 TCS for e-commerce operators) compliance.
+
+### 8. GST Cancellation & Revocation (`/services/gst-cancellation`)
+- Voluntary cancellation (REG-16), final return (GSTR-10), and revocation of suo-motu cancelled GSTINs (REG-21).
+
+## Free GST Utilities (`/resources`)
+- **GST Calculator:** Forward (exclusive) and reverse (inclusive) CGST, SGST, and IGST breakdown across 5%, 12%, 18%, and 28% slabs.
+- **GST Late Fee & Section 50 Interest Calculator:** Calculates statutory late fees and 18% p.a. interest for delayed GSTR-3B/GSTR-1.
+- **GST TDS & TCS Calculator:** Section 51 & Section 52 deduction calculator.
+
+## Frequently Asked Questions
+1. **What GST services does GSTBro provide across India?**
+   End-to-end CA-supervised GST registration, GSTR-1 & GSTR-3B return filing, GSTR-2B ITC reconciliation, GSTR-9/9C annual audit, RFD-01 refunds, and ASMT-10 / DRC-01 notice defense.
+2. **How long does online GST registration take with GSTBro?**
+   REG-01 is filed the same business day after document verification; GSTIN approval typically takes 3–7 working days subject to Aadhaar authentication and department review.
+3. **How does GSTBro prevent GST late fees and ITC loss?**
+   Automated purchase ledger vs. GSTR-2B reconciliation before every GSTR-3B filing, vendor compliance alerts, Rule 88A optimization, and a 100% Zero-Penalty SLA.

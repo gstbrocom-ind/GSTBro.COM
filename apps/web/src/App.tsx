@@ -33,7 +33,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { BrandIntroOverlay } from './components/brand-intro/BrandIntroOverlay';
 import { CallbackBanner } from './components/CallbackBanner';
 import { StrategyCallModal } from './components/StrategyCallModal';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { initializeAnalytics, trackPageView } from './lib/analytics';
+import { CONSENT_UPDATED_EVENT } from './lib/consent';
 import '../../admin/src/index.css';
 
 // Code-split heavy private dashboards and tool suites to keep initial public bundles ultra-lean
@@ -91,6 +93,7 @@ function AppShell() {
       <BrandIntroOverlay onIntroActiveChange={setIntroActive} />
       <CallbackBanner introActive={introActive} onVisibilityChange={setCallbackModalOpen} />
       <StrategyCallModal onVisibilityChange={setStrategyModalOpen} />
+      <CookieConsentBanner introActive={introActive} />
       <div
         id="main-app-container"
         className={
@@ -285,9 +288,16 @@ export function App() {
   const location = useLocation();
 
   useEffect(() => {
-    // Initialize GA4, GTM, and UTM attribution tracking
+    // Initialize GA4, GTM, and UTM attribution tracking (only if consented)
     initializeAnalytics();
-  }, []);
+
+    const handleConsentUpdated = () => {
+      initializeAnalytics();
+      trackPageView(location.pathname);
+    };
+    window.addEventListener(CONSENT_UPDATED_EVENT, handleConsentUpdated);
+    return () => window.removeEventListener(CONSENT_UPDATED_EVENT, handleConsentUpdated);
+  }, [location.pathname]);
 
   useEffect(() => {
     // Scroll to top and fire SPA page_view event on route change

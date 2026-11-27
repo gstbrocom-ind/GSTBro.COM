@@ -1,0 +1,30 @@
+# GSTBro
+
+> Chartered Accountant-supervised GST compliance, registration, monthly return filing (GSTR-1 & GSTR-3B), GSTR-2B ITC reconciliation, and GST notice defense platform serving businesses across India.
+
+- Website: https://gstbro.com
+- Headquarters: 5-50B, SPR Street, Oldpet, Palamaner, Chittoor, Andhra Pradesh 517408, India
+- Service Coverage: Pan-India (all Indian states and union territories)
+- Phone: +91 8106004254
+- Email: gstbro.com@gmail.com
+- Google Business Profile: https://maps.app.goo.gl/MYt3A1sexYqBWmRq9
+- Full Documentation for LLMs: https://gstbro.com/llms-full.txt
+
+## Core GST Services
+
+- [GST Registration](https://gstbro.com/services/gst-registration): Fast-track online GSTIN registration (REG-01) with CA document vetting.
+- [GST Return Filing](https://gstbro.com/services/gst-returns): Monthly & quarterly GSTR-1, GSTR-3B, and QRMP/IFF filing with 100% Zero-Penalty SLA.
+- [GST Compliance & 2B ITC Reconciliation](https://gstbro.com/services/gst-compliance): Automated GSTR-2B purchase reconciliation, Rule 88A offset optimization, and vendor follow-ups.
+- [GST Audit & Annual Return](https://gstbro.com/services/gst-audit): GSTR-9 and GSTR-9C reconciliation and statutory audit support.
+- [GST Notice Defense & Advisory](https://gstbro.com/services/gst-advisory): Senior CA representation for ASMT-10, DRC-01, and show-cause notices.
+- [GST Refund Claims](https://gstbro.com/services/gst-refund): RFD-01 export, LUT, and inverted duty structure refund processing.
+- [GST TDS & TCS](https://gstbro.com/services/gst-tds-tcs): GSTR-7 & GSTR-8 compliance for e-commerce operators and government deductors.
+- [GST Cancellation & Revocation](https://gstbro.com/services/gst-cancellation): REG-16 surrender, GSTR-10 final return, and REG-21 revocation.
+
+## Business Licenses & Tools
+
+- [Business Licenses Hub](https://gstbro.com/services/business-licenses): Shop & Establishment, Trade License, FSSAI, MSME Udyam, IEC, Professional Tax, Class 3 DSC, and Startup India DPIIT.
+- [GST Calculators & Resources](https://gstbro.com/resources): Free GST Calculator (forward & reverse), GST Late Fee & Section 50 Interest Calculator, and GST TDS/TCS Calculator.
+- [Transparent Pricing](https://gstbro.com/pricing): Retainer plans for startups, MSMEs, e-commerce sellers, and enterprises.
+- [About GSTBro](https://gstbro.com/about): Institutional tax governance and ICAI-supervised practice overview.
+- [Contact & Consultation](https://gstbro.com/contact): Book a 15-minute CA GST strategy call.

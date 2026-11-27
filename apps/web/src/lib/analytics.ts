@@ -10,6 +10,8 @@
  * 4. Consent-Aware: Respects user privacy preferences and does not initialize without approval if consent mode is active.
  */
 
+import { hasAnalyticsConsent } from './consent';
+
 declare global {
   interface Window {
     dataLayer?: any[];
@@ -88,7 +90,7 @@ export function getAttributionData(): UtmParameters {
 export function initializeAnalytics(): void {
   if (typeof window === 'undefined') return;
 
-  // Initialize dataLayer
+  // Initialize dataLayer and Google Consent Mode defaults
   window.dataLayer = window.dataLayer || [];
   if (!window.gtag) {
     window.gtag = function () {
@@ -96,9 +98,16 @@ export function initializeAnalytics(): void {
     };
   }
 
-  // Check consent setting (if user opted out, abort tracking)
-  const consentSetting = localStorage.getItem('gstbro_analytics_consent');
-  if (consentSetting === 'denied') {
+  // Default to denied until the visitor explicitly opts in
+  window.gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+  });
+
+  // Strict DPDP opt-in check: abort non-essential tracking unless explicitly granted
+  if (!hasAnalyticsConsent()) {
     return;
   }
 
@@ -136,6 +145,7 @@ export function initializeAnalytics(): void {
  */
 export function trackEvent(eventName: string, params: Record<string, any> = {}): void {
   if (typeof window === 'undefined') return;
+  if (!hasAnalyticsConsent()) return;
 
   // De-duplication check: identical event within 3 seconds is ignored
   const dedupKey = `${eventName}_${JSON.stringify(params)}`;

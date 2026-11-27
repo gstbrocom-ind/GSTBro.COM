@@ -8,11 +8,11 @@ interface FooterProps {
 export function Footer({ settings }: FooterProps) {
   const siteName = settings?.siteName ?? 'GSTBro';
   const year = new Date().getFullYear();
-  const contactEmail = settings?.contactEmail || 'hello@gstbro.com';
-  const contactPhone = settings?.contactPhone || '+91 800 123 4567';
-  const officeAddress = settings?.officeAddress || 'Plot No. 42, Cyber Towers Area, Hitech City, Madhapur, Hyderabad, Telangana 500081';
-  const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.google.com/?q=Cyber+Towers+Hitech+City+Hyderabad';
-  const mapEmbedUrl = settings?.mapEmbedUrl || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3806.314644503792!2d78.38084667595462!3d17.444634201150495!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb93dc8c5d69df%3A0x19688ebb557861c!2sCyber%20Towers!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin';
+  const contactEmail = settings?.contactEmail || 'gstbro.com@gmail.com';
+  const contactPhone = settings?.contactPhone || '+91 8106004254';
+  const officeAddress = settings?.officeAddress || '5-50B, SPR Street, Oldpet, Palamaner, Chittoor, Andhra Pradesh 517408';
+  const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/MYt3A1sexYqBWmRq9';
+  const mapEmbedUrl = (settings?.mapEmbedUrl || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d242.7767754239692!2d78.74511490606444!3d13.198398540559271!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bad7eaa422555ff%3A0xe0973a28f5397f55!2sPalamaner%2C%20Andhra%20Pradesh%20517408!5e0!3m2!1sen!2sin!4v1795283495474!5m2!1sen!2sin').split('"')[0].trim();
 
   return (
     <footer className="relative bg-slate-950 text-slate-400 border-t border-slate-800 selection:bg-blue-600 selection:text-white">
@@ -216,6 +216,19 @@ export function Footer({ settings }: FooterProps) {
                 <a href="/refund-policy" className="text-slate-400 hover:text-white transition-colors">
                   Refund &amp; Cancellation
                 </a>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('gstbro:open-cookie-settings'));
+                    }
+                  }}
+                  className="text-slate-400 hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  Cookie Preferences
+                </button>
               </li>
             </ul>
           </div>

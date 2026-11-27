@@ -33,7 +33,7 @@ export function ContactPage() {
   const [activeTab, setActiveTab] = useState<'consultation' | 'notice'>('consultation');
   const [formStarted, setFormStarted] = useState(false);
 
-  const contactPhone = settings?.contactPhone || '+91 800 123 4567';
+  const contactPhone = settings?.contactPhone || '+91 8106004254';
   const contactEmail = settings?.contactEmail || 'hello@gstbro.com';
 
   const handleInputFocus = () => {

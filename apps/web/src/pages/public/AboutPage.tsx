@@ -169,6 +169,50 @@ export function AboutPage() {
         </div>
       </section>
 
+      {/* 3B. CITATION-READY ENTITY SUMMARY (GEO / SEARCH) */}
+      <section className={`py-14 border-t transition-colors ${
+        isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+      }`}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className={`text-2xl sm:text-3xl font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              GSTBro at a Glance
+            </h2>
+            <p className={`text-sm mt-2 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+              Verified practice details for Indian businesses seeking CA-supervised GST compliance.
+            </p>
+          </div>
+          <div className={`overflow-hidden rounded-2xl border ${
+            isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+          }`}>
+            <table className="w-full text-left text-sm">
+              <tbody className={`divide-y ${isLight ? 'divide-slate-200' : 'divide-slate-800'}`}>
+                {[
+                  ['Platform Name', 'GSTBro (gstbro.com)'],
+                  ['Practice Supervision', 'ICAI-Regulated Practicing Chartered Accountants'],
+                  ['Core GST Services', 'GST Registration (REG-01), Monthly GSTR-1 & GSTR-3B Filing, GSTR-2B ITC Reconciliation, GST Audit (GSTR-9/9C), GST Refunds (RFD-01), ASMT-10 & DRC-01 Notice Defense'],
+                  ['Service Coverage', 'Pan-India (all 28 states & 8 union territories)'],
+                  ['Compliance Guarantee', '100% Zero-Penalty SLA on timely document submissions'],
+                  ['Headquarters', settings?.officeAddress || '5-50B, SPR Street, Oldpet, Palamaner, Chittoor, Andhra Pradesh 517408'],
+                  ['Direct Contact', `${settings?.contactPhone || '+91 8106004254'} • ${settings?.contactEmail || 'gstbro.com@gmail.com'}`],
+                ].map(([label, value]) => (
+                  <tr key={label}>
+                    <th className={`py-3.5 px-5 font-semibold w-48 sm:w-56 align-top ${
+                      isLight ? 'text-slate-700 bg-slate-50/70' : 'text-slate-300 bg-slate-950/40'
+                    }`}>
+                      {label}
+                    </th>
+                    <td className={`py-3.5 px-5 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                      {value}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       {/* 4. CTA BANNER */}
       <section className={`py-14 text-center transition-colors ${
         isLight

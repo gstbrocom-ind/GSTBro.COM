@@ -10,5 +10,65 @@ Disallow: /client
 Disallow: /client/*
 Disallow: /privacy/requests
 Disallow: /privacy/requests/*
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+
+# Explicitly allow AI search & LLM crawlers on public pages
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /team
+Disallow: /client
+Disallow: /privacy/requests
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /team
+Disallow: /client
+Disallow: /privacy/requests
+
+User-agent: GPTBot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /team
+Disallow: /client
+Disallow: /privacy/requests
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /team
+Disallow: /client
+Disallow: /privacy/requests
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /team
+Disallow: /client
+Disallow: /privacy/requests
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /team
+Disallow: /client
+Disallow: /privacy/requests
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /team
+Disallow: /client
+Disallow: /privacy/requests
 
 Sitemap: https://gstbro.com/sitemap.xml

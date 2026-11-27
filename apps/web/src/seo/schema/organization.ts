@@ -1,58 +1,79 @@
 import { SITE_NAME, SITE_URL } from '../meta.config';
 import type { PublicSettings } from '@gst/ui';
 
+function buildSameAs(settings?: PublicSettings | null) {
+  const social = settings?.socialLinks?.filter((l) => l.enabled && l.url).map((l) => l.url) ?? [];
+  const mapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/MYt3A1sexYqBWmRq9';
+  return Array.from(new Set([...social, mapsUrl].filter(Boolean)));
+}
+
+const GST_KNOWLEDGE_TOPICS = [
+  'Goods and Services Tax (GST) India',
+  'GST Registration (REG-01)',
+  'GSTR-1 and GSTR-3B Return Filing',
+  'GSTR-2B Input Tax Credit (ITC) Reconciliation',
+  'GST Annual Return (GSTR-9) and Audit (GSTR-9C)',
+  'GST Scrutiny Notice Defense (ASMT-10, DRC-01)',
+  'GST Refund Claims (RFD-01) and Export LUT',
+  'E-Commerce GST TCS and TDS (GSTR-7, GSTR-8)',
+];
+
 export function organizationSchema(settings?: PublicSettings | null) {
-  const sameAs = settings?.socialLinks?.filter((l) => l.enabled && l.url).map((l) => l.url) ?? [];
+  const sameAs = buildSameAs(settings);
 
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': `${SITE_URL}/#organization`,
     name: settings?.siteName ?? SITE_NAME,
+    alternateName: ['GSTBro', 'GST Bro', 'GSTBro India'],
     url: SITE_URL,
     logo: settings?.logoUrl || `${SITE_URL}/logo.svg`,
-    description: 'Premier Chartered Accountant-supervised Indirect Tax and GST compliance infrastructure across India.',
+    description: 'Chartered Accountant-supervised Indirect Tax and GST compliance platform serving businesses across India.',
+    knowsAbout: GST_KNOWLEDGE_TOPICS,
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: settings?.contactPhone || '+91 800 123 4567',
-      email: settings?.contactEmail || 'hello@gstbro.com',
+      telephone: settings?.contactPhone || '+91 8106004254',
+      email: settings?.contactEmail || 'gstbro.com@gmail.com',
       contactType: 'customer service',
       areaServed: 'IN',
-      availableLanguage: ['en', 'hi'],
+      availableLanguage: ['en', 'hi', 'te'],
     },
     sameAs,
   };
 }
 
 export function professionalServiceSchema(settings?: PublicSettings | null) {
-  const sameAs = settings?.socialLinks?.filter((l) => l.enabled && l.url).map((l) => l.url) ?? [];
-  const address = settings?.officeAddress || 'Plot No. 42, Cyber Towers Area, Hitech City, Madhapur, Hyderabad, Telangana 500081';
+  const sameAs = buildSameAs(settings);
+  const address = settings?.officeAddress || '5-50B, SPR Street, Oldpet, Palamaner, Chittoor, Andhra Pradesh 517408';
 
   return {
     '@context': 'https://schema.org',
     '@type': 'AccountingService',
     '@id': `${SITE_URL}/#service-desk`,
     name: settings?.siteName ?? SITE_NAME,
+    alternateName: ['GSTBro', 'GST Bro', 'GSTBro India'],
     url: SITE_URL,
     logo: settings?.logoUrl || `${SITE_URL}/logo.svg`,
-    image: `${SITE_URL}/og-default.svg`,
-    telephone: settings?.contactPhone || '+91 800 123 4567',
-    email: settings?.contactEmail || 'hello@gstbro.com',
+    image: `${SITE_URL}/og-default.png`,
+    knowsAbout: GST_KNOWLEDGE_TOPICS,
+    telephone: settings?.contactPhone || '+91 8106004254',
+    email: settings?.contactEmail || 'gstbro.com@gmail.com',
     priceRange: '₹₹',
     currenciesAccepted: 'INR',
     paymentAccepted: 'UPI, Net Banking, Credit Card',
     address: {
       '@type': 'PostalAddress',
       streetAddress: address,
-      addressLocality: settings?.officeCity || 'Hyderabad',
-      addressRegion: 'Telangana',
-      postalCode: '500081',
+      addressLocality: settings?.officeCity || 'Palamaner',
+      addressRegion: 'Andhra Pradesh',
+      postalCode: '517408',
       addressCountry: 'IN',
     },
     geo: {
       '@type': 'GeoCoordinates',
-      latitude: '17.4446',
-      longitude: '78.3808',
+      latitude: '13.1983985',
+      longitude: '78.7451149',
     },
     openingHoursSpecification: [
       {
