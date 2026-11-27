@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { SocialLinks, notifySettingsUpdated } from '@gst/ui';
 import { api } from '../lib/api';
 import { ImageCropperModal } from '../components/ImageCropperModal';
+import { HsnSacUploadCard } from '../components/HsnSacUploadCard';
 
 const getLiveWebUrl = (path: string = '') => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -1606,6 +1607,8 @@ export function SiteSettingsPage() {
               />
             </div>
           </div>
+
+          <HsnSacUploadCard />
 
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
             <div className="text-xs font-bold text-slate-800">Add or Override HSN / SAC Code</div>

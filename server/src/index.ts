@@ -18,6 +18,7 @@ import { privacyAdminRoutes } from './routes/admin/privacyAdmin.js';
 import { erasureRoutes } from './routes/erasure.js';
 import { superAdminRoutes } from './routes/superAdmin.js';
 import { firmRoutes } from './routes/firm.js';
+import { hsnSacRoutes } from './routes/hsnSac.js';
 
 import { ZodError } from 'zod';
 
@@ -157,6 +158,7 @@ await app.register(privacyAdminRoutes);
 await app.register(erasureRoutes);
 await app.register(superAdminRoutes);
 await app.register(firmRoutes);
+await app.register(hsnSacRoutes);
 
 const drive = getDriveService();
 if (drive) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { HsnSacUploadCard } from '../components/HsnSacUploadCard';
 
 type PlatformKpis = {
   totalFirms: number;
@@ -798,6 +799,9 @@ export function SuperAdminPlatformPage() {
             )}
           </div>
         </div>
+
+        {/* HSN / SAC Master Excel Upload */}
+        <HsnSacUploadCard />
       </div>
     </div>
   );
