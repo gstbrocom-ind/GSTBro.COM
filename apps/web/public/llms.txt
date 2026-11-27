@@ -25,6 +25,7 @@
 
 - [Business Licenses Hub](https://gstbro.com/services/business-licenses): Shop & Establishment, Trade License, FSSAI, MSME Udyam, IEC, Professional Tax, Class 3 DSC, and Startup India DPIIT.
 - [GST Calculators & Resources](https://gstbro.com/resources): Free GST Calculator (forward & reverse), GST Late Fee & Section 50 Interest Calculator, and GST TDS/TCS Calculator.
+- [HSN & SAC Code Search](https://gstbro.com/hsn-sac-search): Search Indian HSN codes (goods) and SAC codes (services) with prevailing 2026 GST 2.0 tax rates (0%, 3%, 5%, 18%, 40%).
 - [Transparent Pricing](https://gstbro.com/pricing): Retainer plans for startups, MSMEs, e-commerce sellers, and enterprises.
 - [About GSTBro](https://gstbro.com/about): Institutional tax governance and ICAI-supervised practice overview.
 - [Contact & Consultation](https://gstbro.com/contact): Book a 15-minute CA GST strategy call.

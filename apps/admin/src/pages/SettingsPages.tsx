@@ -708,6 +708,69 @@ export function SiteSettingsPage() {
   const [applied, setApplied] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // HSN/SAC Live Schedule State
+  const [hsnUpdatedUpTo, setHsnUpdatedUpTo] = useState('27 Nov 2026');
+  const [hsnScheduleNote, setHsnScheduleNote] = useState(
+    'GST 2.0 — Post 56th & 57th GST Council Reforms (0%, 3%, 5%, 18%, 40%)'
+  );
+  const [hsnCustomEntries, setHsnCustomEntries] = useState<
+    {
+      code: string;
+      type: 'HSN' | 'SAC';
+      category: string;
+      description: string;
+      gstRate: 0 | 0.25 | 3 | 5 | 18 | 40;
+      keywords: string[];
+      note?: string;
+    }[]
+  >([]);
+  const [newHsn, setNewHsn] = useState({
+    code: '',
+    type: 'HSN' as 'HSN' | 'SAC',
+    category: '',
+    description: '',
+    gstRate: 18 as 0 | 0.25 | 3 | 5 | 18 | 40,
+    keywords: '',
+    note: '',
+  });
+  const [hsnSaving, setHsnSaving] = useState(false);
+  const [hsnSaved, setHsnSaved] = useState(false);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/settings/hsn-sac?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        if (d.updatedUpTo) setHsnUpdatedUpTo(d.updatedUpTo);
+        if (d.scheduleNote) setHsnScheduleNote(d.scheduleNote);
+        if (Array.isArray(d.customEntries)) setHsnCustomEntries(d.customEntries);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveHsnSchedule = async () => {
+    setHsnSaving(true);
+    try {
+      await api('/api/admin/settings/hsn-sac', {
+        method: 'PUT',
+        body: JSON.stringify({
+          updatedUpTo: hsnUpdatedUpTo,
+          scheduleNote: hsnScheduleNote,
+          customEntries: hsnCustomEntries,
+        }),
+      });
+      setHsnSaved(true);
+      setTimeout(() => setHsnSaved(false), 3000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to save HSN/SAC schedule');
+    } finally {
+      setHsnSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || ''}/api/settings/public?_t=${Date.now()}`, {
       cache: 'no-store',
@@ -1502,6 +1565,173 @@ export function SiteSettingsPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* HSN / SAC & PREVAILING GST RATES SCHEDULE */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <h2 className="text-sm font-black text-slate-900">HSN / SAC &amp; Prevailing Tax Rates Schedule</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Update the &ldquo;Updated Up To&rdquo; date and add/override HSN or SAC rates live without redeploying.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={hsnSaving}
+              onClick={handleSaveHsnSchedule}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm shrink-0"
+            >
+              {hsnSaved ? '✓ HSN/SAC Saved Live' : hsnSaving ? 'Saving...' : 'Save HSN/SAC Schedule'}
+            </button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Rates Updated Up To</label>
+              <input
+                value={hsnUpdatedUpTo}
+                onChange={(e) => setHsnUpdatedUpTo(e.target.value)}
+                placeholder="e.g. 27 Nov 2026"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Schedule / Council Note</label>
+              <input
+                value={hsnScheduleNote}
+                onChange={(e) => setHsnScheduleNote(e.target.value)}
+                placeholder="GST 2.0 — Post 56th & 57th GST Council Reforms"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+            <div className="text-xs font-bold text-slate-800">Add or Override HSN / SAC Code</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <input
+                value={newHsn.code}
+                onChange={(e) => setNewHsn({ ...newHsn, code: e.target.value })}
+                placeholder="Code (e.g. 998314)"
+                className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
+              />
+              <select
+                value={newHsn.type}
+                onChange={(e) => setNewHsn({ ...newHsn, type: e.target.value as 'HSN' | 'SAC' })}
+                className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
+              >
+                <option value="HSN">HSN (Goods)</option>
+                <option value="SAC">SAC (Services)</option>
+              </select>
+              <select
+                value={newHsn.gstRate}
+                onChange={(e) =>
+                  setNewHsn({ ...newHsn, gstRate: Number(e.target.value) as 0 | 0.25 | 3 | 5 | 18 | 40 })
+                }
+                className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
+              >
+                <option value={0}>0% (Nil)</option>
+                <option value={0.25}>0.25%</option>
+                <option value={3}>3%</option>
+                <option value={5}>5%</option>
+                <option value={18}>18%</option>
+                <option value={40}>40%</option>
+              </select>
+              <input
+                value={newHsn.category}
+                onChange={(e) => setNewHsn({ ...newHsn, category: e.target.value })}
+                placeholder="Category"
+                className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
+              />
+            </div>
+            <div className="grid sm:grid-cols-3 gap-2.5">
+              <input
+                value={newHsn.description}
+                onChange={(e) => setNewHsn({ ...newHsn, description: e.target.value })}
+                placeholder="Description"
+                className="sm:col-span-2 px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
+              />
+              <input
+                value={newHsn.keywords}
+                onChange={(e) => setNewHsn({ ...newHsn, keywords: e.target.value })}
+                placeholder="Keywords (comma-separated)"
+                className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <input
+                value={newHsn.note}
+                onChange={(e) => setNewHsn({ ...newHsn, note: e.target.value })}
+                placeholder="Optional rate-change note (e.g. Updated per Notification 06/2026)"
+                className="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newHsn.code.trim() || !newHsn.description.trim()) return;
+                  const entry = {
+                    code: newHsn.code.trim(),
+                    type: newHsn.type,
+                    category: newHsn.category.trim() || 'General',
+                    description: newHsn.description.trim(),
+                    gstRate: newHsn.gstRate,
+                    keywords: newHsn.keywords
+                      .split(',')
+                      .map((k) => k.trim())
+                      .filter(Boolean),
+                    ...(newHsn.note.trim() ? { note: newHsn.note.trim() } : {}),
+                  };
+                  setHsnCustomEntries((prev) => [
+                    ...prev.filter((p) => !(p.type === entry.type && p.code.toUpperCase() === entry.code.toUpperCase())),
+                    entry,
+                  ]);
+                  setNewHsn({
+                    code: '',
+                    type: 'HSN',
+                    category: '',
+                    description: '',
+                    gstRate: 18,
+                    keywords: '',
+                    note: '',
+                  });
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shrink-0"
+              >
+                + Add / Override Code
+              </button>
+            </div>
+          </div>
+
+          {hsnCustomEntries.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-slate-700">
+                Active Admin Overrides ({hsnCustomEntries.length})
+              </div>
+              <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                {hsnCustomEntries.map((item) => (
+                  <div key={`${item.type}-${item.code}`} className="p-3 flex items-center justify-between gap-3 text-xs">
+                    <div>
+                      <span className="font-mono font-bold text-slate-900">{item.code}</span>{' '}
+                      <span className="text-slate-500">({item.type})</span> —{' '}
+                      <span className="font-semibold text-blue-700">{item.gstRate}%</span> — {item.description}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHsnCustomEntries((prev) =>
+                          prev.filter((p) => !(p.type === item.type && p.code === item.code))
+                        )
+                      }
+                      className="text-rose-600 hover:underline font-bold shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* BOTTOM ACTION BAR */}

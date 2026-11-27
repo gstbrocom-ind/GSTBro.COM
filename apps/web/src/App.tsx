@@ -24,6 +24,7 @@ import {
   StartupIndiaPage,
 } from './pages/public/ServicePages';
 import { ContactPage, PricingPage, ResourcesPage, HowItWorksPage, PrivacyPage, TermsPage, AboutPage, RefundPolicyPage } from './pages/public/OtherPages';
+import { HsnSacSearchPage } from './pages/public/HsnSacSearchPage';
 import { PortalLoadingSkeleton } from './components/PortalLoadingSkeleton';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
@@ -135,6 +136,7 @@ function AppShell() {
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/hsn-sac-search" element={<HsnSacSearchPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/refund-policy" element={<RefundPolicyPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />

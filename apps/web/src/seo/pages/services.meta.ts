@@ -160,6 +160,13 @@ export const resourcesMeta = base(
   'gst calculator, gst late fee calculator, hsn code search, gst guides, gst rate slabs'
 );
 
+export const hsnSacMeta = base(
+  'HSN & SAC Code Search — Prevailing GST Rates India (Nov 2026)',
+  'Search Indian HSN codes for goods and SAC codes for services with prevailing 2026 GST 2.0 rates (0%, 3%, 5%, 18%, 40%), CGST/SGST/IGST splits, and CA classification notes.',
+  '/hsn-sac-search',
+  'hsn code search, sac code finder, gst rate finder india, gst rates 2026, hsn gst rate list, sac code gst rate'
+);
+
 export const contactMeta = base(
   'Contact Senior Chartered Accountant Advisory Desk',
   'Connect directly with practicing Chartered Accountants for confidential GST consultation, notice assessment, or urgent filing assistance.',

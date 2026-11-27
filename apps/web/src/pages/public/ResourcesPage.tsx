@@ -4,6 +4,7 @@ import { PublicLayout } from '../../components/PublicLayout';
 import { Breadcrumbs } from '../../components/seo/Breadcrumbs';
 import { resourcesMeta } from '../../seo/pages/services.meta';
 import { faqSchema } from '../../seo/schema/faq';
+import { HsnSacSearch } from '../../components/HsnSacSearch';
 import { fadeUpVariants, staggerContainer, modalScaleVariants, transitions } from '../../lib/animations';
 
 interface GuideDetail {
@@ -636,6 +637,9 @@ export function ResourcesPage() {
             <div className="pt-3 flex flex-wrap items-center justify-center gap-2">
               <a href="#calculators" className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-blue-500 transition-colors touch-target">
                 🧮 GST Calculators
+              </a>
+              <a href="#hsn-sac" className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-blue-500 transition-colors touch-target">
+                🔎 HSN / SAC Search
               </a>
               <a href="#guides" className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white hover:border-blue-500 transition-colors touch-target">
                 📋 CA Blueprints
@@ -1424,6 +1428,24 @@ export function ResourcesPage() {
               </motion.div>
             </AnimatePresence>
           </div>
+        </div>
+      </section>
+
+      {/* 2B. HSN / SAC CODE & PREVAILING GST RATE FINDER */}
+      <section id="hsn-sac" className="py-12 sm:py-20 bg-slate-50/70 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full inline-block mb-2">
+              Updated 27 Nov 2026 • GST 2.0
+            </span>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
+              HSN &amp; SAC Code Rate Finder
+            </h2>
+            <p className="text-slate-600 mt-2 text-xs sm:text-sm">
+              Search goods (HSN) and services (SAC) codes with prevailing 0%, 3%, 5%, 18%, and 40% GST slabs.
+            </p>
+          </div>
+          <HsnSacSearch />
         </div>
       </section>
 

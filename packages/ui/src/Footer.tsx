@@ -189,7 +189,12 @@ export function Footer({ settings }: FooterProps) {
               </li>
               <li>
                 <a href="/resources" className="text-slate-400 hover:text-white transition-colors">
-                  GST Calculators &amp; HSN
+                  GST Calculators &amp; Guides
+                </a>
+              </li>
+              <li>
+                <a href="/hsn-sac-search" className="text-slate-400 hover:text-white transition-colors">
+                  HSN &amp; SAC Rate Finder
                 </a>
               </li>
               <li>

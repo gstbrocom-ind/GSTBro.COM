@@ -239,6 +239,94 @@ export async function settingsRoutes(app: FastifyInstance) {
     }
   );
 
+  // Public endpoint: Fetch live HSN/SAC rate schedule metadata & admin overrides
+  app.get('/api/settings/hsn-sac', async (_request, reply) => {
+    applyNoCacheHeaders(reply);
+    const { data } = await supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['hsn_sac_updated_up_to', 'hsn_sac_schedule_note', 'hsn_sac_custom_entries']);
+
+    const map: Record<string, string> = {};
+    for (const row of data || []) {
+      map[row.key] = row.value;
+    }
+
+    let customEntries: unknown[] = [];
+    if (map.hsn_sac_custom_entries) {
+      try {
+        const parsed = JSON.parse(map.hsn_sac_custom_entries);
+        if (Array.isArray(parsed)) customEntries = parsed;
+      } catch {
+        customEntries = [];
+      }
+    }
+
+    return {
+      updatedUpTo: map.hsn_sac_updated_up_to || '27 Nov 2026',
+      scheduleNote:
+        map.hsn_sac_schedule_note ||
+        'GST 2.0 — Post 56th & 57th GST Council Reforms (0%, 3%, 5%, 18%, 40%)',
+      customEntries,
+    };
+  });
+
+  // Admin endpoint: Update HSN/SAC "Updated Up To" date, note, and custom/overridden entries
+  app.put(
+    '/api/admin/settings/hsn-sac',
+    { preHandler: [authenticate, requireRole('ADMIN')] },
+    async (request, reply) => {
+      if (hasPrototypePollution(request.body)) {
+        return reply.status(400).send({ error: 'Illegal object keys detected (prototype pollution attempt)' });
+      }
+
+      const entrySchema = z.object({
+        code: z.string().trim().min(2).max(16),
+        type: z.enum(['HSN', 'SAC']),
+        category: z.string().trim().min(1).max(120),
+        description: z.string().trim().min(1).max(400),
+        gstRate: z.union([
+          z.literal(0),
+          z.literal(0.25),
+          z.literal(3),
+          z.literal(5),
+          z.literal(18),
+          z.literal(40),
+        ]),
+        keywords: z.array(z.string().trim().max(60)).max(20).default([]),
+        note: z.string().trim().max(300).optional(),
+      });
+
+      const body = z
+        .object({
+          updatedUpTo: z.string().trim().min(1).max(80),
+          scheduleNote: z.string().trim().min(1).max(240),
+          customEntries: z.array(entrySchema).max(500).default([]),
+        })
+        .strict()
+        .parse(request.body);
+
+      const upserts = [
+        { key: 'hsn_sac_updated_up_to', value: body.updatedUpTo, updated_by: request.user.id },
+        { key: 'hsn_sac_schedule_note', value: body.scheduleNote, updated_by: request.user.id },
+        {
+          key: 'hsn_sac_custom_entries',
+          value: JSON.stringify(body.customEntries),
+          updated_by: request.user.id,
+        },
+      ];
+
+      for (const row of upserts) {
+        const { error } = await supabase.from('site_settings').upsert(row);
+        if (error) {
+          return reply.status(500).send({ error: error.message });
+        }
+      }
+
+      return body;
+    }
+  );
+
   app.get(
     '/api/admin/settings/social',
     { preHandler: [authenticate, requireRole('ADMIN')] },
