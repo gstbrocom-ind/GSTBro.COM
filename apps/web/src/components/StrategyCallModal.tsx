@@ -54,7 +54,9 @@ export function StrategyCallModal({
   const [internalOpen, setInternalOpen] = useState(false);
   const isVisible = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen;
 
-  // Form Fields
+  // Form Fields & Multi-Step Wizard State
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [topic, setTopic] = useState(initialTopic);
@@ -75,6 +77,8 @@ export function StrategyCallModal({
       if (customEvent.detail?.topic) {
         setTopic(customEvent.detail.topic);
       }
+      setStep(1);
+      setDirection(1);
       setInternalOpen(true);
       setSubmitted(false);
       setErrorMessage(null);
@@ -83,6 +87,16 @@ export function StrategyCallModal({
     window.addEventListener('gstbro:open-strategy-call', handleGlobalOpen);
     return () => window.removeEventListener('gstbro:open-strategy-call', handleGlobalOpen);
   }, []);
+
+  // Reset wizard to step 1 whenever modal opens
+  useEffect(() => {
+    if (isVisible) {
+      setStep(1);
+      setDirection(1);
+      setSubmitted(false);
+      setErrorMessage(null);
+    }
+  }, [isVisible]);
 
   // Detect user region and prioritize regional language to top
   useEffect(() => {
@@ -215,21 +229,55 @@ export function StrategyCallModal({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
-
+  const validateStep1 = (): boolean => {
     const trimmedName = name.trim();
     if (!trimmedName || trimmedName.length < 2) {
       setErrorMessage('Please enter your full name (at least 2 characters).');
-      return;
+      return false;
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
       setErrorMessage('Please enter a valid 10-digit Indian mobile number.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleNextStep = () => {
+    setErrorMessage(null);
+    if (step === 1 && !validateStep1()) {
       return;
     }
+    setDirection(1);
+    setStep((prev) => (prev < 3 ? ((prev + 1) as 1 | 2 | 3) : prev));
+  };
+
+  const handlePrevStep = () => {
+    setErrorMessage(null);
+    setDirection(-1);
+    setStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3) : prev));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (step < 3) {
+      handleNextStep();
+      return;
+    }
+
+    setErrorMessage(null);
+
+    if (!validateStep1()) {
+      setDirection(-1);
+      setStep(1);
+      return;
+    }
+
+    const trimmedName = name.trim();
+    const cleanPhone = phone.replace(/\D/g, '');
 
     if (timeMode === 'CUSTOM' && !customDateTime) {
       setErrorMessage('Please select your preferred custom date & time.');
@@ -375,15 +423,45 @@ export function StrategyCallModal({
                 </div>
               </div>
             ) : (
-              /* Booking Form */
+              /* Booking Form (3-Step Slide Wizard) */
               <>
                 <div className="mb-4">
                   <h2 className="text-lg sm:text-xl font-black tracking-tight leading-snug">
                     Book Free 15-Min CA Strategy Call
                   </h2>
                   <p className={`text-xs mt-1 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Discuss notice defense, GST filing, or input tax credit audit directly with a Senior Chartered Accountant in your language.
+                    Discuss notice defense, GST filing, or ITC audit directly with a Senior CA.
                   </p>
+                </div>
+
+                {/* Step Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-[11px] font-bold mb-1.5">
+                    <span className={isDark ? 'text-blue-400' : 'text-blue-600'}>
+                      Step {step} of 3
+                    </span>
+                    <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>
+                      {step === 1
+                        ? 'Your Contact Details'
+                        : step === 2
+                        ? 'Preferred Language'
+                        : 'Preferred Call Time'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[1, 2, 3].map((s) => (
+                      <div
+                        key={s}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          s <= step
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-500'
+                            : isDark
+                            ? 'bg-slate-800'
+                            : 'bg-slate-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 {errorMessage && (
@@ -393,279 +471,350 @@ export function StrategyCallModal({
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-3.5">
-                  {/* Full Name */}
-                  <div>
-                    <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      Your Full Name <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Rajesh Kumar"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold outline-hidden transition border ${
-                        isDark
-                          ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500'
-                          : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600'
-                      }`}
-                    />
-                  </div>
-
-                  {/* 10-Digit Mobile Number */}
-                  <div>
-                    <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      Mobile Number <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-black shrink-0 ${
-                          isDark
-                            ? 'bg-slate-900 border-slate-700 text-slate-300'
-                            : 'bg-slate-100 border-slate-300 text-slate-700'
-                        }`}
+                <form onSubmit={handleSubmit} className="relative overflow-hidden">
+                  <AnimatePresence mode="wait" custom={direction}>
+                    {step === 1 && (
+                      <motion.div
+                        key="step-1"
+                        custom={direction}
+                        initial={{ x: direction > 0 ? 36 : -36, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: direction > 0 ? -36 : 36, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className="space-y-3.5"
                       >
-                        <span className="text-sm">🇮🇳</span>
-                        <span>+91</span>
-                      </div>
-                      <input
-                        type="tel"
-                        required
-                        inputMode="numeric"
-                        placeholder="10-digit mobile number"
-                        value={phone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-hidden transition border tracking-wider ${
-                          isDark
-                            ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500'
-                            : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600'
-                        }`}
-                      />
-                    </div>
-                  </div>
+                        {/* Full Name */}
+                        <div>
+                          <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                            Your Full Name <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            autoFocus
+                            placeholder="e.g. Rajesh Kumar"
+                            value={name}
+                            onChange={(e) => {
+                              setName(e.target.value);
+                              if (errorMessage) setErrorMessage(null);
+                            }}
+                            className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold outline-hidden transition border ${
+                              isDark
+                                ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500'
+                                : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600'
+                            }`}
+                          />
+                        </div>
 
-                  {/* Preferred Language Dropdown (Location-Prioritized at Top) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                        Preferred Language <span className="text-rose-500">*</span>
-                      </label>
-                      {userRegion && (
-                        <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
-                          <span>📍</span>
-                          <span>{userRegion}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="relative">
-                      <select
-                        value={selectedLanguage}
-                        onChange={(e) => setSelectedLanguage(e.target.value)}
-                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-hidden transition border appearance-none cursor-pointer ${
-                          isDark
-                            ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500'
-                            : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-blue-600'
-                        }`}
-                      >
-                        {orderedLanguages.map((lang, idx) => {
-                          const isLocalTop = idx === 0 && userRegion && lang.states.some((s) => userRegion.toLowerCase().includes(s.toLowerCase()));
-                          const label = `${lang.name} (${lang.nativeName})${isLocalTop ? ` ⭐ Detected for ${userRegion}` : ''}`;
-                          return (
-                            <option
-                              key={lang.code}
-                              value={`${lang.name} (${lang.nativeName})`}
-                              className={isDark ? 'bg-slate-900 text-white py-1' : 'bg-white text-slate-900 py-1'}
+                        {/* 10-Digit Mobile Number */}
+                        <div>
+                          <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                            Mobile Number <span className="text-rose-500">*</span>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-black shrink-0 ${
+                                isDark
+                                  ? 'bg-slate-900 border-slate-700 text-slate-300'
+                                  : 'bg-slate-100 border-slate-300 text-slate-700'
+                              }`}
                             >
-                              {label}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-                    <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                      {userRegion
-                        ? `Local language for ${userRegion} is placed at the top of the menu.`
-                        : 'Select your preferred language for the Senior CA consultation.'}
-                    </p>
-                  </div>
-
-                  {/* Time to Call or Now Options */}
-                  <div>
-                    <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      When Should We Call You? <span className="text-rose-500">*</span>
-                    </label>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Option 1: Call Me Right Now */}
-                      <button
-                        type="button"
-                        onClick={() => setTimeMode('NOW')}
-                        className={`col-span-2 p-2.5 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
-                          timeMode === 'NOW'
-                            ? isDark
-                              ? 'bg-rose-950/60 border-rose-500 text-white shadow-xs'
-                              : 'bg-rose-50 border-rose-400 text-rose-950 shadow-xs'
-                            : isDark
-                            ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
-                          </span>
-                          <div>
-                            <span className="text-xs font-black block">⚡ Call Me Right Now</span>
-                            <span className="text-[10px] font-semibold opacity-80 block">Senior CA will connect in 5–15 mins</span>
+                              <span className="text-sm">🇮🇳</span>
+                              <span>+91</span>
+                            </div>
+                            <input
+                              type="tel"
+                              required
+                              inputMode="numeric"
+                              placeholder="10-digit mobile number"
+                              value={phone}
+                              onChange={(e) => handlePhoneChange(e.target.value)}
+                              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-hidden transition border tracking-wider ${
+                                isDark
+                                  ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500'
+                                  : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600'
+                              }`}
+                            />
                           </div>
                         </div>
-                        <span className={`text-xs font-black ${timeMode === 'NOW' ? 'text-rose-500' : 'text-transparent'}`}>
-                          ✓
-                        </span>
-                      </button>
 
-                      {/* Option 2: Morning Slot */}
-                      <button
-                        type="button"
-                        onClick={() => setTimeMode('MORNING')}
-                        className={`p-2 rounded-xl border text-left transition cursor-pointer ${
-                          timeMode === 'MORNING'
-                            ? isDark
-                              ? 'bg-blue-950/60 border-blue-500 text-white'
-                              : 'bg-blue-50 border-blue-400 text-blue-950'
-                            : isDark
-                            ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold block">☀️ Morning</span>
-                        <span className="text-[10px] opacity-75 block">10:00 AM – 1:00 PM</span>
-                      </button>
-
-                      {/* Option 3: Afternoon Slot */}
-                      <button
-                        type="button"
-                        onClick={() => setTimeMode('AFTERNOON')}
-                        className={`p-2 rounded-xl border text-left transition cursor-pointer ${
-                          timeMode === 'AFTERNOON'
-                            ? isDark
-                              ? 'bg-blue-950/60 border-blue-500 text-white'
-                              : 'bg-blue-50 border-blue-400 text-blue-950'
-                            : isDark
-                            ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold block">⛅ Afternoon</span>
-                        <span className="text-[10px] opacity-75 block">1:00 PM – 4:00 PM</span>
-                      </button>
-
-                      {/* Option 4: Evening Slot */}
-                      <button
-                        type="button"
-                        onClick={() => setTimeMode('EVENING')}
-                        className={`p-2 rounded-xl border text-left transition cursor-pointer ${
-                          timeMode === 'EVENING'
-                            ? isDark
-                              ? 'bg-blue-950/60 border-blue-500 text-white'
-                              : 'bg-blue-50 border-blue-400 text-blue-950'
-                            : isDark
-                            ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold block">🌙 Evening</span>
-                        <span className="text-[10px] opacity-75 block">4:00 PM – 8:00 PM</span>
-                      </button>
-
-                      {/* Option 5: Custom Date & Time */}
-                      <button
-                        type="button"
-                        onClick={() => setTimeMode('CUSTOM')}
-                        className={`p-2 rounded-xl border text-left transition cursor-pointer ${
-                          timeMode === 'CUSTOM'
-                            ? isDark
-                              ? 'bg-blue-950/60 border-blue-500 text-white'
-                              : 'bg-blue-50 border-blue-400 text-blue-950'
-                            : isDark
-                            ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="text-[11px] font-bold block">📅 Custom Time</span>
-                        <span className="text-[10px] opacity-75 block">Pick date & hour</span>
-                      </button>
-                    </div>
-
-                    {/* Inline Custom Date & Time Picker */}
-                    {timeMode === 'CUSTOM' && (
-                      <div className="mt-2">
-                        <input
-                          type="datetime-local"
-                          value={customDateTime}
-                          onChange={(e) => setCustomDateTime(e.target.value)}
-                          className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-hidden border ${
-                            isDark
-                              ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500'
-                              : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-blue-600'
-                          }`}
-                        />
-                      </div>
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={handleNextStep}
+                            className="w-full py-3 px-4 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <span>Continue</span>
+                            <span>&rarr;</span>
+                          </button>
+                        </div>
+                      </motion.div>
                     )}
-                  </div>
 
-                  {/* Optional Query / Topic */}
-                  <div>
-                    <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      Brief Query / Topic <span className="text-slate-400 font-normal">(Optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. GST Notice defense, 2B ITC mismatch, Monthly filing"
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                      className={`w-full px-3.5 py-2 rounded-xl text-xs font-semibold outline-hidden transition border ${
-                        isDark
-                          ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500'
-                          : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600'
-                      }`}
-                    />
-                  </div>
+                    {step === 2 && (
+                      <motion.div
+                        key="step-2"
+                        custom={direction}
+                        initial={{ x: direction > 0 ? 36 : -36, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: direction > 0 ? -36 : 36, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className="space-y-4"
+                      >
+                        {/* Preferred Language Dropdown (Location-Prioritized at Top) */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className={`block text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                              Preferred Language <span className="text-rose-500">*</span>
+                            </label>
+                            {userRegion && (
+                              <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                                <span>📍</span>
+                                <span>{userRegion}</span>
+                              </span>
+                            )}
+                          </div>
 
-                  {/* Submit CTA Button */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full py-3.5 px-4 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition shadow-lg shadow-blue-600/30 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {loading ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          <span>Confirming Strategy Call...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Confirm 15-Min CA Strategy Call</span>
-                          <span>&rarr;</span>
-                        </>
-                      )}
-                    </button>
-                    <p className={`text-[10px] text-center mt-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      🔒 100% Free Consultation • Zero Obligation • Strict CA Client Confidentiality
-                    </p>
-                  </div>
+                          <div className="relative">
+                            <select
+                              value={selectedLanguage}
+                              onChange={(e) => setSelectedLanguage(e.target.value)}
+                              className={`w-full px-3.5 py-3 rounded-xl text-xs font-bold outline-hidden transition border appearance-none cursor-pointer ${
+                                isDark
+                                  ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500'
+                                  : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-blue-600'
+                              }`}
+                            >
+                              {orderedLanguages.map((lang, idx) => {
+                                const isLocalTop = idx === 0 && userRegion && lang.states.some((s) => userRegion.toLowerCase().includes(s.toLowerCase()));
+                                const label = `${lang.name} (${lang.nativeName})${isLocalTop ? ` ⭐ Detected for ${userRegion}` : ''}`;
+                                return (
+                                  <option
+                                    key={lang.code}
+                                    value={`${lang.name} (${lang.nativeName})`}
+                                    className={isDark ? 'bg-slate-900 text-white py-1' : 'bg-white text-slate-900 py-1'}
+                                  >
+                                    {label}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </div>
+                          <p className={`text-[11px] mt-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {userRegion
+                              ? `Local language for ${userRegion} is placed at the top of the menu.`
+                              : 'Select your preferred language for the Senior CA consultation.'}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={handlePrevStep}
+                            className={`px-4 py-3 rounded-xl font-bold text-xs border transition cursor-pointer ${
+                              isDark
+                                ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                                : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            &larr; Back
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleNextStep}
+                            className="flex-1 py-3 px-4 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <span>Continue</span>
+                            <span>&rarr;</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {step === 3 && (
+                      <motion.div
+                        key="step-3"
+                        custom={direction}
+                        initial={{ x: direction > 0 ? 36 : -36, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: direction > 0 ? -36 : 36, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                        className="space-y-3.5"
+                      >
+                        {/* Time to Call or Now Options */}
+                        <div>
+                          <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                            When Should We Call You? <span className="text-rose-500">*</span>
+                          </label>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* Option 1: Call Me Right Now */}
+                            <button
+                              type="button"
+                              onClick={() => setTimeMode('NOW')}
+                              className={`col-span-2 p-2.5 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
+                                timeMode === 'NOW'
+                                  ? isDark
+                                    ? 'bg-rose-950/60 border-rose-500 text-white shadow-xs'
+                                    : 'bg-rose-50 border-rose-400 text-rose-950 shadow-xs'
+                                  : isDark
+                                  ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="relative flex h-2.5 w-2.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                                </span>
+                                <div>
+                                  <span className="text-xs font-black block">⚡ Call Me Right Now</span>
+                                  <span className="text-[10px] font-semibold opacity-80 block">Senior CA will connect in 5–15 mins</span>
+                                </div>
+                              </div>
+                              <span className={`text-xs font-black ${timeMode === 'NOW' ? 'text-rose-500' : 'text-transparent'}`}>
+                                ✓
+                              </span>
+                            </button>
+
+                            {/* Option 2: Morning Slot */}
+                            <button
+                              type="button"
+                              onClick={() => setTimeMode('MORNING')}
+                              className={`p-2 rounded-xl border text-left transition cursor-pointer ${
+                                timeMode === 'MORNING'
+                                  ? isDark
+                                    ? 'bg-blue-950/60 border-blue-500 text-white'
+                                    : 'bg-blue-50 border-blue-400 text-blue-950'
+                                  : isDark
+                                  ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                              }`}
+                            >
+                              <span className="text-[11px] font-bold block">☀️ Morning</span>
+                              <span className="text-[10px] opacity-75 block">10:00 AM – 1:00 PM</span>
+                            </button>
+
+                            {/* Option 3: Afternoon Slot */}
+                            <button
+                              type="button"
+                              onClick={() => setTimeMode('AFTERNOON')}
+                              className={`p-2 rounded-xl border text-left transition cursor-pointer ${
+                                timeMode === 'AFTERNOON'
+                                  ? isDark
+                                    ? 'bg-blue-950/60 border-blue-500 text-white'
+                                    : 'bg-blue-50 border-blue-400 text-blue-950'
+                                  : isDark
+                                  ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                              }`}
+                            >
+                              <span className="text-[11px] font-bold block">⛅ Afternoon</span>
+                              <span className="text-[10px] opacity-75 block">1:00 PM – 4:00 PM</span>
+                            </button>
+
+                            {/* Option 4: Evening Slot */}
+                            <button
+                              type="button"
+                              onClick={() => setTimeMode('EVENING')}
+                              className={`p-2 rounded-xl border text-left transition cursor-pointer ${
+                                timeMode === 'EVENING'
+                                  ? isDark
+                                    ? 'bg-blue-950/60 border-blue-500 text-white'
+                                    : 'bg-blue-50 border-blue-400 text-blue-950'
+                                  : isDark
+                                  ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                              }`}
+                            >
+                              <span className="text-[11px] font-bold block">🌙 Evening</span>
+                              <span className="text-[10px] opacity-75 block">4:00 PM – 8:00 PM</span>
+                            </button>
+
+                            {/* Option 5: Custom Date & Time */}
+                            <button
+                              type="button"
+                              onClick={() => setTimeMode('CUSTOM')}
+                              className={`p-2 rounded-xl border text-left transition cursor-pointer ${
+                                timeMode === 'CUSTOM'
+                                  ? isDark
+                                    ? 'bg-blue-950/60 border-blue-500 text-white'
+                                    : 'bg-blue-50 border-blue-400 text-blue-950'
+                                  : isDark
+                                  ? 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                              }`}
+                            >
+                              <span className="text-[11px] font-bold block">📅 Custom Time</span>
+                              <span className="text-[10px] opacity-75 block">Pick date & hour</span>
+                            </button>
+                          </div>
+
+                          {/* Inline Custom Date & Time Picker */}
+                          {timeMode === 'CUSTOM' && (
+                            <div className="mt-2">
+                              <input
+                                type="datetime-local"
+                                value={customDateTime}
+                                onChange={(e) => setCustomDateTime(e.target.value)}
+                                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-hidden border ${
+                                  isDark
+                                    ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500'
+                                    : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-blue-600'
+                                }`}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Navigation & Submit CTA */}
+                        <div className="pt-2">
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={handlePrevStep}
+                              disabled={loading}
+                              className={`px-4 py-3.5 rounded-xl font-bold text-xs border transition cursor-pointer disabled:opacity-50 ${
+                                isDark
+                                  ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                                  : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
+                              }`}
+                            >
+                              &larr; Back
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={loading}
+                              className="flex-1 py-3.5 px-4 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition shadow-lg shadow-blue-600/30 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              {loading ? (
+                                <>
+                                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                  <span>Confirming...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>Confirm Strategy Call</span>
+                                  <span>&rarr;</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <p className={`text-[10px] text-center mt-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            🔒 100% Free Consultation • Zero Obligation • Strict CA Client Confidentiality
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </form>
               </>
             )}
