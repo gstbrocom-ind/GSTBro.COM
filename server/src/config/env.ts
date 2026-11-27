@@ -1,5 +1,8 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import { z } from 'zod';
+
+const DUMMY_TURNSTILE_TEST_KEY = '1x0000000000000000000000000000000AA';
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
@@ -23,14 +26,30 @@ const envSchema = z.object({
   APITXT_SMS_TEMPLATE_ID: z.string().trim().optional(),
   APITXT_API_BASE_URL: z.string().trim().url().default('https://apitxt.com/api'),
   OTP_PROVIDER: z.enum(['apitxt', '2factor']).default('apitxt'),
-  OTP_HASH_SECRET: z.string().trim().min(16).default('gstbro_secure_dedicated_otp_hmac_secret_2026'),
+  OTP_HASH_SECRET: z.string().trim().min(16).optional(),
   REDIS_URL: z.string().trim().optional(),
   TRUST_PROXY: z.coerce.boolean().default(true),
   CLOUDFLARE_ORIGIN_SECRET: z.string().trim().optional(),
-  TURNSTILE_SECRET_KEY: z.string().trim().default('1x0000000000000000000000000000000AA'),
+  TURNSTILE_SECRET_KEY: z.string().trim().optional(),
 });
 
-export const env = envSchema.parse(process.env);
+const parsedEnv = envSchema.parse(process.env);
+
+// Derive a strong per-deployment OTP HMAC secret from JWT_SECRET if OTP_HASH_SECRET is not explicitly provided
+const resolvedOtpSecret =
+  parsedEnv.OTP_HASH_SECRET ||
+  crypto.createHmac('sha256', parsedEnv.JWT_SECRET).update('gstbro-otp-hmac-v1').digest('hex');
+
+// Never silently fall back to Cloudflare's public dummy test key in production
+const resolvedTurnstileSecret =
+  parsedEnv.TURNSTILE_SECRET_KEY ||
+  (parsedEnv.NODE_ENV === 'production' ? '' : DUMMY_TURNSTILE_TEST_KEY);
+
+export const env = {
+  ...parsedEnv,
+  OTP_HASH_SECRET: resolvedOtpSecret,
+  TURNSTILE_SECRET_KEY: resolvedTurnstileSecret,
+};
 export const corsOrigins = Array.from(
   new Set([
     ...env.CORS_ORIGINS.split(',').map((o) => o.trim()),

@@ -44,6 +44,12 @@ export async function verifyTurnstileToken(
   }
 
   const secretKey = secretKeyOverride || env.TURNSTILE_SECRET_KEY;
+  if (!secretKey) {
+    return {
+      success: false,
+      error: 'Turnstile verification is not configured on the server.',
+    };
+  }
 
   try {
     const formData = new URLSearchParams();

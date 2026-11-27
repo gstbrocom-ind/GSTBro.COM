@@ -47,10 +47,11 @@ app.addHook('onRequest', async (request, reply) => {
 // 2. Defensive HTTP Security Headers
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Content-Type-Options', 'nosniff');
-  reply.header('X-Frame-Options', 'SAMEORIGIN');
+  reply.header('X-Frame-Options', 'DENY');
   reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
-  reply.header('X-XSS-Protection', '1; mode=block');
+  reply.header('Cross-Origin-Resource-Policy', 'same-site');
   reply.header('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  reply.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
   if (request.url.startsWith('/api/')) {
     reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     reply.header('Pragma', 'no-cache');
@@ -105,10 +106,7 @@ await app.register(cors, {
       cb(null, true);
       return;
     }
-    if (
-      corsOrigins.includes(origin) ||
-      /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin)
-    ) {
+    if (corsOrigins.includes(origin)) {
       cb(null, true);
       return;
     }
@@ -118,7 +116,7 @@ await app.register(cors, {
 });
 await app.register(jwt, {
   secret: env.JWT_SECRET,
-  sign: { expiresIn: '30d' }, // Tokens expire after 7 days; never-expiring tokens are a critical vulnerability
+  sign: { expiresIn: '7d' }, // Tokens expire after 7 days; never-expiring tokens are a critical vulnerability
 });
 await app.register(rateLimit, {
   global: true,
